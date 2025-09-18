@@ -13,40 +13,28 @@ class UserSeeder extends Seeder
         // Manually inserted users
         $manualUsers = [
             [
-                'username' => 'admin',
+                'name' => 'admin',
                 'email' => 'admin@gmail.com',
+                'phone' => '1234546788',
                 'role' => 'admin',
                 'password' => Hash::make('12345678'),
+                'unique_id' => '198563'
             ],
             [
-                'username' => 'teacher1',
-                'email' => 'teacher1@gmail.com',
-                'role' => 'teacher',
+                'name' => 'employee1',
+                'email' => 'employee1@gmail.com',
+                'phone' => '9876543456',
+                'role' => 'employee',
                 'password' => Hash::make('12345678'),
+                'unique_id' => '198763'
             ],
             [
-                'username' => 'teacher2',
-                'email' => 'teacher2@gmail.com',
-                'role' => 'teacher',
+                'name' => 'employee2',
+                'email' => 'employee2@gmail.com',
+                'phone' => '98765333456',
+                'role' => 'employee',
                 'password' => Hash::make('12345678'),
-            ],
-            [
-                'username' => 'teacher3',
-                'email' => 'teacher3@gmail.com',
-                'role' => 'teacher',
-                'password' => Hash::make('12345678'),
-            ],
-            [
-                'username' => 'teacher4',
-                'email' => 'teacher4@gmail.com',
-                'role' => 'teacher',
-                'password' => Hash::make('12345678'),
-            ],
-            [
-                'username' => 'teacher5',
-                'email' => 'teacher5@gmail.com',
-                'role' => 'teacher',
-                'password' => Hash::make('12345678'),
+                'unique_id' => '118763'
             ],
         ];
 

@@ -2,9 +2,9 @@
 @charset "UTF-8";
 
 :root {
-    --primary-bg-color: #7a2048;
-    --primary-bg-hover: #7a2048;
-    --primary-bg-border: #7a2048;
+    --primary-bg-color: #38a3a5;
+    --primary-bg-hover: #38a3a5;
+    --primary-bg-border: #38a3a5;
     --dark-body: #2c2f3e;
     --dark-theme: rgba(0, 0, 0, .3);
     --dark-bg: rgba(0, 0, 0, .2);
