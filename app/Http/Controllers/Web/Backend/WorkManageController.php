@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Web\Backend;
 
+use App\Models\Category;
+use App\Models\RescheduleRequest;
 use Exception;
 use App\Models\Work;
 use Illuminate\Http\Request;
@@ -16,7 +18,7 @@ class WorkManageController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $works = Work::latest('id')->get();
+            $works = Work::with('category', 'team')->latest('id')->get();
 
             return DataTables::of($works)
                 ->addIndexColumn()
@@ -26,9 +28,31 @@ class WorkManageController extends Controller
                     return strlen($item->title) > 15 ? substr($item->title, 0, 15) . '...' : $item->title;
                 })
 
-                // Description
-                ->addColumn('description', function ($item) {
-                    return strlen($item->description) > 25 ? substr($item->description, 0, 25) . '...' : $item->description;
+                // Unique ID
+                ->addColumn('id', fn($item) => $item->unique_id)
+
+                // Category
+                ->addColumn('category', function ($item) {
+                    $categoryName = $item->category ? $item->category->name : 'No Category';
+
+                    // truncate if more than 15 chars
+                    if (strlen($categoryName) > 15) {
+                        $categoryName = substr($categoryName, 0, 15) . '...';
+                    }
+
+                    return '<span class="badge bg-info">' . e($categoryName) . '</span>';
+                })
+
+                // Team
+                ->addColumn('team', function ($item) {
+                    $teamName = $item->team ? $item->team->name : 'No Team';
+
+                    // truncate if more than 15 chars
+                    if (strlen($teamName) > 15) {
+                        $teamName = substr($teamName, 0, 15) . '...';
+                    }
+
+                    return '<span class="badge bg-success">' . e($teamName) . '</span>';
                 })
 
                 // Location
@@ -73,11 +97,6 @@ class WorkManageController extends Controller
                             <i class="fa fa-pen-to-square"></i> Edit
                             </button>
 
-                            <button type="button" class="btn btn-sm btn-success rescheduleBtn"
-                                data-id="' . $item->id . '">
-                                <i class="fas fa-calendar"></i> Reschedule
-                            </button>
-
                            <button type="button" class="btn btn-sm btn-danger deleteBtn"
                                 onclick="showDeleteConfirm(' . $item->id . ')">
                                 <i class="fa fa-trash"></i> Delete
@@ -85,11 +104,15 @@ class WorkManageController extends Controller
                         </div>';
                 })
 
-                ->rawColumns(['title', 'description', 'location', 'is_completed', 'is_rescheduled', 'status', 'action'])
+                ->rawColumns(['title', 'location', 'is_completed', 'is_rescheduled', 'status', 'action', 'category', 'team'])
                 ->make();
         }
 
-        return view("backend.layouts.works.index");
+        // work reschedule request
+        $scheduleRequest = RescheduleRequest::where('status', true)->count();
+
+        // compact use
+        return view("backend.layouts.works.index", compact('scheduleRequest'));
     }
 
     // Store work
@@ -109,6 +132,10 @@ class WorkManageController extends Controller
                 'end_time'     => 'nullable|date_format:H:i',
                 'work_date'    => 'nullable|date',
                 'team_id'      => 'nullable|exists:teams,id',
+
+                // Category
+                'category_id' => 'nullable|exists:categories,id',
+                'category_name' => 'nullable|string|max:255',
             ]);
 
             if ($validator->fails()) {
@@ -117,6 +144,13 @@ class WorkManageController extends Controller
                     'message' => 'Validation failed',
                     'errors'  => $validator->errors(),
                 ], 422);
+            }
+
+            // Handle Asset Class
+            if (!$request->category_id && $request->category_name) {
+                Category::create([
+                    'name'       => $request->category_name,
+                ]);
             }
 
             // Save Work
@@ -130,6 +164,8 @@ class WorkManageController extends Controller
                 'end_time'      => $request->end_time,
                 'work_date'     => $request->work_date,
                 'team_id'       => $request->team_id,
+                'category_id'   => $request->category_id,
+                'unique_id' => 'W_' . date('ymd') . mt_rand(100, 999),
             ]);
 
             DB::commit();
@@ -171,7 +207,14 @@ class WorkManageController extends Controller
         DB::beginTransaction();
 
         try {
-            $work = Work::findOrFail($id);
+            $work = Work::find($id);
+
+            if(!$work){
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Work not found!'
+                ]);
+            }
 
             // Validation
             $validator = Validator::make($request->all(), [
@@ -268,6 +311,17 @@ class WorkManageController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Status Changed successfully!',
+        ]);
+    }
+
+    // List of all category
+    public function getCategory()
+    {
+        $categories = Category::select('id', 'name')->get();
+
+        return response()->json([
+            'status' => true,
+            'data'   => $categories
         ]);
     }
 }

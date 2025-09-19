@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\Backend\EmployeeAssignController;
 use App\Http\Controllers\Web\Backend\WorkManageController;
+use App\Http\Controllers\Web\Backend\WorkScheduleRequest;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\Backend\DashboardController;
 use App\Http\Controllers\Web\Backend\EmployeeManageController;
@@ -15,11 +16,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // employee manage
-
     Route::prefix('employee')->name('employee.')->group(function () {
         Route::get('/list', [EmployeeManageController::class, 'index'])->name('list');
         Route::post('/store', [EmployeeManageController::class, 'store'])->name('store');
-        Route::get('/show/{id}', [EmployeeManageController::class, 'show'])->name('show');
         Route::get('/edit/{id}', [EmployeeManageController::class, 'edit'])->name('edit');
         Route::post('/update/{id}', [EmployeeManageController::class, 'update'])->name('update');
         Route::delete('/delete/{id}', [EmployeeManageController::class, 'delete'])->name('delete');
@@ -52,7 +51,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('/update/{id}', [WorkManageController::class, 'update'])->name('update');
         Route::delete('/delete/{id}', [WorkManageController::class, 'delete'])->name('delete');
         Route::post('/status/{id}', [WorkManageController::class, 'status'])->name('status');
+
+        // category
+        Route::get('/category', [WorkManageController::class, 'getCategory'])->name('categroy');
     });
+
+    // work reschedule request
+    Route::get('reschedule-request', [WorkScheduleRequest::class, 'index'])->name('reschedule.work.list');
+    Route::get('reschedule-request/edit/{id}', [WorkScheduleRequest::class, 'edit'])->name('reschedule.work.edit');
+    Route::post('reschedule-request/update/{id}', [WorkScheduleRequest::class, 'update'])->name('reschedule.work.update');
 });
 
 

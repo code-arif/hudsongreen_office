@@ -21,13 +21,23 @@
                 </div>
 
                 {{-- Alert message --}}
-                <div class="alert alert-success alert-dismissible d-flex justify-content-between align-items-center fade show"
-                    role="alert">
-                    <div>
-                        <strong>Reschedule Request</strong> 5 works has reschedule request <a class="btn btn-sm btn-primary" href="#">Check It Out</a>
+                @if (!empty($scheduleRequest) && $scheduleRequest > 0)
+                    <div class="alert alert-success alert-dismissible d-flex justify-content-between align-items-center fade show"
+                        role="alert">
+                        <div class="d-flex align-items-center gap-2">
+                            <strong>Reschedule Request</strong>
+                            <span class="badge rounded-circle bg-primary text-white"
+                                style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                                {{ $scheduleRequest }}
+                            </span>
+                            works have reschedule request
+                            <a class="btn btn-sm btn-primary ms-2" href="{{ route('reschedule.work.list') }}">Check It
+                                Out</a>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">&times;</button>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">&times;</button>
-                </div>
+                @endif
+
 
                 <div class="row">
                     {{-- work table section --}}
@@ -48,7 +58,9 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Title</th>
-                                                <th>Description</th>
+                                                <th>ID</th>
+                                                <th>Category</th>
+                                                <th>Team</th>
                                                 <th>Location</th>
                                                 <th>Start Time</th>
                                                 <th>End Time</th>
@@ -89,25 +101,41 @@
                     <div class="modal-body">
                         <div class="row">
                             {{-- Title --}}
-                            <div class="col-md-6">
-                                <label class="form-label">Title</label>
-                                <input type="text" class="form-control" name="title" id="work_title"
-                                    placeholder="work Title">
-                                <span class="text-danger error-text title_error"></span>
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-2 bg-light equal-box">
+                                    <label class="form-label">Title</label>
+                                    <input type="text" class="form-control" name="title" id="work_title"
+                                        placeholder="Enter Work Title">
+                                    <span class="text-danger error-text title_error"></span>
+                                </div>
                             </div>
 
                             {{-- Team select --}}
-                            <div class="col-md-6" style="margin-top: 8px">
-                                <label for="team_id">Select Team</label>
-                                <select name="team_id" id="team_id" class="form-control">
-                                    <option value="">-- Select Team --</option>
-                                </select>
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-2 bg-light equal-box">
+                                    <label for="team_id">Select Team</label>
+                                    <select name="team_id" id="team_id" class="form-control">
+                                        <option value="">-- Select Team --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {{-- Category --}}
+                            <div class="col-md-4 mb-3">
+                                <div class="p-3 rounded-2 bg-light equal-box">
+                                    <label class="form-label">Select Category</label>
+                                    <select name="category_id" id="category_id" class="form-control">
+                                        <option value="">-- Select Category --</option>
+                                    </select>
+                                    <input type="text" name="category_name" class="form-control mt-2"
+                                        placeholder="Or create new category">
+                                </div>
                             </div>
 
                             {{-- Description --}}
                             <div class="col-md-12">
                                 <label class="form-label">Description</label>
-                                <textarea class="form-control" name="description" id="work_description" rows="3" placeholder="work Description"></textarea>
+                                <textarea class="form-control" name="description" id="work_description" rows="3" placeholder="Work Description"></textarea>
                                 <span class="text-danger error-text description_error"></span>
                             </div>
 
@@ -121,7 +149,7 @@
                             <div class="col-md-6 mt-3">
                                 <label class="form-label">Location</label>
                                 <input type="text" class="form-control" name="location" id="work_location"
-                                    placeholder="work Location">
+                                    placeholder="Work Location">
                                 <span class="text-danger error-text location_error"></span>
                             </div>
 
@@ -186,6 +214,15 @@
 
         .leaflet-control-geocoder-form input {
             width: 200px;
+        }
+    </style>
+
+    <style>
+        .equal-box {
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
     </style>
 @endpush
@@ -333,7 +370,6 @@
                     [10, 25, 50, 100, "All"]
                 ],
                 processing: true,
-                responsive: true,
                 serverSide: true,
                 language: {
                     processing: `<div class="text-center">
@@ -353,7 +389,13 @@
                         data: 'title'
                     },
                     {
-                        data: 'description'
+                        data: 'id'
+                    },
+                    {
+                        data: 'category'
+                    },
+                    {
+                        data: 'team'
                     },
                     {
                         data: 'location'
@@ -402,6 +444,18 @@
                                 `<option value="${team.id}">${team.name} (${team.unique_id})</option>`;
                         });
                         $('#team_id').html(options);
+                    }
+                });
+
+                // Load category dynamically
+                $.get("{{ route('work.categroy') }}", function(response) {
+                    if (response.status) {
+                        let options = '<option value="">-- Select Category--</option>';
+                        response.data.forEach(function(category) {
+                            options +=
+                                `<option value="${category.id}">${category.name}</option>`;
+                        });
+                        $('#category_id').html(options);
                     }
                 });
 

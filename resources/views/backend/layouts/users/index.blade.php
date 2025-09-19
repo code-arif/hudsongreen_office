@@ -41,9 +41,10 @@
                                                 <th>#</th>
                                                 <th>Avatar</th>
                                                 <th>Name</th>
+                                                <th>ID</th>
                                                 <th>Email</th>
-                                                <th>Pssword</th>
                                                 <th>Phone</th>
+                                                <th>Pssword</th>
                                                 <th>Address</th>
                                                 <th>Teams</th>
                                                 <th>Action</th>
@@ -75,7 +76,7 @@
 
                 <form id="userForm" enctype="multipart/form-data">
                     @csrf
-                     <input type="hidden" name="id" id="userID">
+                    <input type="hidden" name="id" id="userID">
                     <div class="modal-body">
 
                         <div class="row">
@@ -85,6 +86,7 @@
                                         class="text-danger">*</span></label>
                                 <input type="text" id="name" name="name" class="form-control"
                                     placeholder="Enter full name" required>
+                                <span class="text-danger error-text name_error"></span>
                             </div>
 
                             <!-- Email -->
@@ -92,6 +94,7 @@
                                 <label for="email" class="form-label">Email</label>
                                 <input type="email" id="email" name="email" class="form-control"
                                     placeholder="Enter email">
+                                <span class="text-danger error-text email_error"></span>
                             </div>
 
                             <!-- Phone -->
@@ -99,6 +102,7 @@
                                 <label for="phone" class="form-label">Phone</label>
                                 <input type="text" id="phone" name="phone" class="form-control"
                                     placeholder="Enter phone number">
+                                <span class="text-danger error-text phone_error"></span>
                             </div>
 
                             <!-- Password -->
@@ -106,6 +110,7 @@
                                 <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
                                 <input type="text" id="password" name="password" class="form-control"
                                     placeholder="Enter password" required>
+                                <span class="text-danger error-text password_error"></span>
                             </div>
 
                             <!-- Address -->
@@ -206,7 +211,10 @@
                             data: 'name',
                             name: 'name'
                         },
-
+                        {
+                            data: 'unique_id',
+                            name: 'unique_id'
+                        },
                         {
                             data: 'email',
                             name: 'email',

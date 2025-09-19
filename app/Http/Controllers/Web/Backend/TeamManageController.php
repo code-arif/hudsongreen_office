@@ -43,7 +43,7 @@ class TeamManageController extends Controller
                 // Users list (name + unique_id)
                 ->addColumn('users', function ($item) {
                     if ($item->users->isEmpty()) {
-                        return '<span class="badge bg-secondary">No Users</span>';
+                        return '<span class="badge bg-secondary">No Empoyee</span>';
                     }
 
                     // Wrap badges in a div with flex-wrap
@@ -103,7 +103,8 @@ class TeamManageController extends Controller
             $team = Team::create([
                 'name' => $request->name,
                 'description' => $request->description,
-                'unique_id' => uniqid('TEAM_'),
+                'unique_id' => 'TEAM_' . date('ymd') . mt_rand(100, 999),
+
             ]);
 
             return response()->json([

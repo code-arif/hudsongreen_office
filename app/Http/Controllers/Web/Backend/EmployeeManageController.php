@@ -61,7 +61,7 @@ class EmployeeManageController extends Controller
                 // Avatar
                 ->addColumn('avatar', function ($item) {
                     if ($item->avatar) {
-                        return '<img src="' . asset('/' . $item->avatar) . '" alt="avatar" width="70" height="60">';
+                        return '<img src="' . asset('/' . $item->avatar) . '" alt="avatar" width="60" height="40">';
                     }
                     return '<span class="badge bg-secondary">No Avatar</span>';
                 })
@@ -98,13 +98,14 @@ class EmployeeManageController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'name'      => 'required|string|max:255',
-                'email'     => 'nullable|email|unique:users,email',
-                'phone'     => 'nullable|string|max:20|unique:users,phone',
-                'password'  => 'required|string|min:6',
-                'address'  => 'nullable|string|max:255',
-                'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+                'name' => 'required|string|max:255',
+                'email' => 'nullable|email|unique:users,email',
+                'phone' => 'nullable|string|max:20|unique:users,phone',
+                'password' => 'required|min:6',
+                'address' => 'nullable|string|max:255',
+                'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             ]);
+
 
             if ($validator->fails()) {
                 return response()->json([
@@ -129,7 +130,7 @@ class EmployeeManageController extends Controller
                 'role'          => 'employee',
                 'address'      => $request->address,
                 'avatar'        => $avatarPath,
-                'unique_id'     => uniqid('USR_'),
+                'unique_id' => 'USR_' . date('ymd') . mt_rand(100, 999),
                 'is_google_signin' => false,
                 'is_apple_signin'  => false,
             ]);

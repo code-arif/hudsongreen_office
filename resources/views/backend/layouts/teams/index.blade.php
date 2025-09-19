@@ -40,7 +40,7 @@
                                                 <th>#</th>
                                                 <th>Team Name</th>
                                                 <th>Description</th>
-                                                <th>Unique ID</th>
+                                                <th>ID</th>
                                                 <th>Users</th>
                                                 <th>Action</th>
                                             </tr>
@@ -82,7 +82,8 @@
                                 <label for="name" class="form-label">Team Name <span
                                         class="text-danger">*</span></label>
                                 <input type="text" id="name" name="name" class="form-control"
-                                    placeholder="Enter full name" required>
+                                    placeholder="Enter team name">
+                                <span class="text-danger error-text name_error"></span>
                             </div>
 
 
@@ -119,7 +120,8 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="user_ids">Select Employees</label>
-                            <select name="user_ids[]" id="user_ids" class="form-control" multiple required style="height: 300px">
+                            <select name="user_ids[]" id="user_ids" class="form-control" multiple required
+                                style="height: 300px">
                                 <!-- Employees will be loaded dynamically -->
                             </select>
                         </div>
@@ -357,7 +359,7 @@
 
                         allUsers.forEach(user => {
                             let selected = assignedUsers.includes(user.id) ? 'selected' :
-                            '';
+                                '';
                             $('#user_ids').append('<option value="' + user.id + '" ' +
                                 selected + '>' + user.name + ' (' + user.unique_id +
                                 ')</option>');

@@ -61,7 +61,7 @@
                     <ul class="slide-menu">
                         <li><a href="{{ route('work.list') }}" class="slide-item">Work List</a>
                         </li>
-                        <li><a href="#" class="slide-item">Reschedule Request</a>
+                        <li><a href="{{ route('reschedule.work.list') }}" class="slide-item">Reschedule Request</a>
                         </li>
                     </ul>
                 </li>

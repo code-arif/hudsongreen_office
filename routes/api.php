@@ -1,13 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\WorkScheduleRequest;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\CMSDataController;
-use App\Http\Controllers\Api\StudentController;
-use App\Http\Controllers\Api\FitnessTestController;
-use App\Http\Controllers\Api\Auth\UserProfileController;
 use App\Http\Controllers\Api\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\Auth\AuthenticationController;
-use App\Http\Controllers\Api\FitnessTestScoreController;
 
 //health-check
 Route::get("/check", function () {
@@ -22,8 +18,6 @@ Route::group(['middleware' => 'guest:api'], function () {
 
     // Password Reset
     Route::post('/reset-password', [ResetPasswordController::class, 'ResetPassword']);
-
-
 });
 
 
@@ -32,8 +26,9 @@ Route::group(['middleware' => 'auth:api'], function () {
     //User logout
     Route::post('/logout', [AuthenticationController::class, 'logout']);
 
-    //Profile
-    Route::get('/profile', [UserProfileController::class, 'profile']);
-    Route::post('/update-profile', [UserProfileController::class, 'updateProfile']);
-    Route::post('/update-avatar', [UserProfileController::class, 'updateAvatar']);
+    // Work reschedule request
+    Route::post('/reschedule-request/store',[WorkScheduleRequest::class, 'store']);
+    Route::get('/reschedule-request/edit/{id}',[WorkScheduleRequest::class, 'edit']);
+    Route::post('/reschedule-request/update/{id}',[WorkScheduleRequest::class, 'update']);
+    Route::delete('/reschedule-request/delete/{id}',[WorkScheduleRequest::class, 'destroy']);
 });
