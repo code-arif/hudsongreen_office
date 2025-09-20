@@ -66,6 +66,15 @@
                     </ul>
                 </li>
 
+                {{-- calender --}}
+                <li class="slide">
+                    <a class="side-menu__item {{ request()->routeIs('calendar') ? 'has-link' : '' }}"
+                        href="{{ route('calendar') }}">
+                        <i class="fa fa-calendar" style="margin-right: 8px;"></i>
+                        <span class="side-menu__label">Calender</span>
+                    </a>
+                </li>
+
 
                 <h3>CMS</h3>
 
@@ -82,16 +91,13 @@
                     </a>
 
                     <ul class="slide-menu">
-                        <li><a href="{{ route('setting.general.index') }}" class="slide-item">Privacy Policy</a>
-                        </li>
-                        <li><a href="{{ route('setting.general.index') }}" class="slide-item">Terms or Services</a>
-                        </li>
-                        <li><a href="{{ route('setting.general.index') }}" class="slide-item">General Settings</a>
-                        </li>
-                        <li><a href="{{ route('setting.profile.index') }}" class="slide-item">Profile Settings</a>
-                        </li>
-                    </ul>
                 </li>
+                <li><a href="{{ route('setting.general.index') }}" class="slide-item">General Settings</a>
+                </li>
+                <li><a href="{{ route('setting.profile.index') }}" class="slide-item">Profile Settings</a>
+                </li>
+            </ul>
+            </li>
             </ul>
             <div class="slide-right" id="slide-right"><svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191"
                     width="24" height="24" viewBox="0 0 24 24">

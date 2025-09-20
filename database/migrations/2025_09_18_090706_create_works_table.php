@@ -24,7 +24,7 @@ return new class extends Migration
             $table->boolean('is_completed')->default(false);
             $table->boolean('is_rescheduled')->default(false);
             $table->text('note')->nullable();
-            $table->tinyInteger('status')->default(1);
+            $table->tinyInteger('status')->default(0);
 
             $table->foreignId('team_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('cascade');

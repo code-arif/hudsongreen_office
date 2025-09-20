@@ -16,8 +16,7 @@ class EmployeeManageController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            // $users = User::where('role', 'employee')->latest('id')->get();
-            $query = User::with('teams')->where('role', '!=', 'admin')->latest('id');
+            $query = User::with('team')->where('role', '!=', 'admin')->latest('id');
             $users = $query->get();
 
             return DataTables::of($users)
@@ -45,18 +44,16 @@ class EmployeeManageController extends Controller
                 })
 
                 // teams
-                ->addColumn('teams', function ($item) {
-                    if ($item->teams->isEmpty()) {
-                        return '<span class="badge bg-secondary">No Teams</span>';
+                ->addColumn('team', function ($item) {
+                    if (!$item->team || !$item->team->team) {
+                        return '<span class="badge bg-secondary">No Team</span>';
                     }
 
-                    // Wrap badges in a div with flex-wrap
-                    $badges = $item->teams->map(function ($team) {
-                        return '<span class="badge bg-primary me-1 mb-1">' . $team->name . ' (' . $team->unique_id . ')</span>';
-                    })->implode(' ');
-
-                    return '<div style="display: flex; flex-wrap: wrap;">' . $badges . '</div>';
+                    return '<span class="badge bg-primary">'
+                        . $item->team->team->name
+                        . ' (' . $item->team->team->unique_id . ')</span>';
                 })
+
 
                 // Avatar
                 ->addColumn('avatar', function ($item) {
@@ -78,6 +75,12 @@ class EmployeeManageController extends Controller
                             <i class="fa fa-pen-to-square"></i> Edit
                             </button>
 
+                            <button type="button"
+                                   class="btn btn-info btn-sm calendarBtn"
+                                   data-id="' . $item->id . '">
+                            <i class="fa fa-calendar"></i> Calendar
+                            </button>
+
                             <button type="button" class="btn btn-sm btn-danger deleteBtn"
                                 onclick="showDeleteConfirm(' . $item->id . ')">
                                 <i class="fa fa-trash"></i> Delete
@@ -85,13 +88,12 @@ class EmployeeManageController extends Controller
                         </div>';
                 })
 
-                ->rawColumns(['avatar', 'action', 'teams'])
+                ->rawColumns(['avatar', 'action', 'team'])
                 ->make();
         }
 
         return view("backend.layouts.users.index");
     }
-
 
     // store employee
     public function store(Request $request)
@@ -121,6 +123,22 @@ class EmployeeManageController extends Controller
                 $avatarPath = Helper::uploadImage($request->file('avatar'), 'avatars');
             }
 
+            // Find last created user with numeric unique_id
+            $lastUser = User::where('unique_id', 'like', 'USR_%')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            if ($lastUser) {
+                // Get numeric part and increment
+                $lastNumber = (int)substr($lastUser->unique_id, 4); // remove 'USR_'
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1; // first user
+            }
+
+            // Format with leading zeros
+            $uniqueId = 'USR_' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
+
             // Create user
             $user = User::create([
                 'name'          => $request->name,
@@ -128,9 +146,9 @@ class EmployeeManageController extends Controller
                 'phone'         => $request->phone,
                 'password'      => $request->password,
                 'role'          => 'employee',
-                'address'      => $request->address,
+                'address'       => $request->address,
                 'avatar'        => $avatarPath,
-                'unique_id' => 'USR_' . date('ymd') . mt_rand(100, 999),
+                'unique_id'     => $uniqueId,
                 'is_google_signin' => false,
                 'is_apple_signin'  => false,
             ]);
@@ -225,7 +243,6 @@ class EmployeeManageController extends Controller
             ], 500);
         }
     }
-
 
     // Delete employee
     public function delete($id)

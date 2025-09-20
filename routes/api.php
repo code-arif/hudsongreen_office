@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\WorkController;
 use App\Http\Controllers\Api\WorkScheduleRequest;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\Auth\AuthenticationController;
 
 //health-check
@@ -15,9 +15,6 @@ Route::group(['middleware' => 'guest:api'], function () {
 
     // Login & Register
     Route::post('/login', [AuthenticationController::class, 'login']);
-
-    // Password Reset
-    Route::post('/reset-password', [ResetPasswordController::class, 'ResetPassword']);
 });
 
 
@@ -31,4 +28,13 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/reschedule-request/edit/{id}',[WorkScheduleRequest::class, 'edit']);
     Route::post('/reschedule-request/update/{id}',[WorkScheduleRequest::class, 'update']);
     Route::delete('/reschedule-request/delete/{id}',[WorkScheduleRequest::class, 'destroy']);
+
+    // Work manage
+    Route::group(['prefix' => 'work'],function(){
+        Route::get('/list', [WorkController::class,'index']);
+        Route::get('/map', [WorkController::class,'mapView']);
+        Route::post('/complete/{id}', [WorkController::class,'completeWork']);
+        Route::get('/details/{id}', [WorkController::class, 'show']);
+    });
+
 });

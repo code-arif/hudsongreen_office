@@ -46,7 +46,7 @@
                                                 <th>Phone</th>
                                                 <th>Pssword</th>
                                                 <th>Address</th>
-                                                <th>Teams</th>
+                                                <th>Team</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -63,6 +63,14 @@
         </div>
     </div>
 
+    <!-- Loader Overlay -->
+    <div id="ajax-loader"
+        style="display:none; position:fixed;
+        width:100%; height:100%; background:rgba(255,255,255,0.7);
+        z-index:9999; text-align:center;">
+           <img src="{{ asset('default/loader.gif') }}" alt="Loading..." style="width:100px; height:100px;">
+           {{-- <div>Loading...</div> --}}
+    </div>
 
     <!-- User Create Modal -->
     <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
@@ -138,7 +146,33 @@
             </div>
         </div>
     </div>
+
+    {{-- user calender modal show --}}
+    <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="calendarModalLabel">User Calendar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"> &times;
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    {{-- <div id="userCalendar"></div> --}}
+                    <div id="userCalendar" style="height: 600px;"></div>
+
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
+
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core/main.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid/main.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid/main.css" rel="stylesheet" />
+@endpush
 
 {{-- place to push page-specific scripts --}}
 @push('scripts')
@@ -155,7 +189,6 @@
             });
         });
     </script>
-
 
 
     {{-- datatable and form submission --}}
@@ -266,8 +299,8 @@
                             name: 'address'
                         },
                         {
-                            data: 'teams',
-                            name: 'teams'
+                            data: 'team',
+                            name: 'team'
                         },
 
                         {
@@ -445,3 +478,45 @@
         }
     </script>
 @endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        let calendar;
+
+        $(document).on('click', '.calendarBtn', function() {
+            // Show loader immediately
+            $('#ajax-loader').show();
+
+            let calendarEl = document.getElementById('userCalendar');
+
+            // Destroy previous instance if exists
+            if (calendar) {
+                calendar.destroy();
+            }
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                events: @json(''),
+            });
+
+            // Show modal
+            $('#calendarModal').modal('show');
+
+            // Once modal is fully shown, render calendar and hide loader
+            $('#calendarModal').on('shown.bs.modal', function() {
+                calendar.render();
+                $('#ajax-loader').hide();
+            });
+
+            // Optional: remove the 'shown' handler after it's called once
+            $('#calendarModal').one('hidden.bs.modal', function () {
+                $('#calendarModal').off('shown.bs.modal');
+            });
+        });
+    });
+</script>
+@endpush
+

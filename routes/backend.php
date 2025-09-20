@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\Backend\CalendarController;
 use App\Http\Controllers\Web\Backend\EmployeeAssignController;
 use App\Http\Controllers\Web\Backend\WorkManageController;
 use App\Http\Controllers\Web\Backend\WorkScheduleRequest;
@@ -60,6 +61,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('reschedule-request', [WorkScheduleRequest::class, 'index'])->name('reschedule.work.list');
     Route::get('reschedule-request/edit/{id}', [WorkScheduleRequest::class, 'edit'])->name('reschedule.work.edit');
     Route::post('reschedule-request/update/{id}', [WorkScheduleRequest::class, 'update'])->name('reschedule.work.update');
+
+    // work calendar
+    Route::get('/calendar', [CalendarController::class, 'calendar'])->name('calendar');
 });
 
 

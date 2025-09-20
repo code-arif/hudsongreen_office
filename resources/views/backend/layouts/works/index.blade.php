@@ -46,9 +46,29 @@
                             <div class="card-body">
 
                                 <div class="card-header border-bottom mb-3">
-                                    <div class="card-options ms-auto">
+                                    <div class="card-options ms-auto d-flex align-items-center gap-2">
+
+                                        <!-- Completed Filter -->
+                                        <select id="filter_completed" class="form-select form-select-sm"
+                                            style="width: 180px;">
+                                            <option value="">-- Completed Filter --</option>
+                                            <option value="1">Completed</option>
+                                            <option value="0">Not Completed</option>
+                                        </select>
+
+                                        <!-- Rescheduled Filter -->
+                                        <select id="filter_rescheduled" class="form-select form-select-sm"
+                                            style="width: 180px;">
+                                            <option value="">-- Rescheduled Filter --</option>
+                                            <option value="1">Rescheduled</option>
+                                            <option value="0">Not Rescheduled</option>
+                                        </select>
+
+                                        <!-- Add Button -->
                                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
-                                            data-bs-target="#workModal" id="addworkBtn">Add Work</button>
+                                            data-bs-target="#workModal" id="addworkBtn">
+                                            Add Work
+                                        </button>
                                     </div>
                                 </div>
 
@@ -149,7 +169,7 @@
                             <div class="col-md-6 mt-3">
                                 <label class="form-label">Location</label>
                                 <input type="text" class="form-control" name="location" id="work_location"
-                                    placeholder="Work Location">
+                                    placeholder="Work Location" readonly>
                                 <span class="text-danger error-text location_error"></span>
                             </div>
 
@@ -373,12 +393,16 @@
                 serverSide: true,
                 language: {
                     processing: `<div class="text-center">
-                        <img src="{{ asset('default/loader.gif') }}" alt="Loader" style="width: 50px;">
-                    </div>`
+                                    <img src="{{ asset('default/loader.gif') }}" alt="Loader" style="width: 50px;">
+                                </div>`
                 },
                 ajax: {
                     url: "{{ route('work.list') }}",
                     type: "GET",
+                    data: function(d) {
+                        d.is_completed = $('#filter_completed').val();
+                        d.is_rescheduled = $('#filter_rescheduled').val();
+                    }
                 },
                 columns: [{
                         data: 'DT_RowIndex',
@@ -425,6 +449,12 @@
                     }
                 ]
             });
+
+            // reload table on filter change
+            $('#filter_completed, #filter_rescheduled').change(function() {
+                dTable.ajax.reload();
+            });
+
 
 
             // Open modal for new work

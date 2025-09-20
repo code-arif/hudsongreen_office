@@ -386,16 +386,13 @@
                         toastr.error(res.message || 'Something went wrong');
                     }
                 }).fail(function(xhr) {
-                    if (xhr.status === 422) {
-                        $.each(xhr.responseJSON.errors, function(key, val) {
-                            toastr.error(val[0]);
-                        });
+                    if (xhr.status === 409) {
+                        toastr.error(xhr.responseJSON.message);
                     } else {
                         toastr.error('Something went wrong. Try again.');
                     }
                 });
             });
-
         });
     </script>
 @endpush

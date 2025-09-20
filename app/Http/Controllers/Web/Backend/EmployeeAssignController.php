@@ -36,11 +36,22 @@ class EmployeeAssignController extends Controller
             $userIds = $request->user_ids;
 
             foreach ($userIds as $userId) {
-                // Avoid duplicate assignment
-                TeamUser::updateOrCreate(
-                    ['team_id' => $teamId, 'user_id' => $userId],
-                    [] // no extra fields to update
-                );
+                // Check if user already belongs to any team
+                $exists = TeamUser::where('user_id', $userId)->exists();
+
+                if ($exists) {
+                    $user = User::find($userId);
+
+                    return response()->json([
+                        'status' => false,
+                        'message' => "User '{$user->name}' is already assigned to another team.",
+                    ], 409);
+                }
+
+                TeamUser::create([
+                    'team_id' => $teamId,
+                    'user_id' => $userId,
+                ]);
             }
 
             return response()->json([
@@ -55,6 +66,8 @@ class EmployeeAssignController extends Controller
         }
     }
 
+
+    // edit assinging employee
     public function edit($teamId)
     {
         try {

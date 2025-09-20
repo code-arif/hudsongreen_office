@@ -18,7 +18,18 @@ class WorkManageController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $works = Work::with('category', 'team')->latest('id')->get();
+            $query = Work::with('category', 'team')->latest('id');
+
+            // Apply filters if present
+            if ($request->has('is_completed') && $request->is_completed !== null && $request->is_completed !== '') {
+                $query->where('is_completed', $request->is_completed);
+            }
+
+            if ($request->has('is_rescheduled') && $request->is_rescheduled !== null && $request->is_rescheduled !== '') {
+                $query->where('is_rescheduled', $request->is_rescheduled);
+            }
+
+            $works = $query->get();
 
             return DataTables::of($works)
                 ->addIndexColumn()
@@ -52,7 +63,9 @@ class WorkManageController extends Controller
                         $teamName = substr($teamName, 0, 15) . '...';
                     }
 
-                    return '<span class="badge bg-success">' . e($teamName) . '</span>';
+                    return '<span class="badge bg-success">'
+                        . e($teamName)
+                        . ' (' . $item->team->unique_id . ')</span>';
                 })
 
                 // Location
@@ -128,8 +141,8 @@ class WorkManageController extends Controller
                 'location'     => 'nullable|string',
                 'latitude'     => 'nullable|numeric|between:-90,90',
                 'longitude'    => 'nullable|numeric|between:-180,180',
-                'start_time'   => 'nullable|date_format:H:i',
-                'end_time'     => 'nullable|date_format:H:i',
+                'start_time'   => 'nullable',
+                'end_time'     => 'nullable',
                 'work_date'    => 'nullable|date',
                 'team_id'      => 'nullable|exists:teams,id',
 
@@ -209,7 +222,7 @@ class WorkManageController extends Controller
         try {
             $work = Work::find($id);
 
-            if(!$work){
+            if (!$work) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Work not found!'
@@ -223,8 +236,8 @@ class WorkManageController extends Controller
                 'location'     => 'nullable|string',
                 'latitude'     => 'nullable|numeric|between:-90,90',
                 'longitude'    => 'nullable|numeric|between:-180,180',
-                'start_time'   => 'nullable|date_format:H:i',
-                'end_time'     => 'nullable|date_format:H:i',
+                'start_time'   => 'nullable',
+                'end_time'     => 'nullable',
                 'work_date'    => 'nullable|date',
                 'team_id'      => 'nullable|exists:teams,id',
             ]);
@@ -306,6 +319,7 @@ class WorkManageController extends Controller
 
         // Toggle status
         $work->status = $work->status == 0 ? 1 : 0;
+        $work->is_completed = $work->is_completed == true ? false : true;
         $work->save();
 
         return response()->json([
