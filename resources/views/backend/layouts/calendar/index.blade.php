@@ -48,7 +48,7 @@
             let calendarEl = document.getElementById('calendar');
             let calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
-                events: @json(''),
+                events: @json($works),
             });
             calendar.render();
         });

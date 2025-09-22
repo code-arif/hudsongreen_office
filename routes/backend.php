@@ -23,6 +23,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/edit/{id}', [EmployeeManageController::class, 'edit'])->name('edit');
         Route::post('/update/{id}', [EmployeeManageController::class, 'update'])->name('update');
         Route::delete('/delete/{id}', [EmployeeManageController::class, 'delete'])->name('delete');
+
+        // routes/web.php
+        Route::get('/calendar/{id}/works', [EmployeeManageController::class, 'workList'])->name('user.work.list');
     });
 
 

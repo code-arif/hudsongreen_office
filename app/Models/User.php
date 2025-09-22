@@ -40,8 +40,15 @@ class User extends Authenticatable implements JWTSubject
     {
         return [];
     }
+
+
     public function team()
     {
         return $this->hasOne(TeamUser::class, 'user_id', 'id')->with('team');
+    }
+
+    public function teamUser()
+    {
+        return $this->hasOne(User::class);
     }
 }

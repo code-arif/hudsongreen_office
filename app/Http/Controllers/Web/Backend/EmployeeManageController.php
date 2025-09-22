@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Web\Backend;
 
 use Exception;
 use App\Models\User;
+use App\Models\Work;
 use App\Helper\Helper;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use App\Http\Controllers\Controller;
+use App\Models\TeamUser;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 
@@ -68,6 +71,7 @@ class EmployeeManageController extends Controller
 
                 // Action buttons
                 ->addColumn('action', function ($item) {
+                    $calendarUrl = route('employee.user.work.list', ['id' => $item->id]);
                     return '<div class="d-flex justify-content-start align-items-center gap-1">
                             <button type="button"
                                    class="btn btn-primary btn-sm editUser"
@@ -75,11 +79,9 @@ class EmployeeManageController extends Controller
                             <i class="fa fa-pen-to-square"></i> Edit
                             </button>
 
-                            <button type="button"
-                                   class="btn btn-info btn-sm calendarBtn"
-                                   data-id="' . $item->id . '">
-                            <i class="fa fa-calendar"></i> Calendar
-                            </button>
+                            <a href="' . $calendarUrl . '" class="btn btn-info btn-sm">
+                                <i class="fa fa-calendar"></i> Calendar
+                            </a>
 
                             <button type="button" class="btn btn-sm btn-danger deleteBtn"
                                 onclick="showDeleteConfirm(' . $item->id . ')">
@@ -274,5 +276,37 @@ class EmployeeManageController extends Controller
                 'error'   => $e->getMessage()
             ], 500);
         }
+    }
+
+    // Employee work list
+
+    public function workList($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            abort(404, 'User not found');
+        }
+
+        // Get all team IDs of the user
+        $team = $user->team;
+        $work = Work::where('team_id', $team->id);
+        // dd($work);
+
+
+        $works = Work::all()->map(function ($work) {
+            return [
+                'id' => $work->id,
+                'title' => $work->title,
+                'start' => Carbon::parse($work->start_time)->format('Y-m-d\TH:i:s'),
+                'end' => Carbon::parse($work->end_time)->format('Y-m-d\TH:i:s'),
+                'description' => $work->description,
+            ];
+        });
+
+        return view('backend.layouts.users.calendar', [
+            'events' => $works,
+            // 'user' => $user,
+        ]);
     }
 }
