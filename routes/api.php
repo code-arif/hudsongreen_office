@@ -37,4 +37,6 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::get('/details/{id}', [WorkController::class, 'show']);
     });
 
+    // mangege
+
 });
