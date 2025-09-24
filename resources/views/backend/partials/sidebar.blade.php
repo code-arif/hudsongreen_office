@@ -33,57 +33,52 @@
                     </a>
                 </li>
 
-                {{-- school manage --}}
+                {{-- employee manage --}}
                 <li class="slide">
-                    <a class="side-menu__item {{ request()->routeIs('schools.list') ? 'has-link' : '' }}"
-                        href="{{ route('schools.list') }}">
-
-                        <span class="icon-wrapper">
-                            <i class="fa-solid fa-building" style="margin-right: 8px"></i>
-                        </span>
-
-                        <span class="side-menu__label">Schools</span>
+                    <a class="side-menu__item {{ request()->routeIs('employee.list') ? 'has-link' : '' }}"
+                        href="{{ route('employee.list') }}">
+                        <i class="fa fa-user" style="margin-right: 8px;"></i>
+                        <span class="side-menu__label">Employee Manage</span>
                     </a>
                 </li>
 
-                {{-- test manage --}}
+                {{-- team manage --}}
                 <li class="slide">
-                    <a class="side-menu__item {{ request()->routeIs('schools.list') ? 'has-link' : '' }}"
-                        href="{{ route('schools.list') }}">
+                    <a class="side-menu__item {{ request()->routeIs('team.list') ? 'has-link' : '' }}"
+                        href="{{ route('team.list') }}">
+                        <i class="fa fa-users" style="margin-right: 8px;"></i>
+                        <span class="side-menu__label">Team Manage</span>
+                    </a>
+                </li>
 
-                        <span class="icon-wrapper">
-                            <i class="fa-solid fa-person-running" stu style="margin-right: 8px"></i>
-                        </span>
+                {{-- work manage --}}
+                <li class="slide">
+                    <a class="side-menu__item" data-bs-toggle="slide" href="#">
+                        <i class="fa fa-lightbulb" style="margin-right: 8px;"></i>
+                        <span class="side-menu__label">Work Manage</span>
+                    </a>
 
-                        <span class="side-menu__label">Tests</span>
+                    <ul class="slide-menu">
+                        <li><a href="{{ route('work.list') }}" class="slide-item">Work List</a>
+                        </li>
+                        <li><a href="{{ route('reschedule.work.list') }}" class="slide-item">Reschedule Request</a>
+                        </li>
+                    </ul>
+                </li>
+
+                {{-- calender --}}
+                <li class="slide">
+                    <a class="side-menu__item {{ request()->routeIs('calendar') ? 'has-link' : '' }}"
+                        href="{{ route('calendar') }}">
+                        <i class="fa fa-calendar" style="margin-right: 8px;"></i>
+                        <span class="side-menu__label">Calender</span>
                     </a>
                 </li>
 
 
                 <h3>CMS</h3>
 
-                {{-- cms-management --}}
-                {{-- landing page --}}
-                <li class="slide">
-                    <a class="side-menu__item" data-bs-toggle="slide" href="#">
-                        <i class="fa fa-list" style="margin-right: 8px;"></i>
-                        <span class="side-menu__label">How it works</span><i class="angle fa fa-angle-right"></i>
-                    </a>
 
-                    <ul class="slide-menu">
-                        <li><a href="{{ route('cms.hero.section') }}" class="slide-item">Hero Section</a>
-                        </li>
-                        <li><a href="{{ route('cms.need.section') }}" class="slide-item">Everything you need</a>
-                        </li>
-                        <li><a href="{{ route('cms.how-it-works.section') }}" class="slide-item">How it works</a>
-                        </li>
-                        <li><a href="{{ route('cms.fitness-test.section') }}" class="slide-item">Fitness Tests</a>
-                        </li>
-                        <li><a href="{{ route('cms.ready-to-transform.section') }}" class="slide-item">Ready to
-                                transform</a>
-                        </li>
-                    </ul>
-                </li>
 
                 {{-- Setttings --}}
                 <li class="slide">
@@ -96,16 +91,13 @@
                     </a>
 
                     <ul class="slide-menu">
-                        <li><a href="{{ route('setting.general.index') }}" class="slide-item">Privacy Policy</a>
-                        </li>
-                        <li><a href="{{ route('setting.general.index') }}" class="slide-item">Terms or Services</a>
-                        </li>
-                        <li><a href="{{ route('setting.general.index') }}" class="slide-item">General Settings</a>
-                        </li>
-                        <li><a href="{{ route('setting.profile.index') }}" class="slide-item">Profile Settings</a>
-                        </li>
-                    </ul>
                 </li>
+                <li><a href="{{ route('setting.general.index') }}" class="slide-item">General Settings</a>
+                </li>
+                <li><a href="{{ route('setting.profile.index') }}" class="slide-item">Profile Settings</a>
+                </li>
+            </ul>
+            </li>
             </ul>
             <div class="slide-right" id="slide-right"><svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191"
                     width="24" height="24" viewBox="0 0 24 24">

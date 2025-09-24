@@ -16,7 +16,6 @@ $settings = \App\Models\Setting::first();
 
     <!-- FAVICON -->
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset($settings->favicon ?? 'default/logo.png') }}" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 
     <!-- TITLE -->
     <title> @yield('title') || {{ config('app.name') }} </title>
