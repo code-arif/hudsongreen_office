@@ -282,31 +282,78 @@ class EmployeeManageController extends Controller
 
     public function workList($id)
     {
-        $user = User::find($id);
+        $user = User::with('teams')->find($id);
 
-        if (!$user) {
-            abort(404, 'User not found');
+        if (!$user || $user->role !== 'employee') {
+            abort(404, 'Employee not found');
         }
 
-        // Get all team IDs of the user
-        $team = $user->team;
-        $work = Work::where('team_id', $team->id);
-        // dd($work);
+        // Get all team IDs the user belongs to
+        $teamIds = $user->teams->pluck('id');
 
+        if ($teamIds->isEmpty()) {
+            $works = collect(); // No teams → no works
+        } else {
+            // Fetch all works assigned to those teams
+            $works = Work::whereIn('team_id', $teamIds)
+                ->whereNotNull('work_date')
+                ->get();
+        }
 
-        $works = Work::all()->map(function ($work) {
-            return [
-                'id' => $work->id,
-                'title' => $work->title,
-                'start' => Carbon::parse($work->start_time)->format('Y-m-d\TH:i:s'),
-                'end' => Carbon::parse($work->end_time)->format('Y-m-d\TH:i:s'),
-                'description' => $work->description,
-            ];
-        });
+        $events = $works->map(function ($work) {
+    // Ensure work_date is valid
+    if (!$work->work_date) {
+        return null; // skip invalid
+    }
 
-        return view('backend.layouts.users.calendar', [
-            'events' => $works,
-            // 'user' => $user,
-        ]);
+    // Clean time values: only allow HH:MM:SS format
+    $cleanStartTime = null;
+    $cleanEndTime = null;
+
+    if ($work->start_time && preg_match('/^\d{2}:\d{2}:\d{2}$/', $work->start_time)) {
+        $cleanStartTime = $work->start_time;
+    }
+
+    if ($work->end_time && preg_match('/^\d{2}:\d{2}:\d{2}$/', $work->end_time)) {
+        $cleanEndTime = $work->end_time;
+    }
+
+    // If no valid times, treat as all-day
+    if (!$cleanStartTime || !$cleanEndTime) {
+        return [
+            'id' => $work->id,
+            'title' => $work->title,
+            'start' => $work->work_date,
+            'description' => $work->description ?? '',
+            'allDay' => true,
+        ];
+    }
+
+    // Build full datetime strings
+    $startStr = $work->work_date . ' ' . $cleanStartTime;
+    $endStr = $work->work_date . ' ' . $cleanEndTime;
+
+    try {
+        return [
+            'id' => $work->id,
+            'title' => $work->title,
+            'start' => Carbon::parse($startStr)->toISOString(),
+            'end' => Carbon::parse($endStr)->toISOString(),
+            'description' => $work->description ?? '',
+            'allDay' => false,
+        ];
+    } catch (\Exception $e) {
+        // Fallback to all-day if parsing fails
+        return [
+            'id' => $work->id,
+            'title' => $work->title,
+            'start' => $work->work_date,
+            'description' => $work->description ?? '',
+            'allDay' => true,
+        ];
+    }
+})->filter()->values(); // filter() removes nulls
+
+        return view('backend.layouts.users.calendar', compact('events'));
     }
 }

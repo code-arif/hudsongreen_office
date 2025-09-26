@@ -51,4 +51,9 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasOne(User::class);
     }
+
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'team_users', 'user_id', 'team_id');
+    }
 }

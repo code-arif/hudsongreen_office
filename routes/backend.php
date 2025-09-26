@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\Backend\TeamManageController;
 
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('dashboard/data', [DashboardController::class, 'getDashboardData'])->name('dashboard.data');
 
     // employee manage
     Route::prefix('employee')->name('employee.')->group(function () {
