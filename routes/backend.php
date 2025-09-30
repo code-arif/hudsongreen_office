@@ -9,8 +9,6 @@ use App\Http\Controllers\Web\Backend\DashboardController;
 use App\Http\Controllers\Web\Backend\EmployeeManageController;
 use App\Http\Controllers\Web\Backend\Settings\ProfileController;
 use App\Http\Controllers\Web\Backend\Settings\SettingController;
-use App\Http\Controllers\Web\Backend\Settings\DynamicPageController;
-use App\Http\Controllers\Web\Backend\Settings\MailSettingController;
 use App\Http\Controllers\Web\Backend\TeamManageController;
 
 Route::middleware(['auth', 'admin'])->group(function () {
@@ -39,6 +37,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::delete('/delete/{id}', [TeamManageController::class, 'delete'])->name('delete');
 
         Route::get('/teams', [TeamManageController::class, 'teamList'])->name('list.work');
+
+        // team work list
+         Route::get('/calendar/team/{id}/works', [TeamManageController::class, 'workList'])->name('work.list');
     });
 
 
@@ -72,9 +73,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 
 
-
-
-
 //! Route for Profile Settings
 Route::controller(ProfileController::class)->group(function () {
     Route::get('setting/profile', 'index')->name('setting.profile.index');
@@ -83,11 +81,6 @@ Route::controller(ProfileController::class)->group(function () {
     Route::post('setting/profile/update/Picture', 'UpdateProfilePicture')->name('update.profile.picture');
 });
 
-//! Route for Mail Settings
-Route::controller(MailSettingController::class)->group(function () {
-    Route::get('setting/mail', 'index')->name('setting.mail.index');
-    Route::patch('setting/mail', 'update')->name('setting.mail.update');
-});
 
 
 //! Route for Stripe Settings
@@ -96,13 +89,3 @@ Route::controller(SettingController::class)->group(function () {
     Route::patch('setting/general', 'update')->name('setting.general.update');
 });
 
-
-Route::controller(DynamicPageController::class)->group(function () {
-    Route::get('/dynamic-page', 'index')->name('admin.dynamic_page.index');
-    Route::get('/dynamic-page/create', 'create')->name('admin.dynamic_page.create');
-    Route::post('/dynamic-page/store', 'store')->name('admin.dynamic_page.store');
-    Route::get('/dynamic-page/edit/{id}', 'edit')->name('admin.dynamic_page.edit');
-    Route::put('/dynamic-page/update/{id}', 'update')->name('admin.dynamic_page.update');
-    Route::post('/dynamic-page/status/{id}', 'status')->name('admin.dynamic_page.status');
-    Route::delete('/dynamic-page/destroy/{id}', 'destroy')->name('admin.dynamic_page.destroy');
-});

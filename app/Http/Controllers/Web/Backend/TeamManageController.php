@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Web\Backend;
 
 use Exception;
 use App\Models\Team;
+use App\Models\Work;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
@@ -58,6 +60,9 @@ class TeamManageController extends Controller
 
                 // Action buttons
                 ->addColumn('action', function ($item) {
+
+                    $calendarUrl = route('team.work.list', ['id' => $item->id]);
+
                     return '<div class="d-flex justify-content-start align-items-center gap-1">
                            <button type="button"
                                    class="btn btn-primary btn-sm editTeam"
@@ -69,6 +74,10 @@ class TeamManageController extends Controller
                                 data-id="' . $item->id . '">
                                 <i class="fas fa-syringe"></i> Assign Employee
                             </button>
+
+                            <a href="' . $calendarUrl . '" class="btn btn-info btn-sm">
+                                <i class="fa fa-calendar"></i> Calendar
+                            </a>
 
                              <button type="button" class="btn btn-sm btn-danger deleteBtn"
                                 onclick="showDeleteConfirm(' . $item->id . ')">
@@ -223,5 +232,99 @@ class TeamManageController extends Controller
             'status' => true,
             'data'   => $teams
         ]);
+    }
+
+    /**
+     * Team work list
+     */
+    public function workList($id)
+    {
+        // Fetch the specific team
+        $team = Team::findOrFail($id);
+
+        // Fetch all works assigned to the specified team
+        $works = Work::where('team_id', $id)
+            ->whereNotNull('work_date')
+            ->get();
+
+        $events = $works->map(function ($work) {
+            // Ensure work_date is valid
+            if (!$work->work_date) {
+                return null; // Skip invalid
+            }
+
+            // Clean time values: only allow HH:MM:SS format
+            $cleanStartTime = null;
+            $cleanEndTime = null;
+
+            if ($work->start_time && preg_match('/^\d{2}:\d{2}:\d{2}$/', $work->start_time)) {
+                $cleanStartTime = $work->start_time;
+            }
+
+            if ($work->end_time && preg_match('/^\d{2}:\d{2}:\d{2}$/', $work->end_time)) {
+                $cleanEndTime = $work->end_time;
+            }
+
+            // If no valid times or incomplete times, treat as all-day
+            if (!$cleanStartTime || !$cleanEndTime) {
+                return [
+                    'id' => $work->id,
+                    'title' => $work->title,
+                    'start' => $work->work_date,
+                    'description' => $work->description ?? 'No description',
+                    'allDay' => true,
+                    'backgroundColor' => $work->is_completed ? '#34c38f' : '#60a5fa', // Green for completed, blue for pending
+                    'borderColor' => $work->is_completed ? '#2a926f' : '#1e88e5',
+                    'extendedProps' => [
+                        'location' => $work->location ?? 'Not specified',
+                        'status' => $work->status,
+                        'is_rescheduled' => $work->is_rescheduled,
+                        'note' => $work->note ?? 'No notes',
+                    ],
+                ];
+            }
+
+            // Build full datetime strings
+            $startStr = $work->work_date . ' ' . $cleanStartTime;
+            $endStr = $work->work_date . ' ' . $cleanEndTime;
+
+            try {
+                return [
+                    'id' => $work->id,
+                    'title' => $work->title,
+                    'start' => Carbon::parse($startStr)->toISOString(),
+                    'end' => Carbon::parse($endStr)->toISOString(),
+                    'description' => $work->description ?? 'No description',
+                    'allDay' => false,
+                    'backgroundColor' => $work->is_completed ? '#34c38f' : '#60a5fa',
+                    'borderColor' => $work->is_completed ? '#2a926f' : '#1e88e5',
+                    'extendedProps' => [
+                        'location' => $work->location ?? 'Not specified',
+                        'status' => $work->status,
+                        'is_rescheduled' => $work->is_rescheduled,
+                        'note' => $work->note ?? 'No notes',
+                    ],
+                ];
+            } catch (Exception $e) {
+                // Fallback to all-day if parsing fails
+                return [
+                    'id' => $work->id,
+                    'title' => $work->title,
+                    'start' => $work->work_date,
+                    'description' => $work->description ?? 'No description',
+                    'allDay' => true,
+                    'backgroundColor' => $work->is_completed ? '#34c38f' : '#60a5fa',
+                    'borderColor' => $work->is_completed ? '#2a926f' : '#1e88e5',
+                    'extendedProps' => [
+                        'location' => $work->location ?? 'Not specified',
+                        'status' => $work->status,
+                        'is_rescheduled' => $work->is_rescheduled,
+                        'note' => $work->note ?? 'No notes',
+                    ],
+                ];
+            }
+        })->filter()->values(); // Remove nulls and reindex
+
+        return view('backend.layouts.teams.calendar', compact('events', 'team'));
     }
 }

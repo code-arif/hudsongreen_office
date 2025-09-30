@@ -152,12 +152,15 @@
                                 </div>
                             </div>
 
+
                             {{-- Description --}}
-                            <div class="col-md-12">
+                            <div class="col-md-12 mb-3">
                                 <label class="form-label">Description</label>
-                                <textarea class="form-control" name="description" id="work_description" rows="3" placeholder="Work Description"></textarea>
+                                <textarea class="form-control summernote" name="description" id="work_description" rows="4"
+                                    placeholder="Enter Description"></textarea>
                                 <span class="text-danger error-text description_error"></span>
                             </div>
+
 
                             {{-- Map Picker --}}
                             <div class="col-md-12 mt-3">
@@ -465,6 +468,9 @@
                 $('#workID').val('');
                 $('.error-text').text('');
 
+                // reset summernote
+                $('#work_description').summernote('code', '');
+
                 // Load teams dynamically
                 $.get("{{ route('team.list.work') }}", function(response) {
                     if (response.status) {
@@ -566,6 +572,10 @@
                     $('#start_time').val(response.data.start_time);
                     $('#end_time').val(response.data.end_time);
                     $('#work_date').val(response.data.work_date);
+
+                    // Set Summernote content
+                    $('#work_description').summernote('reset'); // clear old content
+                    $('#work_description').summernote('code', response.data.description || '');
 
                     // First load teams, then set selected value
                     $.get("{{ route('team.list.work') }}", function(teamResponse) {

@@ -1,6 +1,6 @@
 @extends('backend.app')
 
-@section('title', 'Employee Work List')
+@section('title', 'Team Work List')
 
 @section('content')
     <div class="app-content main-content mt-0">
@@ -8,11 +8,11 @@
             <div class="main-container container-fluid">
                 <div class="page-header">
                     <div>
-                        <h1 class="page-title">Employee Calendar</h1>
+                        <h1 class="page-title">Team Calendar</h1>
                     </div>
                     <div class="ms-auto pageheader-btn">
                         <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="javascript:void(0);">Employee</a></li>
+                            <li class="breadcrumb-item"><a href="javascript:void(0);">Team</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Calendar</li>
                         </ol>
                     </div>
@@ -24,10 +24,10 @@
                             <div class="card-header bg-white px-4 border-0 d-flex justify-content-between">
                                 <h5 class="mb-0 text-dark fw-semibold p-3">
                                     <i class="fas fa-calendar-alt me-2 text-primary"></i>
-                                    Work Schedule
+                                    Team Work Schedule
                                 </h5>
 
-                                <a href="{{ route('employee.list') }}" class="btn btn-primary btn-sm">Back To List</a>
+                                <a href="{{ route('team.list') }}" class="btn btn-primary btn-sm">Back To List</a>
                             </div>
                             <div class="card-body py-3">
                                 <div id="userCalendar" style="height: 600px;"></div>
