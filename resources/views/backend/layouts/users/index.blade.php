@@ -29,6 +29,8 @@
 
                                 <div class="card-header border-bottom mb-3">
                                     <div class="card-options ms-auto">
+                                        <a href="{{ route('employee.list') }}" class="btn btn-outline-success btn-sm" style="margin-right: 10px">
+                                             <i class="fa fa-arrow-left"></i> Back to list</a>
                                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                             data-bs-target="#userModal" id="addUserBtn">Add Employee</button>
                                     </div>

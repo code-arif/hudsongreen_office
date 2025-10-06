@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Backend\WorkScheduleRequest;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\Backend\DashboardController;
 use App\Http\Controllers\Web\Backend\EmployeeManageController;
+use App\Http\Controllers\Web\Backend\MapController;
 use App\Http\Controllers\Web\Backend\Settings\ProfileController;
 use App\Http\Controllers\Web\Backend\Settings\SettingController;
 use App\Http\Controllers\Web\Backend\TeamManageController;
@@ -25,6 +26,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
         // routes/web.php
         Route::get('/calendar/{id}/works', [EmployeeManageController::class, 'workList'])->name('user.work.list');
+
+        // empoyee work view in map with polyline
+        Route::get('/map/{id}/works', [EmployeeManageController::class, 'mapWorkList'])->name('user.map.list');
     });
 
 
@@ -40,8 +44,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
         // team work list
         Route::get('/calendar/team/{id}/works', [TeamManageController::class, 'workList'])->name('work.list');
-    });
 
+        // team work view in map with polyline
+        Route::get('/map/team/{id}/works', [TeamManageController::class, 'mapWorkList'])->name('work.map.list');
+    });
 
     // assing employee into team manage
     Route::prefix('assign-emplyee')->name('assing.employee.')->group(function () {
@@ -69,6 +75,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // work calendar
     Route::get('/calendar', [CalendarController::class, 'calendar'])->name('calendar');
+
+    // work map view
+    Route::get('/global-map', [MapController::class, 'globalMap'])->name('map.global');
+    Route::get('/filter-works/{teamId}', [MapController::class, 'filterWorksByTeam'])->name('works.filter');
 });
 
 

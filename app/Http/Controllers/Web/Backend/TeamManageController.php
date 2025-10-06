@@ -6,11 +6,9 @@ use Exception;
 use App\Models\Team;
 use App\Models\Work;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
-use App\Services\GoogleCalendarService;
 
 class TeamManageController extends Controller
 {
@@ -63,6 +61,7 @@ class TeamManageController extends Controller
                 ->addColumn('action', function ($item) {
 
                     $calendarUrl = route('team.work.list', ['id' => $item->id]);
+                    $mapUrl = route('team.work.map.list', ['id' => $item->id]);
 
                     return '<div class="d-flex justify-content-start align-items-center gap-1">
                            <button type="button"
@@ -78,6 +77,10 @@ class TeamManageController extends Controller
 
                             <a href="' . $calendarUrl . '" class="btn btn-info btn-sm">
                                 <i class="fa fa-calendar"></i> Calendar
+                            </a>
+
+                            <a href="' . $mapUrl . '" class="btn btn-secondary btn-sm">
+                                <i class="fa fa-map"></i> Map View
                             </a>
 
                              <button type="button" class="btn btn-sm btn-danger deleteBtn"
@@ -332,13 +335,36 @@ class TeamManageController extends Controller
 
     // app/Http/Controllers/TeamController.php
 
-    public function workList($id)
+
+
+    // Team work list in map view with polyline
+    public function mapWorkList($id)
     {
-        $team = Team::findOrFail($id);
+        // Fetch works assigned to this team
+        $works = Work::where('team_id', $id)
+            ->select(
+                'id',
+                'title',
+                'description',
+                'location',
+                'latitude',
+                'longitude',
+                'work_date',
+                'start_time',
+                'end_time',
+                'is_completed',
+                'is_rescheduled'
+            )
+            ->get();
 
-        // Google Calendar ID for embedding
-        $googleCalendarId = env('GOOGLE_CALENDAR_ID', 'primary');
+        if ($works->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No works found for this team',
+            ], 404);
+        }
 
-        return view('backend.layouts.teams.calendar', compact('team', 'googleCalendarId'));
+        // Return map view for team works
+        return view('backend.layouts.teams.map', compact('works'));
     }
 }

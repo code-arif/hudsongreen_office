@@ -76,6 +76,16 @@
                 </li>
 
 
+                {{-- map --}}
+                <li class="slide">
+                    <a class="side-menu__item {{ request()->routeIs('map.global') ? 'has-link' : '' }}"
+                        href="{{ route('map.global') }}">
+                        <i class="fa fa-map" style="margin-right: 8px;"></i>
+                        <span class="side-menu__label">Global Map</span>
+                    </a>
+                </li>
+
+
                 <h3>CMS</h3>
 
 

@@ -65,7 +65,7 @@ class WorkManageController extends Controller
 
                     return '<span class="badge bg-success">'
                         . e($teamName)
-                        . ' (' . $item->team->unique_id . ')</span>';
+                        . ' </span>';
                 })
 
                 // Location

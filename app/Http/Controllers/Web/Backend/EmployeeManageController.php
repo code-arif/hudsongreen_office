@@ -6,10 +6,10 @@ use Exception;
 use App\Models\User;
 use App\Models\Work;
 use App\Helper\Helper;
+use App\Models\TeamUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use App\Http\Controllers\Controller;
-use App\Models\TeamUser;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 
@@ -39,24 +39,22 @@ class EmployeeManageController extends Controller
                 // Password
                 ->addColumn('password', fn($item) => $item->password ?? '---')
 
-                // address
+                // Address
                 ->addColumn('address', function ($item) {
                     return $item->address
                         ? (strlen($item->address) > 25 ? substr($item->address, 0, 25) . '...' : $item->address)
                         : '---';
                 })
 
-                // teams
+                // Teams
                 ->addColumn('team', function ($item) {
                     if (!$item->team || !$item->team->team) {
                         return '<span class="badge bg-secondary">No Team</span>';
                     }
-
                     return '<span class="badge bg-primary">'
                         . $item->team->team->name
                         . ' (' . $item->team->team->unique_id . ')</span>';
                 })
-
 
                 // Avatar
                 ->addColumn('avatar', function ($item) {
@@ -72,22 +70,37 @@ class EmployeeManageController extends Controller
                 // Action buttons
                 ->addColumn('action', function ($item) {
                     $calendarUrl = route('employee.user.work.list', ['id' => $item->id]);
-                    return '<div class="d-flex justify-content-start align-items-center gap-1">
-                            <button type="button"
+                    $mapUrl = route('employee.user.map.list', ['id' => $item->id]);
+                    $actionButtons = '<div class="d-flex justify-content-start align-items-center gap-1">';
+
+                    // Edit button
+                    $actionButtons .= '<button type="button"
                                    class="btn btn-primary btn-sm editUser"
                                    data-id="' . $item->id . '">
-                            <i class="fa fa-pen-to-square"></i> Edit
-                            </button>
+                                   <i class="fa fa-pen-to-square"></i> Edit
+                               </button>';
 
-                            <a href="' . $calendarUrl . '" class="btn btn-info btn-sm">
-                                <i class="fa fa-calendar"></i> Calendar
-                            </a>
+                    // Calendar button
+                    $actionButtons .= '<a href="' . $calendarUrl . '" class="btn btn-info btn-sm">
+                                   <i class="fa fa-calendar"></i> Calendar
+                               </a>';
 
-                            <button type="button" class="btn btn-sm btn-danger deleteBtn"
-                                onclick="showDeleteConfirm(' . $item->id . ')">
-                                <i class="fa fa-trash"></i> Delete
-                            </button>
-                        </div>';
+                   // Map View button (show only if user has a team)
+                if ($item->team && $item->team->team) {
+                    $actionButtons .= '<a href="' . $mapUrl . '" class="btn btn-success btn-sm">
+                                       <i class="fa fa-map"></i> Map View
+                                   </a>';
+                }
+
+                    // Delete button
+                    $actionButtons .= '<button type="button" class="btn btn-sm btn-danger deleteBtn"
+                                   onclick="showDeleteConfirm(' . $item->id . ')">
+                                   <i class="fa fa-trash"></i> Delete
+                               </button>';
+
+                    $actionButtons .= '</div>';
+
+                    return $actionButtons;
                 })
 
                 ->rawColumns(['avatar', 'action', 'team'])
@@ -279,7 +292,6 @@ class EmployeeManageController extends Controller
     }
 
     // Employee work list
-
     public function workList($id)
     {
         // Fetch the user with their teams
@@ -379,5 +391,40 @@ class EmployeeManageController extends Controller
         })->filter()->values(); // Remove nulls and reindex
 
         return view('backend.layouts.users.calendar', compact('events', 'user'));
+    }
+
+    // Employee work list in map with polyline
+    public function mapWorkList($id)
+    {
+        // Fetch teams for the given user_id
+        $teamIds = TeamUser::where('user_id', $id)->pluck('team_id');
+
+        if ($teamIds->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User is not assigned to any team',
+            ], 404);
+        }
+
+        // Fetch works for these teams
+        $works = Work::whereIn('team_id', $teamIds)
+            ->select(
+                'id',
+                'title',
+                'description',
+                'location',
+                'latitude',
+                'longitude',
+                'work_date',
+                'start_time',
+                'end_time',
+                'is_completed',
+                'is_rescheduled',
+                'unique_id'
+            )
+            ->get();
+
+        // Return the view with works data
+        return view('backend.layouts.users.map', compact('works'));
     }
 }
