@@ -56,7 +56,7 @@ class WorkManageController extends Controller
 
                 // Team
                 ->addColumn('team', function ($item) {
-                    $teamName = $item->team ? $item->name : 'No Team';
+                    $teamName = $item->team ? $item->team->name : 'No Team';
 
                     // truncate if more than 15 chars
                     if (strlen($teamName) > 15) {
@@ -65,7 +65,7 @@ class WorkManageController extends Controller
 
                     return '<span class="badge bg-success">'
                         . e($teamName)
-                        . ' (' . $item->unique_id . ')</span>';
+                        . ' (' . $item->team->unique_id . ')</span>';
                 })
 
                 // Location

@@ -39,7 +39,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/teams', [TeamManageController::class, 'teamList'])->name('list.work');
 
         // team work list
-         Route::get('/calendar/team/{id}/works', [TeamManageController::class, 'workList'])->name('work.list');
+         Route::get('/calendar/team/{id}/works', [TeamManageController::class, 'workList'])->name('work.index');
     });
 
 

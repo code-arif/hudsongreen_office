@@ -23,12 +23,7 @@ class WorkResource extends JsonResource
             'end_time'      => $this->end_time,
             'work_date'     => $this->work_date,
             'is_completed'  => $this->is_completed,
-            'is_rescheduled'  => $this->is_rescheduled,
-            'team'          => [
-                'id' => $this->team?->id,
-                'name' => $this->team?->name,
-                'unique_id' => $this->team?->unique_id,
-            ],
+            'is_rescheduled' => $this->is_rescheduled,
             'category'      => [
                 'id' => $this->category?->id,
                 'name' => $this->category?->name,

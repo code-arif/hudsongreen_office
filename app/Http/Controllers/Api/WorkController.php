@@ -29,16 +29,18 @@ class WorkController extends Controller
                 ], 404);
             }
 
-            $teamId = $user->team?->id;
+            // Get the first team the user is assigned to
+            $team = $user->teams()->first();
 
-            if (!$teamId) {
+            if (!$team) {
                 return response()->json([
                     'status' => false,
                     'message' => 'User is not assigned to any team',
                 ], 404);
             }
 
-            $query = Work::where('team_id', $teamId);
+            // Query works for the user's team
+            $query = Work::where('team_id', $team->id);
 
             // Filter
             $filter = $request->query('filter');
@@ -66,9 +68,17 @@ class WorkController extends Controller
             $perPage = $request->query('per_page', 10);
             $works = $query->orderBy('work_date', 'asc')->paginate($perPage);
 
+            // Team details
+            $teamData = [
+                'id' => $team->id,
+                'name' => $team->name,
+                'unique_id' => $team->unique_id,
+            ];
+
             return response()->json([
                 'status' => true,
                 'message' => 'Works fetched successfully',
+                'team' => $teamData,
                 'data' => WorkResource::collection($works),
                 'pagination' => [
                     'total' => $works->total(),
@@ -97,16 +107,18 @@ class WorkController extends Controller
                 ], 404);
             }
 
-            $teamId = $user->team?->id;
+            // Get the first team the user is assigned to
+            $team = $user->teams()->first();
 
-            if (!$teamId) {
+            if (!$team) {
                 return response()->json([
                     'status' => false,
                     'message' => 'User is not assigned to any team',
                 ], 404);
             }
 
-            $query = Work::where('team_id', $teamId);
+            // Query works for the user's team
+            $query = Work::where('team_id', $team->id);
 
             // Filter
             $filter = $request->query('filter');
@@ -130,13 +142,20 @@ class WorkController extends Controller
                     break;
             }
 
-
             $perPage = $request->query('per_page', 10);
             $works = $query->orderBy('work_date', 'asc')->paginate($perPage);
+
+            // Fetch team details
+            $team = $user->team ? [
+                'id' => $user->team->id,
+                'name' => $user->team->name,
+                'unique_id' => $user->team->unique_id,
+            ] : null;
 
             return response()->json([
                 'status' => true,
                 'message' => 'Works fetched successfully',
+                'team' => $team, // Include team details at the root level
                 'data' => MapWorkResource::collection($works),
                 'pagination' => [
                     'total' => $works->total(),

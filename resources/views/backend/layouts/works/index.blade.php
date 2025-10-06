@@ -106,6 +106,7 @@
     <!-- CONTAINER CLOSED -->
 
     {{-- Add/Edit work Modal --}}
+    {{-- Add/Edit work Modal --}}
     <div class="modal fade" id="workModal" tabindex="-1" aria-labelledby="workModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
@@ -152,7 +153,6 @@
                                 </div>
                             </div>
 
-
                             {{-- Description --}}
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">Description</label>
@@ -161,11 +161,17 @@
                                 <span class="text-danger error-text description_error"></span>
                             </div>
 
+                            {{-- Map Search Box --}}
+                            <div class="col-md-12 mt-3">
+                                <label class="form-label">Search Location</label>
+                                <input type="text" class="form-control" id="map_search"
+                                    placeholder="Search for a location...">
+                            </div>
 
-                            {{-- Map Picker --}}
+                            {{-- Google Map --}}
                             <div class="col-md-12 mt-3">
                                 <label class="form-label">Pick Location on Map</label>
-                                <div id="map" style="height: 250px; width: 100%;"></div>
+                                <div id="map" style="height: 350px; width: 100%;"></div>
                             </div>
 
                             {{-- Location --}}
@@ -208,7 +214,7 @@
                                 <span class="text-danger error-text end_time_error"></span>
                             </div>
 
-                            {{-- End Time --}}
+                            {{-- Work Date --}}
                             <div class="col-md-4">
                                 <label class="form-label">Work Date</label>
                                 <input type="date" class="form-control" name="work_date" id="work_date">
@@ -228,151 +234,157 @@
 @endsection
 
 @push('styles')
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <style>
         #map {
-            height: 250px;
+            height: 350px;
+            border-radius: 8px;
         }
 
-        .leaflet-control-geocoder-form input {
-            width: 200px;
-        }
-    </style>
-
-    <style>
         .equal-box {
             min-height: 110px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
+
+        /* Style the autocomplete dropdown */
+        .pac-container {
+            z-index: 10000 !important;
+        }
     </style>
 @endpush
 
 @push('scripts')
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    {{-- Google Maps JavaScript API --}}
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfGOjmqKtEBRsfVN9szUo_tac20wcI9HM&libraries=places">
+    </script>
 
     <script>
         // Global variables
-        let map, marker, geocoder;
+        let map, marker, geocoder, autocomplete;
+        let mapInitialized = false;
 
-        // Function to initialize the map
+        // Function to initialize Google Map
         function initializeMap() {
+            if (mapInitialized) return;
+
             // Default to Dhaka coordinates
-            const defaultLocation = [23.8103, 90.4125];
+            const defaultLocation = {
+                lat: 23.8103,
+                lng: 90.4125
+            };
 
             // Initialize map
-            map = L.map('map').setView(defaultLocation, 13);
-
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            // Add marker
-            marker = L.marker(defaultLocation, {
-                draggable: true
-            }).addTo(map);
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: defaultLocation,
+                zoom: 13,
+                mapTypeControl: true,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
 
             // Initialize geocoder
-            geocoder = L.Control.Geocoder.nominatim();
+            geocoder = new google.maps.Geocoder();
 
-            // Add search control
-            L.Control.geocoder({
-                defaultMarkGeocode: false,
-                geocoder: geocoder,
-                position: 'topright',
-                placeholder: 'Search location...',
-                errorMessage: 'Location not found.'
-            }).on('markgeocode', function(e) {
-                const {
-                    center,
-                    name
-                } = e.geocode;
-                updateLocation(center.lat, center.lng, name);
-            }).addTo(map);
+            // Add marker
+            marker = new google.maps.Marker({
+                position: defaultLocation,
+                map: map,
+                draggable: true,
+                animation: google.maps.Animation.DROP
+            });
+
+            // Initialize autocomplete
+            const searchInput = document.getElementById('map_search');
+            autocomplete = new google.maps.places.Autocomplete(searchInput, {
+                fields: ['formatted_address', 'geometry', 'name'],
+                types: ['geocode', 'establishment']
+            });
+
+            // Handle autocomplete selection
+            autocomplete.addListener('place_changed', function() {
+                const place = autocomplete.getPlace();
+
+                if (!place.geometry || !place.geometry.location) {
+                    toastr.error('No location found for this place');
+                    return;
+                }
+
+                const lat = place.geometry.location.lat();
+                const lng = place.geometry.location.lng();
+                const address = place.formatted_address || place.name;
+
+                updateLocation(lat, lng, address);
+            });
 
             // Handle marker drag
-            marker.on('dragend', function() {
-                const position = marker.getLatLng();
-                reverseGeocode(position.lat, position.lng);
+            marker.addListener('dragend', function() {
+                const position = marker.getPosition();
+                reverseGeocode(position.lat(), position.lng());
             });
 
             // Handle click on map
-            map.on('click', function(e) {
-                marker.setLatLng(e.latlng);
-                reverseGeocode(e.latlng.lat, e.latlng.lng);
+            map.addListener('click', function(e) {
+                marker.setPosition(e.latLng);
+                reverseGeocode(e.latLng.lat(), e.latLng.lng());
             });
 
-            // Handle search box
-            $('#search-button').click(function() {
-                const query = $('#search-box').val();
-                if (query) {
-                    geocoder.geocode(query, function(results) {
-                        if (results && results.length > 0) {
-                            const {
-                                center,
-                                name
-                            } = results[0];
-                            updateLocation(center.lat, center.lng, name);
-                        } else {
-                            toastr.error('Location not found');
-                        }
-                    });
-                }
-            });
-
-            // Also trigger search on Enter key
-            $('#search-box').keypress(function(e) {
-                if (e.which === 13) {
-                    $('#search-button').click();
-                }
-            });
+            mapInitialized = true;
         }
 
-        // Update location fields
+        // Update location fields and marker
         function updateLocation(lat, lng, address) {
-            $('#work_latitude').val(lat);
-            $('#work_longitude').val(lng);
+            $('#work_latitude').val(lat.toFixed(6));
+            $('#work_longitude').val(lng.toFixed(6));
             $('#work_location').val(address || '');
 
             // Move marker and center map
-            marker.setLatLng([lat, lng]);
-            map.setView([lat, lng], 15);
-        }
+            const position = {
+                lat: lat,
+                lng: lng
+            };
+            marker.setPosition(position);
+            map.setCenter(position);
+            map.setZoom(15);
 
+            // Add bounce animation
+            marker.setAnimation(google.maps.Animation.BOUNCE);
+            setTimeout(() => marker.setAnimation(null), 750);
+        }
         // Reverse geocode coordinates to get address
         function reverseGeocode(lat, lng) {
-            geocoder.reverse({
-                    lat: lat,
-                    lng: lng
-                },
-                map.getZoom(),
-                function(results) {
-                    if (results && results.length > 0) {
-                        updateLocation(lat, lng, results[0].name);
+            const latlng = {
+                lat: lat,
+                lng: lng
+            };
+
+            geocoder.geocode({
+                location: latlng
+            }, function(results, status) {
+                if (status === 'OK') {
+                    if (results[0]) {
+                        updateLocation(lat, lng, results[0].formatted_address);
                     } else {
                         updateLocation(lat, lng, '');
+                        toastr.warning('No address found for this location');
                     }
+                } else {
+                    console.error('Geocoder failed: ' + status);
+                    updateLocation(lat, lng, '');
                 }
-            );
+            });
         }
 
         // When modal opens
         $('#workModal').on('shown.bs.modal', function() {
-            // Initialize map if not already done
-            if (!map) {
+            if (!mapInitialized) {
                 initializeMap();
             } else {
-                // Reset map view if already initialized
-                setTimeout(function() {
-                    map.invalidateSize();
-                    if (marker) {
-                        map.setView(marker.getLatLng(), map.getZoom());
-                    }
-                }, 300);
+                // Trigger resize to fix display issues
+                google.maps.event.trigger(map, 'resize');
+                if (marker) {
+                    map.setCenter(marker.getPosition());
+                }
             }
         });
 
@@ -467,9 +479,24 @@
                 $('#workSubmitBtn').prop('disabled', false).html('Save changes');
                 $('#workID').val('');
                 $('.error-text').text('');
+                $('#map_search').val('');
 
-                // reset summernote
+                // Reset summernote
                 $('#work_description').summernote('code', '');
+
+                // Reset map to default location
+                if (mapInitialized) {
+                    const defaultLocation = {
+                        lat: 23.8103,
+                        lng: 90.4125
+                    };
+                    marker.setPosition(defaultLocation);
+                    map.setCenter(defaultLocation);
+                    map.setZoom(13);
+                    $('#work_latitude').val('');
+                    $('#work_longitude').val('');
+                    $('#work_location').val('');
+                }
 
                 // Load teams dynamically
                 $.get("{{ route('team.list.work') }}", function(response) {
@@ -527,18 +554,14 @@
                             $.each(response.errors, function(prefix, val) {
                                 $('span.' + prefix + '_error').text(val[0]);
                             });
-
                         } else {
                             $('#workModal').modal('hide');
                             $('#workForm')[0].reset();
-
                             toastr.success(response.message);
                             $('#datatable').DataTable().ajax.reload();
                         }
                         $('#workSubmitBtn').prop('disabled', false).html('Save changes');
                     },
-
-
                     error: function(xhr) {
                         $('#workSubmitBtn').prop('disabled', false).html('Save changes');
                         if (xhr.status === 422) {
@@ -574,10 +597,10 @@
                     $('#work_date').val(response.data.work_date);
 
                     // Set Summernote content
-                    $('#work_description').summernote('reset'); // clear old content
+                    $('#work_description').summernote('reset');
                     $('#work_description').summernote('code', response.data.description || '');
 
-                    // First load teams, then set selected value
+                    // Load teams and set selected value
                     $.get("{{ route('team.list.work') }}", function(teamResponse) {
                         if (teamResponse.status) {
                             let options = '<option value="">-- Select Team --</option>';
@@ -587,22 +610,43 @@
                             });
                             $('#team_id').html(options);
 
-                            // Set selected team AFTER dropdown populated
                             if (response.data.team_id) {
                                 $('#team_id').val(response.data.team_id);
                             }
                         }
 
+                        // Load categories and set selected value
+                        $.get("{{ route('work.categroy') }}", function(categoryResponse) {
+                            if (categoryResponse.status) {
+                                let options =
+                                    '<option value="">-- Select Category --</option>';
+                                categoryResponse.data.forEach(function(category) {
+                                    options +=
+                                        `<option value="${category.id}">${category.name}</option>`;
+                                });
+                                $('#category_id').html(options);
+
+                                if (response.data.category_id) {
+                                    $('#category_id').val(response.data
+                                    .category_id);
+                                }
+                            }
+                        });
+
                         // Show modal and set map if coordinates exist
+                        $('#workModal').modal('show');
+
                         if (response.data.latitude && response.data.longitude) {
                             const lat = parseFloat(response.data.latitude);
                             const lng = parseFloat(response.data.longitude);
 
-                            $('#workModal').modal('show').on('shown.bs.modal', function() {
-                                updateLocation(lat, lng, response.data.location);
+                            // Wait for modal to be fully shown
+                            $('#workModal').one('shown.bs.modal', function() {
+                                if (mapInitialized) {
+                                    updateLocation(lat, lng, response.data
+                                    .location);
+                                }
                             });
-                        } else {
-                            $('#workModal').modal('show');
                         }
                     });
                 });

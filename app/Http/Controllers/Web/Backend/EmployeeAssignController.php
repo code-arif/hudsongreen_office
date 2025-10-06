@@ -7,6 +7,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\TeamUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,6 +15,7 @@ class EmployeeAssignController extends Controller
 {
     /**
      * Assign employee(s) to a team
+     * This now handles UPDATE instead of just INSERT
      */
     public function store(Request $request)
     {
@@ -31,34 +33,50 @@ class EmployeeAssignController extends Controller
             ], 422);
         }
 
+        DB::beginTransaction();
+
         try {
             $teamId = $request->team_id;
             $userIds = $request->user_ids;
 
+            // Check if any selected user is already in a DIFFERENT team
             foreach ($userIds as $userId) {
-                // Check if user already belongs to any team
-                $exists = TeamUser::where('user_id', $userId)->exists();
+                $existingTeam = TeamUser::where('user_id', $userId)
+                    ->where('team_id', '!=', $teamId)
+                    ->first();
 
-                if ($exists) {
+                if ($existingTeam) {
                     $user = User::find($userId);
+                    $team = Team::find($existingTeam->team_id);
 
+                    DB::rollBack();
                     return response()->json([
                         'status' => false,
-                        'message' => "User '{$user->name}' is already assigned to another team.",
+                        'message' => "User '{$user->name}' is already assigned to team '{$team->name}'.",
                     ], 409);
                 }
+            }
 
+            // Remove all existing assignments for this team
+            TeamUser::where('team_id', $teamId)->delete();
+
+            // Insert new assignments
+            foreach ($userIds as $userId) {
                 TeamUser::create([
                     'team_id' => $teamId,
                     'user_id' => $userId,
                 ]);
             }
 
+            DB::commit();
+
             return response()->json([
                 'status' => true,
-                'message' => 'Employee(s) assigned to team successfully.',
-            ], 201);
+                'message' => 'Team assignment updated successfully.',
+            ], 200);
         } catch (Exception $e) {
+            DB::rollBack();
+
             return response()->json([
                 'status' => false,
                 'message' => 'Something went wrong: ' . $e->getMessage(),
@@ -66,8 +84,10 @@ class EmployeeAssignController extends Controller
         }
     }
 
-
-    // edit assinging employee
+    /**
+     * Edit assigning employee
+     * Returns only unassigned employees + current team's employees
+     */
     public function edit($teamId)
     {
         try {
@@ -80,20 +100,30 @@ class EmployeeAssignController extends Controller
                 ], 404);
             }
 
-            // All employees
-            $allUsers = User::where('role', 'employee')
-                ->get(['id', 'name', 'unique_id']);
-
-            // Users already assigned to this team
-            $assignedUsers = TeamUser::where('team_id', $teamId)
-                ->with('user')
+            // Get users already assigned to THIS team
+            $assignedToThisTeam = TeamUser::where('team_id', $teamId)
+                ->with('user:id,name,unique_id')
                 ->get()
-                ->pluck('user');
+                ->pluck('user')
+                ->filter(); // Remove null values if any
+
+            // Get IDs of users assigned to ANY team
+            $assignedUserIds = TeamUser::pluck('user_id')->toArray();
+
+            // Get all employees who are NOT assigned to any team
+            // OR are assigned to THIS team (so they can be removed/kept)
+            $allUsers = User::where('role', 'employee')
+                ->where(function ($query) use ($assignedUserIds, $teamId, $assignedToThisTeam) {
+                    $query->whereNotIn('id', $assignedUserIds)
+                        ->orWhereIn('id', $assignedToThisTeam->pluck('id')->toArray());
+                })
+                ->orderBy('name', 'asc')
+                ->get(['id', 'name', 'unique_id']);
 
             return response()->json([
                 'status' => true,
                 'all_users' => $allUsers,
-                'assigned_users' => $assignedUsers
+                'assigned_users' => $assignedToThisTeam
             ]);
         } catch (Exception $e) {
             return response()->json([

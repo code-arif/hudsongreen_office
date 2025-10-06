@@ -1,6 +1,6 @@
 @extends('backend.app')
 
-@section('title', 'Team Work List')
+@section('title', 'Team Work Calendar')
 
 @section('content')
     <div class="app-content main-content mt-0">
@@ -8,29 +8,127 @@
             <div class="main-container container-fluid">
                 <div class="page-header">
                     <div>
-                        <h1 class="page-title">Team Calendar</h1>
+                        <h1 class="page-title">{{ $team->name }} - Work Calendar</h1>
+                        <p class="text-muted mb-0">Manage and sync team work schedule</p>
                     </div>
                     <div class="ms-auto pageheader-btn">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="javascript:void(0);">Team</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Calendar</li>
-                        </ol>
+                        @if (Session::has('google_token'))
+                            <span class="badge bg-success me-2">
+                                <i class="fas fa-check-circle"></i> Google Calendar Connected
+                            </span>
+                        @else
+                            <a href="{{ route('google.auth') }}" class="btn btn-danger btn-sm me-2">
+                                <i class="fab fa-google"></i> Connect Google Calendar
+                            </a>
+                        @endif
+                        <a href="{{ route('team.list') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-12 h-50">
-                        <div class="card border-0 shadow-sm rounded-3">
-                            <div class="card-header bg-white px-4 border-0 d-flex justify-content-between">
-                                <h5 class="mb-0 text-dark fw-semibold p-3">
-                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
-                                    Team Work Schedule
-                                </h5>
-
-                                <a href="{{ route('team.list') }}" class="btn btn-primary btn-sm">Back To List</a>
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="stats-icon bg-primary">
+                                        <i class="fas fa-tasks"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <p class="text-muted mb-0">Total Works</p>
+                                        <h4 class="mb-0">{{ count($events) }}</h4>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-body py-3">
-                                <div id="userCalendar" style="height: 600px;"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="stats-icon bg-success">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <p class="text-muted mb-0">Completed</p>
+                                        <h4 class="mb-0">
+                                            {{ collect($events)->where('backgroundColor', '#34c38f')->count() }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="stats-icon bg-warning">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <p class="text-muted mb-0">Pending</p>
+                                        <h4 class="mb-0">
+                                            {{ collect($events)->where('backgroundColor', '#60a5fa')->count() }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="stats-icon bg-info">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <p class="text-muted mb-0">Team Members</p>
+                                        <h4 class="mb-0">{{ $team->users->count() }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div
+                                class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-calendar-alt me-2"></i>Work Schedule
+                                </h5>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-light" onclick="calendar.prev()">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-light" onclick="calendar.today()">Today</button>
+                                    <button class="btn btn-sm btn-light" onclick="calendar.next()">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="calendar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Work Details Modal -->
+                <div class="modal fade" id="workModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="modalTitle">Work Details</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="modalBody">
+                                <!-- Dynamic content -->
                             </div>
                         </div>
                     </div>
@@ -41,192 +139,195 @@
 @endsection
 
 @push('styles')
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core/main.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid/main.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid/main.css" rel="stylesheet" />
     <style>
-        /* Calendar container styling */
-        #userCalendar {
-            background-color: #f8fafc;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Calendar header buttons */
-        .fc .fc-button {
-            background-color: #38a3a5;
+        .stats-card {
             border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stats-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        #calendar {
+            height: 650px;
+        }
+
+        .fc-event {
+            cursor: pointer;
+            border-left: 4px solid;
+        }
+
+        .fc-daygrid-day.fc-day-today {
+            background-color: #fff3cd !important;
+        }
+
+        .detail-row {
+            padding: 12px;
+            background: #f8f9fa;
             border-radius: 6px;
-            padding: 8px 12px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-bottom: 10px;
         }
 
-        .fc .fc-button:hover {
-            background-color: #2a7c7e;
-            transform: translateY(-2px);
+        .sync-btn {
+            animation: pulse 2s infinite;
         }
 
-        .fc .fc-button-primary:not(:disabled):active {
-            background-color: #1e5a5c;
-            transform: translateY(0);
-        }
+        @keyframes pulse {
 
-        /* Calendar header title */
-        .fc .fc-toolbar-title {
-            font-size: 1.5rem;
-            color: #1e3a8a;
-            font-weight: 600;
-        }
+            0%,
+            100% {
+                opacity: 1;
+            }
 
-        /* Day grid and time grid background */
-        .fc .fc-daygrid-day,
-        .fc .fc-timegrid-slot {
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-        }
-
-        /* Highlight today's date */
-        .fc .fc-daygrid-day.fc-day-today {
-            background-color: #e6f3ff;
-        }
-
-        /* Event styling */
-        .fc .fc-event {
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 2px solid #1e88e5;
-            background-color: #60a5fa;
-            color: #fff;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .fc .fc-event:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-        }
-
-        /* Event title */
-        .fc .fc-event-title {
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        /* Timegrid event styling */
-        .fc .fc-timegrid-event {
-            padding: 8px;
-        }
-
-        /* Daygrid event container */
-        .fc .fc-daygrid-event {
-            margin: 4px 2px;
-        }
-    </style>
-
-    <style>
-        /* Custom styling for SweetAlert2 popup */
-        .swal2-popup {
-            text-align: left !important;
-            /* Align all content to the left */
-        }
-
-        .swal2-html-container {
-            text-align: left !important;
-            /* Ensure HTML content is left-aligned */
-        }
-
-        .swal2-title {
-            text-align: left !important;
-            /* Ensure title is left-aligned */
-        }
-
-        /* Custom styling for SweetAlert2 close button */
-        .swal2-confirm {
-            background-color: #dc3545 !important;
-            /* Red background for close button */
-            border: none !important;
-            border-radius: 6px !important;
-            padding: 10px 20px !important;
-            transition: background-color 0.3s ease !important;
-            position: absolute !important;
-            /* Position button absolutely */
-            bottom: 10px !important;
-            /* Place at bottom */
-            right: 10px !important;
-            /* Place at right */
-        }
-
-        .swal2-confirm:hover {
-            background-color: #c82333 !important;
-            /* Darker red on hover */
-        }
-
-        /* Ensure popup content has padding to avoid overlap with button */
-        .swal2-content {
-            padding-bottom: 50px !important;
-            /* Add space for button at bottom */
+            50% {
+                opacity: 0.7;
+            }
         }
     </style>
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <script>
+        let calendar;
+        const teamId = {{ $team->id }};
+        const events = @json($events);
+
         document.addEventListener('DOMContentLoaded', function() {
-            const calendarEl = document.getElementById('userCalendar');
-            const calendar = new FullCalendar.Calendar(calendarEl, {
+            const calendarEl = document.getElementById('calendar');
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 headerToolbar: {
-                    left: 'prev,next today',
+                    left: '',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek'
-                },
-                buttonText: {
-                    today: 'Today',
-                    month: 'Month',
-                    week: 'Week'
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
                 editable: false,
-                selectable: false,
-                eventTextColor: '#fff',
-                events: @json($events),
-                eventClick: function(info) {
-                    let desc = info.event.extendedProps.description || 'No description';
-                    let location = info.event.extendedProps.location || 'Not specified';
-                    let status = info.event.extendedProps.status || 'Unknown';
-                    let isRescheduled = info.event.extendedProps.is_rescheduled ? 'Yes' : 'No';
-                    let note = info.event.extendedProps.note || 'No notes';
-                    Swal.fire({
-                        title: `<strong>${info.event.title}</strong>`,
-                        html: `
-                            <small class="text-muted">Date: ${info.event.startStr}</small><hr>
-                            <strong style="margin-bottom:15px;">Description:</strong> ${desc}<hr>
-                            <strong>Location:</strong> ${location}<br>
-                            <strong>Status:</strong> ${status}<br>
-                            <strong>Rescheduled:</strong> ${isRescheduled}<br>
-                            <strong>Note:</strong> ${note}
-                        `,
-                        icon: 'info',
-                        width: '800px',
-                        /* Increased popup width */
-                        confirmButtonText: 'Close',
-                        customClass: {
-                            popup: 'rounded-3',
-                            title: 'fw-bold',
-                            confirmButton: 'swal2-confirm'
-                        }
-                    });
-                },
-                dayMaxEventRows: true,
-                views: {
-                    dayGridMonth: {
-                        dayMaxEventRows: 3
+                selectable: true,
+                dayMaxEvents: true,
+                events: events,
+
+                dateClick: function(info) {
+                    if (confirm(`Create new work for ${info.dateStr}?`)) {
+                        window.location.href =
+                            `{{ route('work.index') }}?team_id=${teamId}&date=${info.dateStr}`;
                     }
+                },
+
+                eventClick: function(info) {
+                    showWorkDetails(info.event);
                 }
             });
+
             calendar.render();
         });
+
+        function showWorkDetails(event) {
+            const props = event.extendedProps;
+            const isCompleted = event.backgroundColor === '#34c38f';
+            const isSynced = event.id && event.extendedProps.google_event_id;
+
+            let timeInfo = event.allDay ?
+                `<strong>Date:</strong> ${event.startStr} (All Day)` :
+                `<strong>Start:</strong> ${new Date(event.start).toLocaleString()}<br>
+                 <strong>End:</strong> ${new Date(event.end).toLocaleString()}`;
+
+            const content = `
+                <div class="detail-row">
+                    <i class="fas fa-calendar text-primary me-2"></i>
+                    ${timeInfo}
+                </div>
+                <div class="detail-row">
+                    <i class="fas fa-info-circle text-info me-2"></i>
+                    <strong>Status:</strong>
+                    <span class="badge ${isCompleted ? 'bg-success' : 'bg-warning'}">${isCompleted ? 'Completed' : 'Pending'}</span>
+                    ${isSynced ? '<span class="badge bg-primary ms-2"><i class="fab fa-google"></i> Synced</span>' : ''}
+                </div>
+                <div class="detail-row">
+                    <i class="fas fa-align-left text-success me-2"></i>
+                    <strong>Description:</strong><br>
+                    <div class="mt-2">${props.description || 'No description'}</div>
+                </div>
+                <div class="detail-row">
+                    <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                    <strong>Location:</strong> ${props.location || 'Not specified'}
+                </div>
+                ${props.note ? `
+                    <div class="detail-row">
+                        <i class="fas fa-sticky-note text-warning me-2"></i>
+                        <strong>Notes:</strong> ${props.note}
+                    </div>` : ''}
+                <div class="mt-4 text-center">
+                    ${!isSynced ? `
+                            <button onclick="syncToGoogle(${event.id})" class="btn btn-danger sync-btn">
+                                <i class="fab fa-google me-2"></i>Sync to Google Calendar
+                            </button>
+                        ` : ''}
+                    ${props.location && props.location !== 'Not specified' ? `
+                            <button onclick="viewOnMap('${props.location}')" class="btn btn-info ms-2">
+                                <i class="fas fa-map me-2"></i>View on Map
+                            </button>
+                        ` : ''}
+                </div>
+            `;
+
+            document.getElementById('modalTitle').innerHTML = `<i class="fas fa-briefcase me-2"></i>${event.title}`;
+            document.getElementById('modalBody').innerHTML = content;
+            new bootstrap.Modal(document.getElementById('workModal')).show();
+        }
+
+        function syncToGoogle(workId) {
+            if (!{{ Session::has('google_token') ? 'true' : 'false' }}) {
+                if (confirm('You need to connect Google Calendar first. Connect now?')) {
+                    window.location.href = "{{ route('google.auth') }}";
+                }
+                return;
+            }
+
+            $.ajax({
+                url: `/google/sync-work/${workId}`,
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                beforeSend: function() {
+                    toastr.info('Syncing to Google Calendar...');
+                },
+                success: function(res) {
+                    if (res.status) {
+                        toastr.success(res.message);
+                        $('#workModal').modal('hide');
+                        location.reload();
+                    } else {
+                        if (res.redirect) {
+                            window.location.href = res.redirect;
+                        } else {
+                            toastr.error(res.message);
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    toastr.error('Failed to sync: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                }
+            });
+        }
+
+        function viewOnMap(location) {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`, '_blank');
+        }
     </script>
 @endpush

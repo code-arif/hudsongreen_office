@@ -145,6 +145,7 @@ class WorkScheduleRequest extends Controller
                 'end_time'       => $request->suggested_end_time,
                 'work_date'      => $request->suggested_work_date,
                 'is_rescheduled' => true,
+                'is_completed' => false,
             ]);
 
             // Update Reschedule request

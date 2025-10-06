@@ -20,11 +20,6 @@ class MapWorkResource extends JsonResource
             'latitude'      => $this->latitude,
             'longitude'     => $this->longitude,
             'is_completed'  => $this->is_completed,
-            'team'          => [
-                'id' => $this->team?->id,
-                'name' => $this->team?->name,
-                'unique_id' => $this->team?->unique_id,
-            ],
         ];
     }
 }

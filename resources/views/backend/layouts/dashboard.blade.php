@@ -91,30 +91,6 @@
                         </div>
                     </div>
 
-                    <!-- Pending Works -->
-                    <div class="col-lg-6 col-sm-12 col-md-6 col-xl-3">
-                        <div class="card overflow-hidden">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col">
-                                        <h3 class="mb-2 fw-semibold">{{ $pendingWorks }}</h3>
-                                        <p class="text-muted fs-13 mb-0">Pending Works</p>
-                                    </div>
-                                    <div class="col col-auto top-icn dash">
-                                        <div class="counter-icon bg-warning dash ms-auto box-shadow-warning">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="fill-white" viewBox="0 0 16 16">
-                                                <path
-                                                    d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
                     <!-- Rescheduled Works -->
                     <div class="col-lg-6 col-sm-12 col-md-6 col-xl-3">
                         <div class="card overflow-hidden">
@@ -139,6 +115,9 @@
                         </div>
                     </div>
 
+                </div>
+
+                <div class="row">
                     <!-- Total Teams -->
                     <div class="col-lg-6 col-sm-12 col-md-6 col-xl-3">
                         <div class="card overflow-hidden">
@@ -196,37 +175,9 @@
                                     </div>
                                     <div class="col col-auto top-icn dash">
                                         <div class="counter-icon bg-info dash ms-auto box-shadow-info">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="fill-white"
-                                                viewBox="0 0 16 16">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="fill-white" viewBox="0 0 16 16">
                                                 <path
                                                     d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <!-- Today's Completed -->
-                    <div class="col-lg-6 col-sm-12 col-md-6 col-xl-3">
-                        <div class="card overflow-hidden">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col">
-                                        <h3 class="mb-2 fw-semibold">{{ $todaysCompletedWorks }}</h3>
-                                        <p class="text-muted fs-13 mb-0">Today's Completed</p>
-                                    </div>
-                                    <div class="col col-auto top-icn dash">
-                                        <div class="counter-icon bg-success dash ms-auto box-shadow-success">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="fill-white"
-                                                viewBox="0 0 16 16">
-                                                <path
-                                                    d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z" />
-                                                <path
-                                                    d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z" />
                                             </svg>
                                         </div>
                                     </div>
@@ -240,7 +191,7 @@
                 <!-- ROW: Work & Team Analytics -->
                 <div class="row">
                     <!-- Work Completion Pie -->
-                    <div class="col-sm-12 col-md-6 col-lg-4">
+                    <div class="col-sm-12 col-md-6 col-lg-6">
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">Work Completion</h3>
@@ -252,52 +203,13 @@
                     </div>
 
                     <!-- Top Teams Bar Chart -->
-                    <div class="col-sm-12 col-md-6 col-lg-4">
+                    <div class="col-sm-12 col-md-6 col-lg-6">
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">Top Teams (Last 30 Days)</h3>
                             </div>
                             <div class="card-body">
                                 <div id="top-teams-barchart" style="width:100%; height:300px;"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Reschedule Requests -->
-                    <div class="col-sm-12 col-md-6 col-lg-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Reschedule Requests</h3>
-                            </div>
-                            <div class="card-body">
-                                <div id="reschedule-requests-piechart" style="width:100%; height:300px;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ROW: Time Series -->
-                <div class="row">
-                    <!-- New Works Line Chart -->
-                    <div class="col-sm-12 col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">New Works (Last 30 Days)</h3>
-                            </div>
-                            <div class="card-body">
-                                <div id="new-works-linechart" style="width:100%; height:350px;"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Daily Completed Works -->
-                    <div class="col-sm-12 col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Completed Works per Day</h3>
-                            </div>
-                            <div class="card-body">
-                                <div id="completed-works-linechart" style="width:100%; height:350px;"></div>
                             </div>
                         </div>
                     </div>
@@ -337,9 +249,6 @@
                         // Draw all charts
                         drawWorkCompletionPieChart(data.work_completion);
                         drawTopTeamsBarChart(data.top_teams_by_work);
-                        drawRescheduleRequestsPieChart(data.reschedule_requests);
-                        drawNewWorksLineChart(data.new_works);
-                        drawCompletedWorksLineChart(data.daily_completed_works);
                     })
                     .catch(error => {
                         console.error('Error fetching data:', error);
@@ -387,75 +296,6 @@
                     }
                 };
                 const chart = new google.visualization.BarChart(document.getElementById('top-teams-barchart'));
-                chart.draw(gData, options);
-            }
-
-            // Reschedule Requests Pie
-            function drawRescheduleRequestsPieChart(data) {
-                const chartData = [
-                    ['Status', 'Count'],
-                    ['Pending', data.pending],
-                    ['Approved', data.approved],
-                    ['Rejected', data.rejected]
-                ];
-                const gData = google.visualization.arrayToDataTable(chartData);
-                const options = {
-                    colors: ['#FFA500', '#00E396', '#FF4560'],
-                    legend: {
-                        position: 'bottom'
-                    }
-                };
-                const chart = new google.visualization.PieChart(document.getElementById(
-                    'reschedule-requests-piechart'));
-                chart.draw(gData, options);
-            }
-
-            // New Works Line Chart (Last 30 Days)
-            function drawNewWorksLineChart(data) {
-                const dates = Object.keys(data).sort();
-                const counts = dates.map(date => data[date] || 0);
-                const chartData = [
-                    ['Date', 'New Works']
-                ].concat(dates.map((d, i) => [d, counts[i]]));
-                const gData = google.visualization.arrayToDataTable(chartData);
-                const options = {
-                    legend: {
-                        position: 'none'
-                    },
-                    colors: ['#008FFB'],
-                    hAxis: {
-                        title: 'Date'
-                    },
-                    vAxis: {
-                        title: 'Count'
-                    }
-                };
-                const chart = new google.visualization.LineChart(document.getElementById('new-works-linechart'));
-                chart.draw(gData, options);
-            }
-
-            // Completed Works per Day
-            function drawCompletedWorksLineChart(data) {
-                const dates = Object.keys(data).sort();
-                const counts = dates.map(date => data[date] || 0);
-                const chartData = [
-                    ['Date', 'Completed']
-                ].concat(dates.map((d, i) => [d, counts[i]]));
-                const gData = google.visualization.arrayToDataTable(chartData);
-                const options = {
-                    legend: {
-                        position: 'none'
-                    },
-                    colors: ['#00E396'],
-                    hAxis: {
-                        title: 'Date'
-                    },
-                    vAxis: {
-                        title: 'Count'
-                    }
-                };
-                const chart = new google.visualization.LineChart(document.getElementById(
-                    'completed-works-linechart'));
                 chart.draw(gData, options);
             }
         });

@@ -93,6 +93,9 @@ class TeamManageController extends Controller
         return view("backend.layouts.teams.index");
     }
 
+    /**
+     * Store new team
+     */
     public function store(Request $request)
     {
         try {
@@ -235,7 +238,7 @@ class TeamManageController extends Controller
     }
 
     /**
-     * Team work list
+     * Team work list in calendar view
      */
     public function workList($id)
     {

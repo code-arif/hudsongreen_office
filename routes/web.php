@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\Api\Auth\AuthenticationController;
+use App\Http\Controllers\Web\Backend\GoogleCalendarController;
 use App\Http\Controllers\Api\React\User\Auth\SocialLoginController;
 
 
@@ -102,7 +103,10 @@ Route::get('/run-storage-link', function () {
 // teacher email verification
 Route::get('/verify-email/{token}', [AuthenticationController::class, 'verifyEmail'])->name('verify.email');
 
-//Social login test routes
+// Add to routes/web.php
+Route::get('/google/auth', [GoogleCalendarController::class, 'redirectToGoogle'])->name('google.auth');
+Route::get('/google/callback', [GoogleCalendarController::class, 'handleGoogleCallback'])->name('google.callback');
+Route::post('/google/sync-work/{id}', [GoogleCalendarController::class, 'syncWork'])->name('google.sync.work');
 
 
 require __DIR__.'/auth.php';
