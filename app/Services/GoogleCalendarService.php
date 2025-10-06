@@ -8,6 +8,7 @@ use Google_Service_Calendar_Event;
 use Google_Service_Calendar_EventDateTime;
 use Illuminate\Support\Facades\Session;
 
+
 class GoogleCalendarService
 {
     protected $client;

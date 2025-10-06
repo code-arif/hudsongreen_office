@@ -7,7 +7,7 @@ use App\Http\Controllers\Web\Backend\GoogleCalendarController;
 use App\Http\Controllers\Api\React\User\Auth\SocialLoginController;
 
 
-Route::get('/',function (){
+Route::get('/', function () {
     return view('welcome');
 });
 
@@ -104,12 +104,12 @@ Route::get('/run-storage-link', function () {
 Route::get('/verify-email/{token}', [AuthenticationController::class, 'verifyEmail'])->name('verify.email');
 
 // Add to routes/web.php
+// Google Calendar Authentication
 Route::get('/google/auth', [GoogleCalendarController::class, 'redirectToGoogle'])->name('google.auth');
 Route::get('/google/callback', [GoogleCalendarController::class, 'handleGoogleCallback'])->name('google.callback');
-Route::post('/google/sync-work/{id}', [GoogleCalendarController::class, 'syncWork'])->name('google.sync.work');
+
+// Google Calendar Sync Route
+Route::post('/google/sync-team-works/{teamId}', [GoogleCalendarController::class, 'syncTeamWorks'])->name('google.sync.team');
 
 
-require __DIR__.'/auth.php';
-
-
-
+require __DIR__ . '/auth.php';
