@@ -6,7 +6,7 @@
     <div class="app-content main-content mt-0">
         <div class="side-app">
             <div class="main-container container-fluid">
-                <div class="page-header">
+                {{-- <div class="page-header">
                     <div>
                         <h1 class="page-title">Employee Calendar</h1>
                     </div>
@@ -16,9 +16,9 @@
                             <li class="breadcrumb-item active" aria-current="page">Calendar</li>
                         </ol>
                     </div>
-                </div>
+                </div> --}}
 
-                <div class="row">
+                {{-- <div class="row">
                     <div class="col-12 h-50">
                         <div class="card border-0 shadow-sm rounded-3">
                             <div class="card-header bg-white px-4 border-0 d-flex justify-content-between">
@@ -34,7 +34,9 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> --}}
+
+                 <p> Calendar is under construction. Actually this is criticaly work. so we impliment carefully. We hope you will see the calendar soon </p>
             </div>
         </div>
     </div>

@@ -3,7 +3,7 @@
 @section('title', 'Team Work Calendar')
 
 @section('content')
-    <div class="app-content main-content mt-0">
+    {{-- <div class="app-content main-content mt-0">
         <div class="side-app">
             <div class="main-container container-fluid">
                 <div class="page-header">
@@ -26,10 +26,6 @@
                         </a>
                     </div>
                 </div>
-
-                {{-- Stats Cards (এগুলো এখন আর সরাসরি কাজ করবে না কারণ $events ভেরিয়েবল নেই) --}}
-                {{-- আপনি চাইলে কন্ট্রোলার থেকে work count পাস করতে পারেন --}}
-                {{-- আপাতত এই সেকশনটি কমেন্ট আউট করে রাখছি বা আপনি আপনার মতো করে ডেটা পাস করতে পারেন --}}
 
                 <div class="row">
                     <div class="col-12">
@@ -62,7 +58,9 @@
 
             </div>
         </div>
-    </div>
+    </div> --}}
+
+    <p> Calendar is under construction. Actually this is criticaly work. so we impliment carefully. We hope you will see the calendar soon </p>
 @endsection
 
 @push('styles')
@@ -93,57 +91,3 @@
     </style>
 @endpush
 
-@push('scripts')
-    {{-- FullCalendar এর script সম্পূর্ণ মুছে ফেলুন --}}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const syncButton = document.getElementById('sync-button');
-            const teamId = {{ $team->id }};
-
-            if (syncButton) {
-                syncButton.addEventListener('click', function() {
-                    syncToGoogle(teamId);
-                });
-            }
-        });
-
-        function syncToGoogle(teamId) {
-            // Show loading state
-            const syncButton = document.getElementById('sync-button');
-            syncButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
-            syncButton.disabled = true;
-
-            $.ajax({
-                url: `/google/sync-team-works/${teamId}`,
-                method: 'POST',
-                data: {
-                    _token: '{{ csrf_token() }}'
-                },
-                success: function(res) {
-                    if (res.status) {
-                        toastr.success(res.message);
-                        // Refresh calendar view by reloading the page
-                        setTimeout(() => {
-                            location.reload();
-                        }, 1500);
-                    } else {
-                        if (res.redirect) {
-                            toastr.error('Authentication needed. Redirecting...');
-                            window.location.href = res.redirect;
-                        } else {
-                            toastr.error(res.message || 'An unknown error occurred.');
-                        }
-                    }
-                },
-                error: function(xhr) {
-                    toastr.error('Failed to sync: ' + (xhr.responseJSON?.message || 'Server error'));
-                },
-                complete: function() {
-                    // Restore button state
-                    syncButton.innerHTML = '<i class="fas fa-sync-alt"></i> Sync All to Google Calendar';
-                    syncButton.disabled = false;
-                }
-            });
-        }
-    </script>
-@endpush
