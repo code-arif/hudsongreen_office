@@ -31,7 +31,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/map/{id}/works', [EmployeeManageController::class, 'mapWorkList'])->name('user.map.list');
     });
 
-
     // team manage
     Route::prefix('team')->name('team.')->group(function () {
         Route::get('/list', [TeamManageController::class, 'index'])->name('list');
@@ -62,10 +61,14 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/edit/{id}', [WorkManageController::class, 'edit'])->name('edit');
         Route::post('/update/{id}', [WorkManageController::class, 'update'])->name('update');
         Route::delete('/delete/{id}', [WorkManageController::class, 'delete'])->name('delete');
-        Route::post('/status/{id}', [WorkManageController::class, 'status'])->name('status');
+        Route::post('/complation/{id}', [WorkManageController::class, 'complation'])->name('complation.status');
 
         // category
         Route::get('/category', [WorkManageController::class, 'getCategory'])->name('categroy');
+
+        // work reschedule request
+        Route::get('/reschedule-request/edit/{id}', [WorkManageController::class, 'reschedultEdit'])->name('reschedule.edit');
+        Route::post('/reschedule-request/update/{id}', [WorkManageController::class, 'rescheduleUpdate'])->name('reschedule.update');
     });
 
     // work reschedule request
@@ -79,6 +82,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // work map view
     Route::get('/global-map', [MapController::class, 'globalMap'])->name('map.global');
     Route::get('/filter-works/{teamId}', [MapController::class, 'filterWorksByTeam'])->name('works.filter');
+    Route::get('/works/search-teams', [MapController::class, 'searchTeams'])->name('works.searchTeams');
 });
 
 

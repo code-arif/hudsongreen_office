@@ -1,10 +1,11 @@
 <?php
 
+use App\Http\Controllers\GoogleAuthContreoller;
+use App\Http\Controllers\Web\Backend\WorkCalendarController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\Api\Auth\AuthenticationController;
-use App\Http\Controllers\Web\Backend\GoogleCalendarController;
-use App\Http\Controllers\Api\React\User\Auth\SocialLoginController;
+use App\Http\Controllers\GoogleCalendarController;
 
 
 Route::get('/', function () {
@@ -103,13 +104,23 @@ Route::get('/run-storage-link', function () {
 // teacher email verification
 Route::get('/verify-email/{token}', [AuthenticationController::class, 'verifyEmail'])->name('verify.email');
 
-// Add to routes/web.php
-// Google Calendar Authentication
-Route::get('/google/auth', [GoogleCalendarController::class, 'redirectToGoogle'])->name('google.auth');
-Route::get('/google/callback', [GoogleCalendarController::class, 'handleGoogleCallback'])->name('google.callback');
 
-// Google Calendar Sync Route
-Route::post('/google/sync-team-works/{teamId}', [GoogleCalendarController::class, 'syncTeamWorks'])->name('google.sync.team');
 
+// Calendar Routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/calendar', [GoogleCalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar/create', [GoogleCalendarController::class, 'create'])->name('calendar.create');
+    Route::post('/calendar', [GoogleCalendarController::class, 'store'])->name('calendar.store');
+    Route::get('/calendar/{work}/edit', [GoogleCalendarController::class, 'edit'])->name('calendar.edit');
+    Route::put('/calendar/{work}', [GoogleCalendarController::class, 'update'])->name('calendar.update');
+    Route::delete('/calendar/{work}', [GoogleCalendarController::class, 'destroy'])->name('calendar.destroy');
+    Route::post('/calendar/{work}/toggle', [GoogleCalendarController::class, 'toggleStatus'])->name('calendar.toggle');
+    Route::get('/calendar/events', [GoogleCalendarController::class, 'getEvents'])->name('calendar.events');
+});
+
+// Google Auth Routes
+Route::get('/google/redirect', [GoogleAuthContreoller::class, 'redirectToGoogle'])->name('google.redirect');
+Route::get('/google/callback', [GoogleAuthContreoller::class, 'handleGoogleCallback'])->name('google.callback');
+Route::post('/google/disconnect', [GoogleAuthContreoller::class, 'disconnectGoogle'])->name('google.disconnect');
 
 require __DIR__ . '/auth.php';

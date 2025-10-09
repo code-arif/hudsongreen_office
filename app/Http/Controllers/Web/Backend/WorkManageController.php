@@ -18,7 +18,11 @@ class WorkManageController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Work::with('category', 'team')->latest('id');
+            $query = Work::with('category', 'team')
+                ->withCount(['rescheduleRequests' => function ($q) {
+                    $q->where('status', 1);
+                }])
+                ->latest('id');
 
             // Apply filters if present
             if ($request->has('is_completed') && $request->is_completed !== null && $request->is_completed !== '') {
@@ -27,6 +31,15 @@ class WorkManageController extends Controller
 
             if ($request->has('is_rescheduled') && $request->is_rescheduled !== null && $request->is_rescheduled !== '') {
                 $query->where('is_rescheduled', $request->is_rescheduled);
+            }
+
+            // Filter for reschedule requests
+            if ($request->filled('has_reschedule_request')) {
+                if ($request->has_reschedule_request == 1) {
+                    $query->has('rescheduleRequests');
+                } elseif ($request->has_reschedule_request == 0) {
+                    $query->doesntHave('rescheduleRequests');
+                }
             }
 
             $works = $query->get();
@@ -38,9 +51,6 @@ class WorkManageController extends Controller
                 ->addColumn('title', function ($item) {
                     return strlen($item->title) > 15 ? substr($item->title, 0, 15) . '...' : $item->title;
                 })
-
-                // Unique ID
-                ->addColumn('id', fn($item) => $item->unique_id)
 
                 // Category
                 ->addColumn('category', function ($item) {
@@ -73,51 +83,53 @@ class WorkManageController extends Controller
                     return strlen($item->location) > 20 ? substr($item->location, 0, 20) . '...' : $item->location;
                 })
 
-                // Start Time
-                ->addColumn('start_time', fn($item) => $item->start_time ? date('h:i A', strtotime($item->start_time)) : '---')
-
-                // End Time
-                ->addColumn('end_time', fn($item) => $item->end_time ? date('h:i A', strtotime($item->end_time)) : '---')
+                // Time
+                ->addColumn('time', fn($item) => $item->time ? date('h:i A', strtotime($item->time)) : '---')
 
                 // Work Date
                 ->addColumn('work_date', fn($item) => $item->work_date ? date('d M Y', strtotime($item->work_date)) : '---')
 
                 // Is Completed
-                ->addColumn('is_completed', fn($item) => $item->is_completed ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-warning">No</span>')
+                ->addColumn('is_completed', function ($item) {
+                    $isCompleted = $item->is_completed ? true : false;
+
+                    $yesActive = $isCompleted ? 'active' : '';
+                    $noActive = !$isCompleted ? 'active' : '';
+
+                    return '
+                        <div class="completion-toggle" data-id="' . $item->id . '">
+                            <span onclick="showCompletionChangeAlert(' . $item->id . ', 0)" class="toggle-option ' . $noActive . ' left">No</span>
+                            <span onclick="showCompletionChangeAlert(' . $item->id . ', 1)" class="toggle-option ' . $yesActive . ' right">Yes</span>
+                        </div>
+                    ';
+                })
 
                 // Is Rescheduled
                 ->addColumn('is_rescheduled', fn($item) => $item->is_rescheduled ? '<span class="badge bg-info">Yes</span>' : '<span class="badge bg-secondary">No</span>')
 
-                // Status (switch)
-                ->addColumn('status', function ($item) {
-                    $checked = $item->status == 1 ? 'checked' : '';
-                    return '<div class="form-check form-switch" style="display: flex; justify-content: center; align-items: center;">
-                            <input onclick="showStatusChangeAlert(' . $item->id . ')"
-                                   type="checkbox"
-                                   class="form-check-input"
-                                   role="switch"
-                                   style="cursor: pointer; width: 40px; height: 20px;"
-                                   ' . $checked . '>
-                        </div>';
-                })
-
                 // Actions
                 ->addColumn('action', function ($item) {
-                    return '<div class="d-flex justify-content-start align-items-center gap-1">
-                             <button type="button"
-                                   class="btn btn-primary btn-sm editwork"
-                                   data-id="' . $item->id . '">
-                            <i class="fa fa-pen-to-square"></i> Edit
-                            </button>
+                    $buttons = '<div class="d-flex justify-content-start align-items-center gap-1">
+                    <button type="button" class="btn btn-primary btn-sm editwork" data-id="' . $item->id . '">
+                        <i class="fa fa-pen-to-square"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger deleteBtn" onclick="showDeleteConfirm(' . $item->id . ')">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>';
 
-                           <button type="button" class="btn btn-sm btn-danger deleteBtn"
-                                onclick="showDeleteConfirm(' . $item->id . ')">
-                                <i class="fa fa-trash"></i> Delete
-                            </button>
-                        </div>';
+
+                    if ($item->reschedule_requests_count > 0) {
+                        $buttons .= '<button type="button" class="btn btn-warning btn-sm WorkRescheduleBtn"
+                             data-id="' . $item->id . '">
+                             <i class="fa fa-clock-rotate-left"></i> Reschedule
+                         </button>';
+                    }
+
+                    $buttons .= '</div>';
+                    return $buttons;
                 })
 
-                ->rawColumns(['title', 'location', 'is_completed', 'is_rescheduled', 'status', 'action', 'category', 'team'])
+                ->rawColumns(['title', 'location', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
                 ->make();
         }
 
@@ -131,6 +143,7 @@ class WorkManageController extends Controller
     // Store work
     public function store(Request $request)
     {
+        $request->all();
         DB::beginTransaction();
 
         try {
@@ -141,13 +154,12 @@ class WorkManageController extends Controller
                 'location'     => 'nullable|string',
                 'latitude'     => 'nullable|numeric|between:-90,90',
                 'longitude'    => 'nullable|numeric|between:-180,180',
-                'start_time'   => 'nullable',
-                'end_time'     => 'nullable',
+                'time'     => 'nullable',
                 'work_date'    => 'nullable|date',
                 'team_id'      => 'nullable|exists:teams,id',
 
                 // Category
-                'category_id' => 'nullable|exists:categories,id',
+                'category_id'   => 'nullable|exists:categories,id',
                 'category_name' => 'nullable|string|max:255',
             ]);
 
@@ -159,11 +171,14 @@ class WorkManageController extends Controller
                 ], 422);
             }
 
-            // Handle Asset Class
-            if (!$request->category_id && $request->category_name) {
-                Category::create([
-                    'name'       => $request->category_name,
+            // Handle Category
+            $categoryId = $request->category_id;
+
+            if (!$categoryId && $request->category_name) {
+                $category = Category::create([
+                    'name' => $request->category_name,
                 ]);
+                $categoryId = $category->id;
             }
 
             // Save Work
@@ -173,12 +188,10 @@ class WorkManageController extends Controller
                 'location'      => $request->location,
                 'latitude'      => $request->latitude,
                 'longitude'     => $request->longitude,
-                'start_time'    => $request->start_time,
-                'end_time'      => $request->end_time,
+                'time'    => $request->time,
                 'work_date'     => $request->work_date,
                 'team_id'       => $request->team_id,
-                'category_id'   => $request->category_id,
-                'unique_id' => 'W_' . date('ymd') . mt_rand(100, 999),
+                'category_id'   => $categoryId,
             ]);
 
             DB::commit();
@@ -224,22 +237,23 @@ class WorkManageController extends Controller
 
             if (!$work) {
                 return response()->json([
-                    'status' => false,
-                    'message' => 'Work not found!'
-                ]);
+                    'status'  => false,
+                    'message' => 'Work not found!',
+                ], 404);
             }
 
             // Validation
             $validator = Validator::make($request->all(), [
-                'title'        => 'required|string|max:255',
-                'description'  => 'nullable|string',
-                'location'     => 'nullable|string',
-                'latitude'     => 'nullable|numeric|between:-90,90',
-                'longitude'    => 'nullable|numeric|between:-180,180',
-                'start_time'   => 'nullable',
-                'end_time'     => 'nullable',
-                'work_date'    => 'nullable|date',
-                'team_id'      => 'nullable|exists:teams,id',
+                'title'         => 'required|string|max:255',
+                'description'   => 'nullable|string',
+                'location'      => 'nullable|string',
+                'latitude'      => 'nullable|numeric|between:-90,90',
+                'longitude'     => 'nullable|numeric|between:-180,180',
+                'time'    => 'nullable',
+                'work_date'     => 'nullable|date',
+                'team_id'       => 'nullable|exists:teams,id',
+                'category_id'   => 'nullable|exists:categories,id',
+                'category_name' => 'nullable|string|max:255',
             ]);
 
             if ($validator->fails()) {
@@ -250,17 +264,25 @@ class WorkManageController extends Controller
                 ], 422);
             }
 
+            // Handle Category
+            $categoryId = $request->category_id;
+
+            if (!$categoryId && $request->category_name) {
+                $category = Category::firstOrCreate(['name' => $request->category_name]);
+                $categoryId = $category->id;
+            }
+
             // Update Work
             $work->update([
-                'title'          => $request->title,
-                'description'    => $request->description,
-                'location'       => $request->location,
-                'latitude'       => $request->latitude,
-                'longitude'      => $request->longitude,
-                'start_time'     => $request->start_time,
-                'end_time'       => $request->end_time,
-                'work_date'      => $request->work_date,
-                'team_id'        => $request->team_id,
+                'title'        => $request->title,
+                'description'  => $request->description,
+                'location'     => $request->location,
+                'latitude'     => $request->latitude,
+                'longitude'    => $request->longitude,
+                'time'   => $request->time,
+                'work_date'    => $request->work_date,
+                'team_id'      => $request->team_id,
+                'category_id'  => $categoryId,
             ]);
 
             DB::commit();
@@ -279,7 +301,6 @@ class WorkManageController extends Controller
             ], 500);
         }
     }
-
 
     // Delete work
     public function delete($id)
@@ -307,9 +328,8 @@ class WorkManageController extends Controller
         }
     }
 
-
-    // Change status
-    public function status($id)
+    // Change wodrk complation status
+    public function complation($id)
     {
         $work = Work::with(['team'])->find($id);
 
@@ -318,7 +338,6 @@ class WorkManageController extends Controller
         }
 
         // Toggle status
-        $work->status = $work->status == 0 ? 1 : 0;
         $work->is_completed = $work->is_completed == true ? false : true;
         $work->save();
 
@@ -337,5 +356,81 @@ class WorkManageController extends Controller
             'status' => true,
             'data'   => $categories
         ]);
+    }
+
+    // edit reschedule work list
+    public function reschedultEdit($id)
+    {
+        try {
+            $reschedule = Work::with('request')->find($id);
+            if (!$reschedule) {
+                return response()->json(['success' => false, 'message' => 'Work not found.'], 404);
+            }
+
+            return response()->json(['success' => true, 'data' => $reschedule]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to fetch work. ' . $e->getMessage()]);
+        }
+    }
+
+    // Update reschedule work
+    public function rescheduleUpdate(Request $request, $id)
+    {
+        DB::beginTransaction();
+
+        try {
+            $work = Work::find($id);
+            if (!$work) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Work not found!'
+                ], 404);
+            }
+
+            // Validation (match frontend fields!)
+            $validator = Validator::make($request->all(), [
+                'time' => 'nullable|date_format:H:i',
+                'suggested_date'  => 'nullable|date',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Validation failed',
+                    'errors'  => $validator->errors(),
+                ], 422);
+            }
+
+            // Update Work
+            $work->update([
+                'time'     => $request->time,
+                'work_date'      => $request->suggested_date,
+                'is_rescheduled' => true,
+                'is_completed' => false,
+            ]);
+
+            // Update Reschedule request
+            $reschedule = RescheduleRequest::where('work_id', $work->id)->first();
+            if ($reschedule) {
+                $reschedule->update([
+                    'status' => false,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Work rescheduled!',
+                'data'    => $work,
+            ], 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

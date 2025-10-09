@@ -3,7 +3,7 @@
 @section('title', 'Work List')
 
 @section('content')
-    <!--app-content open-->
+    {{-- work data table --}}
     <div class="app-content main-content mt-0">
         <div class="side-app">
 
@@ -48,6 +48,14 @@
                                 <div class="card-header border-bottom mb-3">
                                     <div class="card-options ms-auto d-flex align-items-center gap-2">
 
+                                        {{-- re schedule request filtering --}}
+                                        <select id="rescheduleFilter" class="form-select form-select-sm"
+                                            style="width: 180px">
+                                            <option value="">All Works</option>
+                                            <option value="1">With Reschedule Request</option>
+                                            <option value="0">Without Reschedule Request</option>
+                                        </select>
+
                                         <!-- Completed Filter -->
                                         <select id="filter_completed" class="form-select form-select-sm"
                                             style="width: 180px;">
@@ -64,6 +72,7 @@
                                             <option value="0">Not Rescheduled</option>
                                         </select>
 
+
                                         <!-- Add Button -->
                                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                             data-bs-target="#workModal" id="addworkBtn">
@@ -78,16 +87,13 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Title</th>
-                                                <th>ID</th>
                                                 <th>Category</th>
                                                 <th>Team</th>
                                                 <th>Location</th>
-                                                <th>Start Time</th>
-                                                <th>End Time</th>
+                                                <th>Time</th>
                                                 <th>Work Date</th>
                                                 <th>Completed</th>
                                                 <th>Rescheduled</th>
-                                                <th>Status</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -103,145 +109,23 @@
             </div>
         </div>
     </div>
-    <!-- CONTAINER CLOSED -->
 
     {{-- Add/Edit work Modal --}}
-    {{-- Add/Edit work Modal --}}
-    <div class="modal fade" id="workModal" tabindex="-1" aria-labelledby="workModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <form id="workForm" enctype="multipart/form-data">
-                    @csrf
-                    <input type="hidden" name="id" id="workID">
+    @include('backend.layouts.works.create_work')
 
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="workModalLabel">Create Work</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">×</button>
-                    </div>
-
-                    <div class="modal-body">
-                        <div class="row">
-                            {{-- Title --}}
-                            <div class="col-md-4">
-                                <div class="p-3 rounded-2 bg-light equal-box">
-                                    <label class="form-label">Title</label>
-                                    <input type="text" class="form-control" name="title" id="work_title"
-                                        placeholder="Enter Work Title">
-                                    <span class="text-danger error-text title_error"></span>
-                                </div>
-                            </div>
-
-                            {{-- Team select --}}
-                            <div class="col-md-4">
-                                <div class="p-3 rounded-2 bg-light equal-box">
-                                    <label for="team_id">Select Team</label>
-                                    <select name="team_id" id="team_id" class="form-control">
-                                        <option value="">-- Select Team --</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {{-- Category --}}
-                            <div class="col-md-4 mb-3">
-                                <div class="p-3 rounded-2 bg-light equal-box">
-                                    <label class="form-label">Select Category</label>
-                                    <select name="category_id" id="category_id" class="form-control">
-                                        <option value="">-- Select Category --</option>
-                                    </select>
-                                    <input type="text" name="category_name" class="form-control mt-2"
-                                        placeholder="Or create new category">
-                                </div>
-                            </div>
-
-                            {{-- Description --}}
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Description</label>
-                                <textarea class="form-control summernote" name="description" id="work_description" rows="4"
-                                    placeholder="Enter Description"></textarea>
-                                <span class="text-danger error-text description_error"></span>
-                            </div>
-
-                            {{-- Map Search Box --}}
-                            <div class="col-md-12 mt-3">
-                                <label class="form-label">Search Location</label>
-                                <input type="text" class="form-control" id="map_search"
-                                    placeholder="Search for a location...">
-                            </div>
-
-                            {{-- Google Map --}}
-                            <div class="col-md-12 mt-3">
-                                <label class="form-label">Pick Location on Map</label>
-                                <div id="map" style="height: 350px; width: 100%;"></div>
-                            </div>
-
-                            {{-- Location --}}
-                            <div class="col-md-6 mt-3">
-                                <label class="form-label">Location</label>
-                                <input type="text" class="form-control" name="location" id="work_location"
-                                    placeholder="Work Location" readonly>
-                                <span class="text-danger error-text location_error"></span>
-                            </div>
-
-                            {{-- Latitude --}}
-                            <div class="col-md-3 mt-3">
-                                <label class="form-label">Latitude</label>
-                                <input type="text" class="form-control" name="latitude" id="work_latitude"
-                                    placeholder="Latitude" readonly>
-                                <span class="text-danger error-text latitude_error"></span>
-                            </div>
-
-                            {{-- Longitude --}}
-                            <div class="col-md-3 mt-3">
-                                <label class="form-label">Longitude</label>
-                                <input type="text" class="form-control" name="longitude" id="work_longitude"
-                                    placeholder="Longitude" readonly>
-                                <span class="text-danger error-text longitude_error"></span>
-                            </div>
-
-                            {{-- Start Time --}}
-                            <div class="col-md-4">
-                                <label class="form-label">Start Time <span class="text-muted"> (24 hour format)</span>
-                                </label>
-                                <input type="time" class="form-control" name="start_time" id="start_time">
-                                <span class="text-danger error-text start_time_error"></span>
-                            </div>
-
-                            {{-- End Time --}}
-                            <div class="col-md-4">
-                                <label class="form-label">End Time <span class="text-muted"> (24 hour format)</span>
-                                </label>
-                                <input type="time" class="form-control" name="end_time" id="end_time">
-                                <span class="text-danger error-text end_time_error"></span>
-                            </div>
-
-                            {{-- Work Date --}}
-                            <div class="col-md-4">
-                                <label class="form-label">Work Date</label>
-                                <input type="date" class="form-control" name="work_date" id="work_date">
-                                <span class="text-danger error-text work_date_error"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary" id="workSubmitBtn">Save changes</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    {{-- Work reschedule modal --}}
+    @include('backend.layouts.works.work_reschedule')
 @endsection
 
 @push('styles')
     <style>
         #map {
-            height: 350px;
+            height: 300px;
             border-radius: 8px;
         }
 
         .equal-box {
-            min-height: 110px;
+            min-height: 95px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -250,6 +134,42 @@
         /* Style the autocomplete dropdown */
         .pac-container {
             z-index: 10000 !important;
+        }
+    </style>
+
+    {{-- style work complation button --}}
+    <style>
+        .completion-toggle {
+            display: inline-flex;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .completion-toggle .toggle-option {
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+
+        .completion-toggle .toggle-option.left {
+            border-right: 1px solid #ccc;
+        }
+
+        .completion-toggle .toggle-option.active {
+            color: #fff;
+            background-color: #13bfa6;
+            /* green */
+        }
+
+        .completion-toggle .toggle-option.left.active {
+            background-color: #e984b1;
+            /* red for NO */
         }
     </style>
 @endpush
@@ -351,6 +271,7 @@
             marker.setAnimation(google.maps.Animation.BOUNCE);
             setTimeout(() => marker.setAnimation(null), 750);
         }
+
         // Reverse geocode coordinates to get address
         function reverseGeocode(lat, lng) {
             const latlng = {
@@ -388,7 +309,6 @@
             }
         });
 
-
         //document ready functionq
         $(document).ready(function() {
 
@@ -417,6 +337,7 @@
                     data: function(d) {
                         d.is_completed = $('#filter_completed').val();
                         d.is_rescheduled = $('#filter_rescheduled').val();
+                        d.has_reschedule_request = $('#rescheduleFilter').val();
                     }
                 },
                 columns: [{
@@ -428,9 +349,6 @@
                         data: 'title'
                     },
                     {
-                        data: 'id'
-                    },
-                    {
                         data: 'category'
                     },
                     {
@@ -440,10 +358,7 @@
                         data: 'location'
                     },
                     {
-                        data: 'start_time'
-                    },
-                    {
-                        data: 'end_time'
+                        data: 'time'
                     },
                     {
                         data: 'work_date'
@@ -455,9 +370,6 @@
                         data: 'is_rescheduled'
                     },
                     {
-                        data: 'status'
-                    },
-                    {
                         data: 'action',
                         orderable: false,
                         searchable: false
@@ -466,7 +378,7 @@
             });
 
             // reload table on filter change
-            $('#filter_completed, #filter_rescheduled').change(function() {
+            $('#filter_completed, #filter_rescheduled, #rescheduleFilter').change(function() {
                 dTable.ajax.reload();
             });
 
@@ -504,7 +416,7 @@
                         let options = '<option value="">-- Select Team --</option>';
                         response.data.forEach(function(team) {
                             options +=
-                                `<option value="${team.id}">${team.name} (${team.unique_id})</option>`;
+                                `<option value="${team.id}">${team.name}</option>`;
                         });
                         $('#team_id').html(options);
                     }
@@ -592,8 +504,7 @@
                     $('#work_location').val(response.data.location);
                     $('#work_latitude').val(response.data.latitude);
                     $('#work_longitude').val(response.data.longitude);
-                    $('#start_time').val(response.data.start_time);
-                    $('#end_time').val(response.data.end_time);
+                    $('#time').val(response.data.time);
                     $('#work_date').val(response.data.work_date);
 
                     // Set Summernote content
@@ -606,7 +517,7 @@
                             let options = '<option value="">-- Select Team --</option>';
                             teamResponse.data.forEach(function(team) {
                                 options +=
-                                    `<option value="${team.id}">${team.name} (${team.unique_id})</option>`;
+                                    `<option value="${team.id}">${team.name}</option>`;
                             });
                             $('#team_id').html(options);
 
@@ -628,7 +539,7 @@
 
                                 if (response.data.category_id) {
                                     $('#category_id').val(response.data
-                                    .category_id);
+                                        .category_id);
                                 }
                             }
                         });
@@ -644,7 +555,7 @@
                             $('#workModal').one('shown.bs.modal', function() {
                                 if (mapInitialized) {
                                     updateLocation(lat, lng, response.data
-                                    .location);
+                                        .location);
                                 }
                             });
                         }
@@ -652,40 +563,49 @@
                 });
             });
         });
+    </script>
 
-
-        function showStatusChangeAlert(id) {
+    {{-- Work complation status change system --}}
+    <script>
+        // Completion Status Change Confirmation
+        function showCompletionChangeAlert(id, newStatus) {
             event.preventDefault();
 
             Swal.fire({
                 title: 'Are you sure?',
-                text: 'You want to update the status?',
+                text: 'You want to update the completion status?',
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonText: 'Yes',
                 cancelButtonText: 'No',
             }).then((result) => {
                 if (result.isConfirmed) {
-                    statusChange(id);
+                    completionStatusChange(id, newStatus);
                 }
             });
         }
 
-        // Status Change
-        function statusChange(id) {
+        // Handle AJAX Request
+        function completionStatusChange(id, newStatus) {
             NProgress.start();
-            let url = "{{ route('work.status', ':id') }}";
+
+            let url = "{{ route('work.complation.status', ':id') }}";
+
             $.ajax({
                 type: "POST",
                 url: url.replace(':id', id),
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    is_completed: newStatus ? 1 : 0
+                },
                 success: function(resp) {
                     NProgress.done();
                     toastr.success(resp.message);
-                    $('#datatable').DataTable().ajax.reload();
+                    $('#datatable').DataTable().ajax.reload(null, false);
                 },
                 error: function(error) {
                     NProgress.done();
-                    toastr.error(error.message);
+                    toastr.error(error.responseJSON?.message || 'Something went wrong!');
                 }
             });
         }
@@ -730,5 +650,122 @@
                 }
             });
         }
+    </script>
+
+
+    {{-- work reschedule request manage --}}
+    <script>
+        $(document).ready(function() {
+            $.ajaxSetup({
+                headers: {
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+                }
+            });
+
+            // Handle form submission
+            $('#WorkRescheduleForm').on('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                let formData = new FormData(this);
+                let workId = $('#workRescheduleID').val();
+
+                let url = "{{ route('work.reschedule.update', ':id') }}";
+                url = url.replace(':id', workId);
+
+                formData.append('work_id', workId);
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function() {
+                        $('span.error-text').text('');
+                        $('#workRescheduleSubmitBtn')
+                            .prop('disabled', true)
+                            .html('Processing...');
+                    },
+                    success: function(response) {
+                        $('#workRescheduleSubmitBtn').prop('disabled', false).html(
+                            'Save changes');
+
+                        if (!response.status) {
+                            if (response.errors) {
+                                $.each(response.errors, function(prefix, val) {
+                                    $('span.' + prefix + '_error').text(val[0]);
+                                });
+                            } else {
+                                toastr.error(response.message || 'Something went wrong.');
+                            }
+                        } else {
+                            $('#WorkRescheduleModal').modal('hide');
+                            $('#WorkRescheduleForm')[0].reset();
+                            toastr.success(response.message ||
+                                'Reschedule updated successfully.');
+                            $('#datatable').DataTable().ajax.reload();
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#workRescheduleSubmitBtn').prop('disabled', false).html(
+                            'Save changes');
+                        if (xhr.status === 422) {
+                            $.each(xhr.responseJSON.errors, function(prefix, val) {
+                                prefix = prefix.replace(/\./g, '_');
+                                $('span.' + prefix + '_error').text(val[0]);
+                            });
+                        } else {
+                            toastr.error(xhr.responseJSON?.message || 'Something went wrong.');
+                        }
+                    }
+                });
+            });
+
+
+            // Open modal and load work details
+            $(document).on('click', '.WorkRescheduleBtn', function() {
+                let id = $(this).data('id');
+                let url = "{{ route('work.reschedule.edit', ':id') }}".replace(':id', id);
+
+                $.get(url, function(response) {
+                    if (response.success) {
+                        let work = response.data; // Work main object
+                        let request = work.request || {}; // Nested reschedule request
+
+                        // Work ID for update
+                        $('#workRescheduleID').val(work.id);
+
+                        // Display Work Info
+                        $('#work_reschedule_title').text(work.title ?? '---');
+                        $('#work_reschedule_description').text(work.description ?? '---');
+                        $('#work_reschedule_location').text(work.location ?? '---');
+
+                        if (work.latitude && work.longitude) {
+                            let mapUrl =
+                                `https://www.google.com/maps/search/?api=1&query=${work.latitude},${work.longitude}`;
+                            $('#work_reschedule_location_link')
+                                .attr('href', mapUrl)
+                                .attr('target', '_blank')
+                                .attr('title', 'View on Google Maps');
+                        } else {
+                            $('#work_reschedule_location_link').removeAttr('href');
+                        }
+
+                        $('#work_reschedule_time').text(work.time ?? '---');
+                        $('#work_reschedule_date').text(work.work_date ?? '---');
+
+                        // Suggested fields (editable)
+                        $('#suggested_time').val(request.time ?? '');
+                        $('#suggested_work_date').val(request.suggested_date ?? '');
+
+                        $('#WorkRescheduleModalLabel').text('Reschedule Work');
+                        $('#WorkRescheduleModal').modal('show');
+                    } else {
+                        toastr.error(response.message || 'Failed to load work details.');
+                    }
+                });
+            });
+        });
     </script>
 @endpush

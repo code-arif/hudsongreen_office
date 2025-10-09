@@ -1,8 +1,9 @@
 @php
-$settings = \App\Models\Setting::first();
+    $settings = \App\Models\Setting::first();
 @endphp
 <!doctype html>
 <html lang="en" dir="ltr">
+
 <head>
     <!-- META DATA -->
     <meta charset="UTF-8">
@@ -21,17 +22,17 @@ $settings = \App\Models\Setting::first();
     <title> @yield('title') || {{ config('app.name') }} </title>
     <!-- Scripts -->
 
+    {{-- full calendar link --}}
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+
     @vite(['resources/js/app.js'])
 
 
 
     @include('backend.partials.styles')
-
-
 </head>
 
 <body class="ltr app sidebar-mini">
-    @include('backend.partials.switcher')
 
     @include('backend.partials.loader')
 
@@ -49,6 +50,8 @@ $settings = \App\Models\Setting::first();
     </div>
     <!-- page -->
     @include('backend.partials.scripts')
+
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
 </body>
 

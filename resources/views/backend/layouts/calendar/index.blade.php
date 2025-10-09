@@ -6,29 +6,60 @@
     <div class="app-content main-content mt-0">
         <div class="side-app">
             <div class="main-container container-fluid">
+                <!-- PAGE HEADER -->
                 <div class="page-header">
-                    <div>
-                        <h1 class="page-title">Global Work Calendar</h1>
-                    </div>
-                    <div class="ms-auto pageheader-btn">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="javascript:void(0);">Calendar</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Global</li>
-                        </ol>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h3 class="page-title">Work Schedule</h3>
+                            <ul class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                                <li class="breadcrumb-item active">Calendar</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <select id="teamSelect" class="form-control">
+                <!-- FILTERS -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <select id="teamFilter" class="form-select">
                             <option value="">All Teams</option>
                             @foreach ($teams as $team)
-                                <option value="{{ $team->id }}" {{ $teamId == $team->id ? 'selected' : '' }}>{{ $team->name }}</option>
+                                <option value="{{ $team->id }}" {{ $teamId == $team->id ? 'selected' : '' }}>
+                                    {{ $team->name }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <select id="statusFilter" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="completed" {{ $status == 'completed' ? 'selected' : '' }}>Completed</option>
+                            <option value="pending" {{ $status == 'pending' ? 'selected' : '' }}>Pending</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="dateRangeFilter" class="form-select">
+                            <option value="month" {{ $dateRange == 'month' ? 'selected' : '' }}>This Month</option>
+                            <option value="week" {{ $dateRange == 'week' ? 'selected' : '' }}>This Week</option>
+                            <option value="today" {{ $dateRange == 'today' ? 'selected' : '' }}>Today</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('calendar.create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Add Event
+                            </a>
+                            @if (auth()->user()->role === 'admin')
+                                <a href="{{ route('google.redirect') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-sync-alt me-1"></i>Sync Google
+                                </a>
+                            @endif
+                        </div>
+                    </div>
                 </div>
 
+                <!-- CALENDAR -->
                 <div class="row">
                     <div class="col-12 h-50">
                         <div class="card border-0 shadow-sm rounded-3">
@@ -36,6 +67,11 @@
                                 <h5 class="mb-0 text-dark fw-semibold p-3">
                                     <i class="fas fa-calendar-alt me-2 text-primary"></i>
                                     Work Schedule
+                                    @if (session('google_access_token'))
+                                        <span class="badge bg-success ms-2">Google Calendar Synced</span>
+                                    @else
+                                        <span class="badge bg-warning ms-2">Not Synced</span>
+                                    @endif
                                 </h5>
                             </div>
                             <div class="card-body py-3">
@@ -44,185 +80,218 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- GOOGLE SYNC STATUS -->
+                @if (auth()->user()->role === 'admin')
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Google Calendar Status:
+                                @if (session('google_access_token'))
+                                    <span class="text-success">Connected</span>
+                                    <a href="{{ route('google.disconnect') }}"
+                                        class="btn btn-sm btn-outline-danger ms-2">Disconnect</a>
+                                @else
+                                    <span class="text-danger">Not Connected</span>
+                                    <a href="{{ route('google.redirect') }}" class="btn btn-sm btn-primary ms-2">Connect
+                                        Now</a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
 @endsection
 
-@push('styles')
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core/main.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid/main.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid/main.css" rel="stylesheet" />
-    <style>
-        #userCalendar {
-            background-color: #f8fafc;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .fc .fc-button {
-            background-color: #38a3a5;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 12px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-        .fc .fc-button:hover {
-            background-color: #2a7c7e;
-            transform: translateY(-2px);
-        }
-
-        .fc .fc-button-primary:not(:disabled):active {
-            background-color: #1e5a5c;
-            transform: translateY(0);
-        }
-
-        .fc .fc-toolbar-title {
-            font-size: 1.5rem;
-            color: #1e3a8a;
-            font-weight: 600;
-        }
-
-        .fc .fc-daygrid-day,
-        .fc .fc-timegrid-slot {
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-        }
-
-        .fc .fc-daygrid-day.fc-day-today {
-            background-color: #e6f3ff;
-        }
-
-        .fc .fc-event {
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 2px solid;
-            color: #fff;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .fc .fc-event:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-        }
-
-        .fc .fc-event-title {
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .fc .fc-timegrid-event {
-            padding: 8px;
-        }
-
-        .fc .fc-daygrid-event {
-            margin: 4px 2px;
-        }
-
-        /* Custom styling for SweetAlert2 popup */
-        .swal2-popup {
-            text-align: left !important; /* Align all content to the left */
-        }
-        .swal2-html-container {
-            text-align: left !important; /* Ensure HTML content is left-aligned */
-        }
-        .swal2-title {
-            text-align: left !important; /* Ensure title is left-aligned */
-        }
-        /* Custom styling for SweetAlert2 close button */
-        .swal2-confirm {
-            background-color: #dc3545 !important; /* Red background for close button */
-            border: none !important;
-            border-radius: 6px !important;
-            padding: 10px 20px !important;
-            transition: background-color 0.3s ease !important;
-            position: absolute !important; /* Position button absolutely */
-            bottom: 10px !important; /* Place at bottom */
-            right: 10px !important; /* Place at right */
-        }
-        .swal2-confirm:hover {
-            background-color: #c82333 !important; /* Darker red on hover */
-        }
-        /* Ensure popup content has padding to avoid overlap with button */
-        .swal2-content {
-            padding-bottom: 50px !important; /* Add space for button at bottom */
-        }
-    </style>
-@endpush
-
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.css' rel='stylesheet' />
+    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.css' rel='stylesheet' />
+    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.8/main.min.css' rel='stylesheet' />
+    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.8/main.min.css' rel='stylesheet' />
+
+    <!-- FullCalendar JS -->
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.8/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.8/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.8/main.min.js'></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const calendarEl = document.getElementById('userCalendar');
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
+            var calendarEl = document.getElementById('userCalendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                plugins: ['bootstrap5', 'interaction', 'dayGrid', 'timeGrid'],
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek'
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
-                buttonText: {
-                    today: 'Today',
-                    month: 'Month',
-                    week: 'Week'
-                },
-                editable: false,
-                selectable: false,
-                eventTextColor: '#fff',
-                events: @json($events),
-                eventClick: function(info) {
-                    let desc = info.event.extendedProps.description || 'No description';
-                    let location = info.event.extendedProps.location || 'Not specified';
-                    let status = info.event.extendedProps.status || 'Unknown';
-                    let isRescheduled = info.event.extendedProps.is_rescheduled ? 'Yes' : 'No';
-                    let note = info.event.extendedProps.note || 'No notes';
-                    let team = info.event.extendedProps.team || 'No Team';
-                    Swal.fire({
-                        title: `<strong>${info.event.title}</strong>`,
-                        html: `
-                            <small class="text-muted">Date: ${info.event.startStr}</small><hr>
-                            <strong>Description:</strong> ${desc}<hr>
-                            <strong>Location:</strong> ${location}<br>
-                            <strong>Status:</strong> ${status}<br>
-                            <strong>Rescheduled:</strong> ${isRescheduled}<br>
-                            <strong>Note:</strong> ${note}<br>
-                            <strong>Team:</strong> ${team}
-                        `,
-                        icon: 'info',
-                        width: '800px',
-                        confirmButtonText: 'Close',
-                        customClass: {
-                            popup: 'rounded-3',
-                            title: 'fw-bold',
-                            confirmButton: 'swal2-confirm'
-                        }
-                    });
-                },
-                dayMaxEventRows: true,
-                views: {
-                    dayGridMonth: {
-                        dayMaxEventRows: 3
+                initialView: 'dayGridMonth',
+                editable: {{ auth()->user()->role === 'admin' ? 'true' : 'false' }},
+                selectable: {{ auth()->user()->role === 'admin' ? 'true' : 'false' }},
+                selectMirror: true,
+                dayMaxEvents: true,
+                weekends: true,
+                events: {
+                    url: '{{ route('calendar.events') }}',
+                    method: 'GET',
+                    extraParams: {
+                        team_id: $('#teamFilter').val(),
+                        status: $('#statusFilter').val()
+                    },
+                    failure: function() {
+                        alert('Failed to fetch events');
                     }
-                }
+                },
+                eventClick: function(info) {
+                    if ({{ auth()->user()->role === 'admin' ? 'true' : 'false' }}) {
+                        if (confirm('Edit this event?')) {
+                            window.location.href = info.event.extendedProps.url;
+                        }
+                    } else {
+                        // Show event details for non-admins
+                        showEventDetails(info.event);
+                    }
+                },
+                eventDrop: function(info) {
+                    if ({{ auth()->user()->role === 'admin' ? 'true' : 'false' }}) {
+                        updateEventDate(info.event, info.delta);
+                    }
+                },
+                eventResize: function(info) {
+                    if ({{ auth()->user()->role === 'admin' ? 'true' : 'false' }}) {
+                        updateEventTime(info.event, info.startDelta);
+                    }
+                },
+                select: function(info) {
+                    if ({{ auth()->user()->role === 'admin' ? 'true' : 'false' }}) {
+                        var title = prompt('Event Title:');
+                        if (title) {
+                            $.ajax({
+                                url: '{{ route('calendar.store') }}',
+                                method: 'POST',
+                                data: {
+                                    _token: '{{ csrf_token() }}',
+                                    title: title,
+                                    work_date: info.startStr.split(' ')[0],
+                                    time: info.startStr.split(' ')[1] || '09:00:00',
+                                    description: '',
+                                    location: '',
+                                },
+                                success: function() {
+                                    calendar.unselect();
+                                    calendar.refetchEvents();
+                                }
+                            });
+                        }
+                    }
+                    calendar.unselect();
+                },
+                eventColor: '#3788d8',
+                eventTextColor: '#fff',
+                eventBorderColor: '#3788d8',
+                dayHeaderFormat: {
+                    weekday: 'long'
+                },
+                timeFormat: 'h:mm a',
+                slotMinTime: '06:00:00',
+                slotMaxTime: '22:00:00',
+                height: 'auto'
             });
             calendar.render();
 
-            // Team select change event
-            document.getElementById('teamSelect').addEventListener('change', function() {
-                const teamId = this.value;
-                const url = new URL(window.location.href);
-                if (teamId) {
-                    url.searchParams.set('team_id', teamId);
-                } else {
-                    url.searchParams.delete('team_id');
-                }
-                window.location.href = url.toString();
+            // Filter handlers
+            $('#teamFilter, #statusFilter, #dateRangeFilter').on('change', function() {
+                calendar.refetchEvents();
+                // Update URL parameters
+                updateUrlParams();
             });
+
+            function showEventDetails(event) {
+                var eventHtml = `
+            <div class="modal fade" id="eventModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${event.title}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>Date:</strong> ${event.start.toLocaleDateString()}</p>
+                            <p><strong>Time:</strong> ${event.start.toLocaleTimeString()} - ${event.end ? event.end.toLocaleTimeString() : 'N/A'}</p>
+                            ${event.extendedProps.description ? `<p><strong>Description:</strong> ${event.extendedProps.description}</p>` : ''}
+                            ${event.extendedProps.location ? `<p><strong>Location:</strong> ${event.extendedProps.location}</p>` : ''}
+                            <p><strong>Status:</strong> ${event.extendedProps.completed ? 'Completed' : (event.extendedProps.rescheduled ? 'Rescheduled' : 'Pending')}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+                $('body').append(eventHtml);
+                $('#eventModal').modal('show');
+                $('#eventModal').on('hidden.bs.modal', function() {
+                    $(this).remove();
+                });
+            }
+
+            function updateEventDate(event, delta) {
+                $.ajax({
+                    url: event.extendedProps.url,
+                    method: 'PUT',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        work_date: event.start.toISOString().split('T')[0],
+                        time: event.start.toTimeString().split(' ')[0]
+                    },
+                    success: function() {
+                        calendar.refetchEvents();
+                    }
+                });
+            }
+
+            function updateEventTime(event, delta) {
+                // Similar to date update but for time
+                $.ajax({
+                    url: event.extendedProps.url,
+                    method: 'PUT',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        time: event.start.toTimeString().split(' ')[0]
+                    },
+                    success: function() {
+                        calendar.refetchEvents();
+                    }
+                });
+            }
+
+            function updateUrlParams() {
+                const params = new URLSearchParams();
+                if ($('#teamFilter').val()) params.append('team_id', $('#teamFilter').val());
+                if ($('#statusFilter').val()) params.append('status', $('#statusFilter').val());
+                if ($('#dateRangeFilter').val()) params.append('date_range', $('#dateRangeFilter').val());
+
+                const newUrl = new URL(window.location);
+                newUrl.search = params.toString();
+                window.history.replaceState({}, '', newUrl);
+            }
         });
     </script>
+
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 @endpush

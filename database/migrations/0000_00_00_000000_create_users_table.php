@@ -23,14 +23,6 @@ return new class extends Migration
 
             $table->string('address')->nullable();
 
-            $table->string('unique_id')->unique();
-
-            $table->boolean('is_google_signin')->default(false);
-            $table->string('google_id')->nullable();
-
-            $table->boolean('is_apple_signin')->default(false);
-            $table->string('apple_id')->nullable();
-
             // unique but nullable
             $table->unique('email');
             $table->unique('phone');

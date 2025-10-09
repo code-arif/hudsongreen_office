@@ -19,50 +19,19 @@ class DashboardController extends Controller
 
         // User Statistics
         $totalEmployees = User::where('role', 'employee')->count();
-        $totalAdmins = User::where('role', 'admin')->count();
 
         // Work Statistics
         $totalWorks = Work::count();
-        $completedWorks = Work::where('is_completed', true)->count();
         $rescheduledWorks = Work::where('is_rescheduled', true)->count();
-
-        // Today's Work Statistics
-        $todaysWorks = Work::whereDate('work_date', today())->count();
-        $todaysCompletedWorks = Work::whereDate('work_date', today())
-            ->where('is_completed', true)
-            ->count();
 
         // Team Statistics
         $totalTeams = Team::count();
-        $teamsWithWorks = Team::whereHas('works')->count();
-
-        // Work Status Statistics
-        $worksByStatus = Work::selectRaw('status, COUNT(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
-
-        // Recent Works (last 7 days)
-        $recentWorks = Work::where('created_at', '>=', now()->subDays(7))->count();
-
-        // Works This Month
-        $thisMonthWorks = Work::whereMonth('work_date', now()->month)
-            ->whereYear('work_date', now()->year)
-            ->count();
 
         return view('backend.layouts.dashboard', compact(
             'totalEmployees',
-            'totalAdmins',
             'totalWorks',
-            'completedWorks',
             'rescheduledWorks',
-            'todaysWorks',
-            'todaysCompletedWorks',
             'totalTeams',
-            'teamsWithWorks',
-            'worksByStatus',
-            'recentWorks',
-            'thisMonthWorks',
         ));
     }
 

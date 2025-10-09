@@ -17,7 +17,6 @@ class TeamSeeder extends Seeder
         for ($i = 1; $i <= 20; $i++) {
             Team::create([
                 'name' => 'Team ' . $i,
-                'unique_id' => Str::uuid(),
                 'description' => 'This is description for Team ' . $i,
             ]);
         }

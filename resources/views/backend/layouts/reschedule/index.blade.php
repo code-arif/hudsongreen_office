@@ -1,6 +1,6 @@
 @extends('backend.app')
 
-@section('title', 'Reschedule Reschedule List')
+@section('title', 'Reschedule List')
 
 @section('content')
     <!--app-content open-->
@@ -10,7 +10,7 @@
             <div class="main-container container-fluid">
                 <div class="page-header">
                     <div>
-                        <h1 class="page-title">Reschedule Reschedule List</h1>
+                        <h1 class="page-title">Reschedule List</h1>
                     </div>
                     <div class="ms-auto pageheader-btn">
                         <ol class="breadcrumb">
@@ -31,12 +31,10 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Title</th>
-                                                <th>ID</th>
                                                 <th>Team</th>
                                                 <th>Note</th>
-                                                <th>Want Start Time</th>
-                                                <th>Want End Time</th>
-                                                <th>Want reschedule Date</th>
+                                                <th>Suggested Time</th>
+                                                <th>Suggested Date</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -82,16 +80,19 @@
                                         <strong style="margin-right: 10px">Description:</strong> <span id="work_description"
                                             class="text-muted"></span>
                                     </li>
+
+                                    {{-- clickable location --}}
                                     <li class="list-group-item d-flex justify-content-start py-2">
-                                        <strong style="margin-right: 10px">Location:</strong> <span id="work_location"
-                                            class="text-muted fw-semibold"></span>
+                                        <strong style="margin-right: 10px" id="">Location:</strong>
+                                        <a href="#" target="_blank" id="reschedule_location_link"
+                                            class="text-primary fw-semibold text-decoration-underline">
+                                            <span id="reschedule_location">---</span>
+                                        </a>
                                     </li>
+
+
                                     <li class="list-group-item d-flex justify-content-start py-2">
-                                        <strong style="margin-right: 10px"> Start Time:</strong> <span id="work_start_time"
-                                            class="badge bg-info text-dark"></span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-start py-2">
-                                        <strong style="margin-right: 10px">End Time:</strong> <span id="work_end_time"
+                                        <strong style="margin-right: 10px">End Time:</strong> <span id="time"
                                             class="badge bg-warning text-dark"></span>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-start py-2">
@@ -104,26 +105,16 @@
                             <hr class="my-3">
 
                             {{-- Suggested Start Time --}}
-                            <div class="col-md-4">
-                                <label class="form-label">Suggested Start Time</label>
-                                <input type="time" class="form-control" name="suggested_start_time"
-                                    id="suggested_start_time">
-                                <span class="text-danger error-text suggested_start_time_error"></span>
-                            </div>
-
-                            {{-- Suggested End Time --}}
-                            <div class="col-md-4">
-                                <label class="form-label">Suggested End Time</label>
-                                <input type="time" class="form-control" name="suggested_end_time"
-                                    id="suggested_end_time">
-                                <span class="text-danger error-text suggested_end_time_error"></span>
+                            <div class="col-md-6">
+                                <label class="form-label">Suggested Time</label>
+                                <input type="time" class="form-control" name="time" id="request_time">
+                                <span class="text-danger error-text time_error"></span>
                             </div>
 
                             {{-- Suggested Date --}}
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label">Suggested Date</label>
-                                <input type="date" class="form-control" name="suggested_work_date"
-                                    id="suggested_work_date">
+                                <input type="date" class="form-control" name="suggested_date" id="request_work_date">
                                 <span class="text-danger error-text suggested_work_date_error"></span>
                             </div>
                         </div>
@@ -178,19 +169,13 @@
                         data: 'title'
                     },
                     {
-                        data: 'id'
-                    },
-                    {
                         data: 'team'
                     },
                     {
                         data: 'note'
                     },
                     {
-                        data: 'start_time'
-                    },
-                    {
-                        data: 'end_time'
+                        data: 'time'
                     },
                     {
                         data: 'work_date'
@@ -259,22 +244,30 @@
                 $.get(url, function(response) {
                     if (response.success) {
                         $('#rescheduleModalLabel').text('Edit Reschedule');
-                        // $('#rescheduleID').val(response.data.id);
-                        $('#rescheduleID').val(response.data.work.id); // reschedule.id এর বদলে work.id
+                        $('#rescheduleID').val(response.data.work.id);
 
 
                         // Work details (read-only)
                         $('#work_title').text(response.data.work.title ?? '---');
                         $('#work_description').text(response.data.work.description ?? '---');
-                        $('#work_location').text(response.data.work.location ?? '---');
-                        $('#work_start_time').text(response.data.work.start_time ?? '---');
-                        $('#work_end_time').text(response.data.work.end_time ?? '---');
+                        $('#time').text(response.data.work.time ?? '---');
                         $('#work_date').text(response.data.work.work_date ?? '---');
+                        $('#reschedule_location').text(response.data.work.location ?? '---');
+
+                        if (response.data.work.latitude && response.data.work.longitude) {
+                            let mapUrl =
+                                `https://www.google.com/maps/search/?api=1&query=${response.data.work.latitude},${response.data.work.longitude}`;
+                            $('#reschedule_location_link')
+                                .attr('href', mapUrl)
+                                .attr('target', '_blank')
+                                .attr('title', 'View on Google Maps');
+                        } else {
+                            $('#reschedule_location_link').removeAttr('href');
+                        }
 
                         // Editable reschedule fields
-                        $('#suggested_start_time').val(response.data.suggested_start_time);
-                        $('#suggested_end_time').val(response.data.suggested_end_time);
-                        $('#suggested_work_date').val(response.data.suggested_work_date);
+                        $('#request_time').val(response.data.time);
+                        $('#request_work_date').val(response.data.suggested_date);
 
                         $('#rescheduleModal').modal('show');
                     } else {

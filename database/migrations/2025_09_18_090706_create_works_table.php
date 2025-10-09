@@ -18,8 +18,7 @@ return new class extends Migration
             $table->text('location')->nullable();
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
-            $table->time('start_time')->nullable();
-            $table->time('end_time')->nullable();
+            $table->time('time')->nullable();
             $table->date('work_date')->nullable();
             $table->boolean('is_completed')->default(false);
             $table->boolean('is_rescheduled')->default(false);
@@ -28,8 +27,6 @@ return new class extends Migration
 
             $table->foreignId('team_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('cascade');
-
-            $table->string('unique_id')->unique();
 
             $table->timestamps();
         });

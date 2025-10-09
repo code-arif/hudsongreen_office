@@ -29,24 +29,23 @@
 
                                 <div class="card-header border-bottom mb-3">
                                     <div class="card-options ms-auto">
-                                        <a href="{{ route('employee.list') }}" class="btn btn-outline-success btn-sm" style="margin-right: 10px">
-                                             <i class="fa fa-arrow-left"></i> Back to list</a>
+                                        {{-- <a href="{{ route('employee.list') }}" class="btn btn-outline-success btn-sm" style="margin-right: 10px">
+                                             <i class="fa fa-arrow-left"></i> Back to list</a> --}}
                                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                             data-bs-target="#userModal" id="addUserBtn">Add Employee</button>
                                     </div>
                                 </div>
 
-                                <div class="table-responsive">
+                                <div class="table-responsive custom-scroll">
                                     <table class="table text-nowrap mb-0 table-bordered" id="datatable">
                                         <thead>
                                             <tr>
                                                 <th>#</th>
                                                 <th>Avatar</th>
                                                 <th>Name</th>
-                                                <th>ID</th>
                                                 <th>Email</th>
                                                 <th>Phone</th>
-                                                <th>Pssword</th>
+                                                <th>Password</th>
                                                 <th>Address</th>
                                                 <th>Team</th>
                                                 <th>Action</th>
@@ -124,10 +123,23 @@
                             </div>
 
                             <!-- Address -->
-                            <div class="col-12 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="address" class="form-label">Address</label>
                                 <input type="text" id="address" name="address" class="form-control"
                                     placeholder="Enter address">
+                            </div>
+
+                            {{-- Select team --}}
+                            <div class="col-md-6 mb-3">
+                                <label for="team_id" class="form-label">Select Team</label>
+                                <select name="team_id" id="team_id" class="form-control form-select team-select">
+                                    <option value="">-- Select Team --</option>
+                                    @foreach ($teams as $team)
+                                        <option value="{{ $team->id }}">{{ $team->name }}</option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">You can assign the employee to a team now or later.</small>
+                                <span class="text-danger error-text team_id_error"></span>
                             </div>
 
                             <!-- Avatar -->
@@ -145,26 +157,6 @@
                         <button type="submit" class="btn btn-primary" id="saveUserBtn">Save User</button>
                     </div>
                 </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- user calender modal show --}}
-    <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title" id="calendarModalLabel">User Calendar</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"> &times;
-                    </button>
-                </div>
-
-                <div class="modal-body">
-                    {{-- <div id="userCalendar"></div> --}}
-                    <div id="userCalendar" style="height: 600px;"></div>
-
-                </div>
             </div>
         </div>
     </div>
@@ -240,10 +232,6 @@
                         {
                             data: 'name',
                             name: 'name'
-                        },
-                        {
-                            data: 'unique_id',
-                            name: 'unique_id'
                         },
                         {
                             data: 'email',
@@ -391,13 +379,13 @@
                 });
             });
 
-            // Edit User - Load existing data
+            // Edit User
             $(document).on('click', '.editUser', function() {
                 var id = $(this).data('id');
                 var url = "{{ route('employee.edit', ':id') }}".replace(':id', id);
 
                 $.get(url, function(response) {
-                    if (response.success) {
+                    if (response.status) {
                         $('#userModalLabel').text('Edit User');
                         $('#userID').val(response.data.id);
 
@@ -405,32 +393,39 @@
                         $('#name').val(response.data.name);
                         $('#email').val(response.data.email);
                         $('#phone').val(response.data.phone);
-                        $('#password').val(response.data.password);
+                        $('#password').val(response.data.password); // plain text
                         $('#address').val(response.data.address || '');
 
                         // Handle Dropify image
-                        let imageInput = $('#avatar').dropify();
-                        imageInput = imageInput.data('dropify');
-                        imageInput.resetPreview();
-                        imageInput.clearElement();
+                        let drEvent = $('#avatar').dropify();
+                        let drInstance = drEvent.data('dropify');
+                        drInstance.resetPreview();
+                        drInstance.clearElement();
 
                         if (response.data.avatar) {
-                            let baseUrl =
-                                "{{ asset('') }}";
-                            imageInput.settings.defaultFile = baseUrl + response.data.avatar;
-                            imageInput.destroy();
-                            imageInput.init();
+                            let baseUrl = "{{ asset('') }}";
+                            drInstance.settings.defaultFile = baseUrl + response.data.avatar;
+                        }
+                        drInstance.destroy();
+                        drInstance.init();
+
+                        // Pre-select team if exists
+                        if (response.data.teams.length > 0) {
+                            $('#team_id').val(response.data.teams[0].id);
+                        } else {
+                            $('#team_id').val('');
                         }
 
                         // Show modal
                         $('#userModal').modal('show');
                     } else {
-                        toastr.error('Failed to load user data!');
+                        toastr.error(response.message || 'Failed to load user data!');
                     }
                 }).fail(function() {
                     toastr.error('Something went wrong while loading user data.');
                 });
             });
+
         });
 
         // delete Confirm
@@ -474,4 +469,52 @@
             });
         }
     </script>
+@endpush
+
+@push('styles')
+    {{-- style for employee avatar image --}}
+    <style>
+        .avatar-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
+        }
+    </style>
+
+    {{-- style for datatable horaizontal scrollbar --}}
+    <style>
+        /* Make horizontal scrollbar thicker */
+        .custom-scroll {
+            overflow-x: auto;
+        }
+
+        /* For Chrome, Safari, Edge */
+        .custom-scroll::-webkit-scrollbar {
+            height: 20px;
+            /* thickness */
+        }
+
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 10px;
+            border: 3px solid #f1f1f1;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* For Firefox */
+        .custom-scroll {
+            scrollbar-width: thin;
+            /* can use auto or thin */
+            scrollbar-color: #888 #f1f1f1;
+        }
+    </style>
 @endpush

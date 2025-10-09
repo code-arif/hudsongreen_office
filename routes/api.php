@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\WorkCalendarApiController;
 use App\Http\Controllers\Api\WorkController;
 use App\Http\Controllers\Api\WorkScheduleRequest;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,18 @@ Route::group(['middleware' => 'guest:api'], function () {
 
     // Login & Register
     Route::post('/login', [AuthenticationController::class, 'login']);
+
+
+    Route::get('/works', [WorkCalendarApiController::class, 'index']);
+    Route::post('/works', [WorkCalendarApiController::class, 'store']);
+    Route::get('/works/{id}', [WorkCalendarApiController::class, 'show']);
+    Route::put('/works/{id}', [WorkCalendarApiController::class, 'update']);
+    Route::delete('/works/{id}', [WorkCalendarApiController::class, 'destroy']);
+    Route::post('/works/bulk-update', [WorkCalendarApiController::class, 'bulkUpdate']);
+    Route::get('/works/search', [WorkCalendarApiController::class, 'search']);
+    Route::get('/works/upcoming', [WorkCalendarApiController::class, 'upcoming']);
+    Route::get('/works/overdue', [WorkCalendarApiController::class, 'overdue']);
+    Route::get('/works/statistics', [WorkCalendarApiController::class, 'statistics']);
 });
 
 
@@ -24,17 +37,16 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/logout', [AuthenticationController::class, 'logout']);
 
     // Work reschedule request
-    Route::post('/reschedule-request/store',[WorkScheduleRequest::class, 'store']);
-    Route::get('/reschedule-request/edit/{id}',[WorkScheduleRequest::class, 'edit']);
-    Route::post('/reschedule-request/update/{id}',[WorkScheduleRequest::class, 'update']);
-    Route::delete('/reschedule-request/delete/{id}',[WorkScheduleRequest::class, 'destroy']);
+    Route::post('/reschedule-request/store', [WorkScheduleRequest::class, 'store']);
+    Route::get('/reschedule-request/edit/{id}', [WorkScheduleRequest::class, 'edit']);
+    Route::post('/reschedule-request/update/{id}', [WorkScheduleRequest::class, 'update']);
+    Route::delete('/reschedule-request/delete/{id}', [WorkScheduleRequest::class, 'destroy']);
 
     // Work manage
-    Route::group(['prefix' => 'work'],function(){
-        Route::get('/list', [WorkController::class,'index']);
-        Route::get('/map', [WorkController::class,'mapView']);
-        Route::post('/complete/{id}', [WorkController::class,'completeWork']);
+    Route::group(['prefix' => 'work'], function () {
+        Route::get('/list', [WorkController::class, 'index']);
+        Route::get('/map', [WorkController::class, 'mapView']);
+        Route::post('/complete/{id}', [WorkController::class, 'completeWork']);
         Route::get('/details/{id}', [WorkController::class, 'show']);
     });
-
 });

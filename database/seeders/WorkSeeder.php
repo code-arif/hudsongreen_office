@@ -28,8 +28,7 @@ class WorkSeeder extends Seeder
                 'location' => 'Location ' . $i,
                 'latitude' => 23.7000 + ($i * 0.001), // dummy latitude
                 'longitude' => 90.4000 + ($i * 0.001), // dummy longitude
-                'start_time' => now()->format('H:i:s'),
-                'end_time' => now()->addHours(2)->format('H:i:s'),
+                'time' => now()->format('H:i:s'),
                 'work_date' => now()->addDays($i)->format('Y-m-d'),
                 'is_completed' => false,
                 'is_rescheduled' => false,
@@ -37,7 +36,6 @@ class WorkSeeder extends Seeder
                 'status' => 1,
                 'team_id' => $teams[array_rand($teams)], // random team
                 'category_id' => $categories[array_rand($categories)], // random category
-                'unique_id' => Str::uuid(),
             ]);
         }
     }

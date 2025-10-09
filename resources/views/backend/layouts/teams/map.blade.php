@@ -6,15 +6,18 @@
     <div class="app-content main-content mt-0">
         <div class="side-app">
             <div class="main-container container-fluid">
-                <div class="page-header">
-                    <div>
-                        <h1 class="page-title">Team Work Map</h1>
-                    </div>
-                    <div class="ms-auto pageheader-btn">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="javascript:void(0);">Dashboard</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Team Work Map</li>
-                        </ol>
+                <div class="page-header mt-4">
+                    <div class="card shadow-sm mb-2 border-0">
+                        <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+                            <div>
+                                <h1 class="page-title mb-0">Team Work Map</h1>
+                            </div>
+                            <div class="text-end">
+                                <a href="{{ route('team.list') }}" class="btn btn-primary btn-sm">
+                                    <i class="fe fe-arrow-left me-1"></i> Back to List
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -52,9 +55,7 @@
             const validWorks = works
                 .filter(work => work.latitude && work.longitude)
                 .sort((a, b) => {
-                    const dateA = new Date(`${a.work_date} ${a.start_time}`);
-                    const dateB = new Date(`${b.work_date} ${b.start_time}`);
-                    return dateA - dateB;
+                    const date = new Date(`${a.work_date} ${a.time}`);
                 });
 
             if (validWorks.length === 0) return;

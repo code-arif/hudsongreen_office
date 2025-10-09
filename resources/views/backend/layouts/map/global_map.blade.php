@@ -7,14 +7,14 @@
         <div class="side-app">
             <div class="main-container container-fluid">
                 <div class="page-header">
-                    <div>
-                        <h1 class="page-title">Global Work Map</h1>
-                    </div>
-                    <div class="ms-auto pageheader-btn">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="#">Map</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Global View</li>
-                        </ol>
+                    <div class="card shadow-sm mb-2 border-0">
+                        <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+                            <div>
+                                <h1 class="page-title mb-0">Global Work Google Map</h1>
+                            </div>
+                            <div class="text-end">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -22,21 +22,34 @@
                     <div class="col-12">
                         <div class="card box-shadow-0">
                             <div class="card-body">
-                                <!-- Team Filter -->
-                                <div class="mb-3">
-                                    <label for="teamFilter" class="form-label">Select Team:</label>
-                                    <select id="teamFilter" class="form-select" onchange="filterMap()">
-                                        @foreach ($teams as $team)
-                                            <option value="{{ $team->id }}"
-                                                {{ $firstTeam && $firstTeam->id === $team->id ? 'selected' : '' }}>
-                                                {{ $team->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                <div class="row">
+                                    <!-- Sidebar with Team Filter -->
+                                    <div class="col-md-2 bg-light">
+                                        <div class="sidebar"
+                                            style="max-height: 800px; overflow-y: auto; padding-right: 10px;">
+                                            <div class="mb-3">
+                                                <label for="teamSearch" class="form-label">Search Team:</label>
+                                                <input type="text" id="teamSearch" class="form-control"
+                                                    placeholder="Search teams..." oninput="dynamicSearchTeams()">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="teamFilter" class="form-label">Select Team:</label>
+                                                <select id="teamFilter" class="form-select" onchange="filterMap()">
+                                                    @foreach ($teams as $team)
+                                                        <option value="{{ $team->id }}"
+                                                            {{ $firstTeam && $firstTeam->id === $team->id ? 'selected' : '' }}>
+                                                            {{ $team->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Map -->
+                                    <div class="col-md-10">
+                                        <div id="map" style="height: 800px; width: 100%;"></div>
+                                    </div>
                                 </div>
-
-                                <!-- Map -->
-                                <div id="map" style="height: 800px; width: 100%;"></div>
                             </div>
                         </div>
                     </div>
@@ -52,10 +65,8 @@
 
     <script>
         const filterRoute = "{{ route('works.filter', ':id') }}";
-    </script>
+        const searchTeamsRoute = "{{ route('works.searchTeams') }}"; // Assuming a route for team search
 
-
-    <script>
         let map;
         let works = @json($works);
 
@@ -82,7 +93,7 @@
 
             const validWorks = works
                 .filter(w => w.latitude && w.longitude)
-                .sort((a, b) => new Date(`${a.work_date} ${a.start_time}`) - new Date(`${b.work_date} ${b.start_time}`));
+                .sort((a, b) => new Date(`${a.work_date} ${a.time}`));
 
             if (validWorks.length === 0) return;
 
@@ -178,8 +189,7 @@
                                 work.is_rescheduled ? 'Rescheduled' : 'Incomplete'
                             }</p>
                             <p><strong>Date:</strong> ${work.work_date || 'N/A'}</p>
-                            <p><strong>Start:</strong> ${work.start_time || 'N/A'}</p>
-                            <p><strong>End:</strong> ${work.end_time || 'N/A'}</p>
+                            <p><strong>Time:</strong> ${work.time || 'N/A'}</p>
                         </div>`,
                     });
 
@@ -197,8 +207,6 @@
 
         function filterMap() {
             const teamId = document.getElementById('teamFilter').value;
-
-            // Replace ':id' in the route with actual teamId
             const url = filterRoute.replace(':id', teamId);
 
             fetch(url)
@@ -208,6 +216,36 @@
                 })
                 .then(data => drawWorks(data))
                 .catch(err => console.error('Filter Error:', err));
+        }
+
+        function dynamicSearchTeams() {
+            const input = document.getElementById('teamSearch').value;
+            const select = document.getElementById('teamFilter');
+
+            if (input.length < 2) {
+                // Reset to original teams if input is too short
+                select.innerHTML = @json($teams).map(team =>
+                    `<option value="${team.id}" ${@json($firstTeam)?.id === team.id ? 'selected' : ''}>${team.name}</option>`
+                ).join('');
+                return;
+            }
+
+            fetch(`${searchTeamsRoute}?query=${encodeURIComponent(input)}`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+                    return res.json();
+                })
+                .then(teams => {
+                    select.innerHTML = teams.length > 0 ?
+                        teams.map(team =>
+                            `<option value="${team.id}" ${@json($firstTeam)?.id === team.id ? 'selected' : ''}>${team.name}</option>`
+                        ).join('') :
+                        '<option value="">No teams found</option>';
+                })
+                .catch(err => {
+                    console.error('Search Error:', err);
+                    select.innerHTML = '<option value="">Error loading teams</option>';
+                });
         }
     </script>
 @endpush

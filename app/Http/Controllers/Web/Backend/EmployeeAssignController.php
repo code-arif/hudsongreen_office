@@ -102,7 +102,7 @@ class EmployeeAssignController extends Controller
 
             // Get users already assigned to THIS team
             $assignedToThisTeam = TeamUser::where('team_id', $teamId)
-                ->with('user:id,name,unique_id')
+                ->with('user:id,name')
                 ->get()
                 ->pluck('user')
                 ->filter(); // Remove null values if any
@@ -118,7 +118,7 @@ class EmployeeAssignController extends Controller
                         ->orWhereIn('id', $assignedToThisTeam->pluck('id')->toArray());
                 })
                 ->orderBy('name', 'asc')
-                ->get(['id', 'name', 'unique_id']);
+                ->get(['id', 'name']);
 
             return response()->json([
                 'status' => true,

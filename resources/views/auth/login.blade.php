@@ -1,5 +1,7 @@
 @extends('auth.app')
 
+@section('title', 'Admin Login')
+
 @section('content')
 <!-- CONTAINER OPEN -->
 <div class="col col-login mx-auto text-center">

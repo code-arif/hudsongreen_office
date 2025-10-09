@@ -40,7 +40,6 @@
                                                 <th>#</th>
                                                 <th>Team Name</th>
                                                 <th>Description</th>
-                                                <th>ID</th>
                                                 <th>Users</th>
                                                 <th>Action</th>
                                             </tr>
@@ -293,10 +292,7 @@
                             data: 'description',
                             name: 'description'
                         },
-                        {
-                            data: 'unique_id',
-                            name: 'unique_id'
-                        },
+
                         {
                             data: 'users',
                             name: 'users'
@@ -444,7 +440,7 @@
         }
     </script>
 
-
+    {{-- Assing imployee --}}
     <script>
         $(document).ready(function() {
             let selectedEmployees = [];
@@ -475,7 +471,6 @@
                         selectedEmployees = assignedEmployees.map(u => ({
                             id: u.id,
                             name: u.name,
-                            unique_id: u.unique_id
                         }));
 
                         renderEmployees();
@@ -500,15 +495,13 @@
 
                     // Check if employee matches search term
                     let matchesSearch = searchTerm === '' ||
-                        employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        employee.unique_id.toLowerCase().includes(searchTerm.toLowerCase());
+                        employee.name.toLowerCase().includes(searchTerm.toLowerCase())
 
                     if (!isSelected && matchesSearch) {
                         availableCount++;
                         html += `
-                    <div class="employee-item" data-id="${employee.id}" data-name="${employee.name}" data-unique-id="${employee.unique_id}">
+                    <div class="employee-item" data-id="${employee.id}" data-name="${employee.name}">
                         <div class="employee-name">${employee.name}</div>
-                        <div class="employee-id">${employee.unique_id}</div>
                     </div>
                 `;
                     }
@@ -541,7 +534,6 @@
                     <div class="selected-employee-item">
                         <div>
                             <div class="employee-name">${employee.name}</div>
-                            <div class="employee-id">${employee.unique_id}</div>
                         </div>
                         <span class="remove-employee" data-id="${employee.id}" title="Remove">
                             <i class="fas fa-times-circle"></i>
@@ -559,13 +551,11 @@
             $(document).on('click', '.employee-item', function() {
                 let id = $(this).data('id');
                 let name = $(this).data('name');
-                let uniqueId = $(this).data('unique-id');
 
                 // Add to selected
                 selectedEmployees.push({
                     id: id,
                     name: name,
-                    unique_id: uniqueId
                 });
 
                 // Re-render both lists
