@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
-use Google_Client;
-use Google_Service_Calendar;
-use Google_Service_Calendar_Event;
-use Google_Service_Calendar_EventDateTime;
-use Illuminate\Support\Facades\Session;
-
+use Exception;
+use Carbon\Carbon;
+use Google\Client;
+use App\Models\Work;
+use Google\Service\Calendar;
+use Google\Service\Calendar\Event;
+use Illuminate\Support\Facades\Log;
+use Google\Service\Calendar\EventDateTime;
 
 class GoogleCalendarService
 {
@@ -16,26 +18,13 @@ class GoogleCalendarService
 
     public function __construct()
     {
-        $this->client = new Google_Client();
-        $this->client->setClientId(config('google-calendar.client_id'));
-        $this->client->setClientSecret(config('google-calendar.client_secret'));
-        $this->client->setRedirectUri(config('google-calendar.redirect_uri'));
-        $this->client->addScope(Google_Service_Calendar::CALENDAR);
+        $this->client = new Client();
+        $this->client->setClientId(config('services.google.client_id'));
+        $this->client->setClientSecret(config('services.google.client_secret'));
+        $this->client->setRedirectUri(config('services.google.redirect_uri'));
+        $this->client->addScope(Calendar::CALENDAR);
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
-
-        if (Session::has('google_token')) {
-            $this->client->setAccessToken(Session::get('google_token'));
-
-            if ($this->client->isAccessTokenExpired()) {
-                if ($this->client->getRefreshToken()) {
-                    $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
-                    Session::put('google_token', $this->client->getAccessToken());
-                }
-            }
-        }
-
-        $this->service = new Google_Service_Calendar($this->client);
     }
 
     public function getAuthUrl()
@@ -46,93 +35,134 @@ class GoogleCalendarService
     public function authenticate($code)
     {
         $token = $this->client->fetchAccessTokenWithAuthCode($code);
-        Session::put('google_token', $token);
+
+        if (isset($token['error'])) {
+            throw new Exception('Error fetching access token: ' . $token['error']);
+        }
+
         return $token;
     }
 
-    public function isAuthenticated()
+    public function setAccessToken($token)
     {
-        return Session::has('google_token') && !$this->client->isAccessTokenExpired();
+        $this->client->setAccessToken($token);
+
+        if ($this->client->isAccessTokenExpired()) {
+            if ($this->client->getRefreshToken()) {
+                $newToken = $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+                return $newToken;
+            }
+        }
+
+        $this->service = new Calendar($this->client);
+        return null;
     }
 
-    public function createEvent($work)
+    public function createEvent(Work $work)
     {
-        $event = new Google_Service_Calendar_Event([
+        if (!$this->service) {
+            return null;
+        }
+
+        $event = new Event([
             'summary' => $work->title,
-            'description' => strip_tags($work->description),
+            'description' => $work->description,
             'location' => $work->location,
+            'start' => [
+                'dateTime' => Carbon::parse($work->start_datetime)->toRfc3339String(),
+                'timeZone' => config('app.timezone'),
+            ],
+            'end' => [
+                'dateTime' => Carbon::parse($work->end_datetime)->toRfc3339String(),
+                'timeZone' => config('app.timezone'),
+            ],
+            'reminders' => [
+                'useDefault' => false,
+                'overrides' => [
+                    ['method' => 'email', 'minutes' => 24 * 60],
+                    ['method' => 'popup', 'minutes' => 30],
+                ],
+            ],
+            'colorId' => $work->is_completed ? '10' : ($work->is_rescheduled ? '5' : '11'),
         ]);
 
-        if ($work->start_time && $work->end_time) {
-            $start = new Google_Service_Calendar_EventDateTime([
-                'dateTime' => $work->work_date . 'T' . $work->start_time,
-                'timeZone' => 'Asia/Dhaka',
-            ]);
-            $end = new Google_Service_Calendar_EventDateTime([
-                'dateTime' => $work->work_date . 'T' . $work->end_time,
-                'timeZone' => 'Asia/Dhaka',
-            ]);
-        } else {
-            $start = new Google_Service_Calendar_EventDateTime([
-                'date' => $work->work_date,
-                'timeZone' => 'Asia/Dhaka',
-            ]);
-            $end = new Google_Service_Calendar_EventDateTime([
-                'date' => $work->work_date,
-                'timeZone' => 'Asia/Dhaka',
-            ]);
+        try {
+            $createdEvent = $this->service->events->insert(config('services.google.calendar_id'), $event);
+            return $createdEvent->getId();
+        } catch (Exception $e) {
+            Log::error('Google Calendar Create Error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function updateEvent(Work $work)
+    {
+        if (!$this->service || !$work->google_event_id) {
+            return false;
         }
 
-        $event->setStart($start);
-        $event->setEnd($end);
+        try {
+            $event = $this->service->events->get(config('services.google.calendar_id'), $work->google_event_id);
 
-        $calendarId = config('google-calendar.calendar_id');
-        return $this->service->events->insert($calendarId, $event);
-    }
+            $event->setSummary($work->title);
+            $event->setDescription($work->description);
+            $event->setLocation($work->location);
 
-    public function getEvents($timeMin = null, $timeMax = null)
-    {
-        $calendarId = config('google-calendar.calendar_id');
-
-        $optParams = [
-            'orderBy' => 'startTime',
-            'singleEvents' => true,
-            'timeMin' => $timeMin ?? date('c'),
-            'timeMax' => $timeMax,
-        ];
-
-        $results = $this->service->events->listEvents($calendarId, $optParams);
-        return $results->getItems();
-    }
-
-    public function updateEvent($eventId, $work)
-    {
-        $calendarId = config('google-calendar.calendar_id');
-        $event = $this->service->events->get($calendarId, $eventId);
-
-        $event->setSummary($work->title);
-        $event->setDescription(strip_tags($work->description));
-        $event->setLocation($work->location);
-
-        if ($work->start_time && $work->end_time) {
-            $start = new Google_Service_Calendar_EventDateTime([
-                'dateTime' => $work->work_date . 'T' . $work->start_time,
-                'timeZone' => 'Asia/Dhaka',
-            ]);
-            $end = new Google_Service_Calendar_EventDateTime([
-                'dateTime' => $work->work_date . 'T' . $work->end_time,
-                'timeZone' => 'Asia/Dhaka',
-            ]);
+            $start = new EventDateTime();
+            $start->setDateTime(Carbon::parse($work->start_datetime)->toRfc3339String());
+            $start->setTimeZone(config('app.timezone'));
             $event->setStart($start);
-            $event->setEnd($end);
-        }
 
-        return $this->service->events->update($calendarId, $eventId, $event);
+            $end = new EventDateTime();
+            $end->setDateTime(Carbon::parse($work->end_datetime)->toRfc3339String());
+            $end->setTimeZone(config('app.timezone'));
+            $event->setEnd($end);
+
+            $event->setColorId($work->is_completed ? '10' : ($work->is_rescheduled ? '5' : '11'));
+
+            $this->service->events->update(config('services.google.calendar_id'), $event->getId(), $event);
+            return true;
+        } catch (Exception $e) {
+            Log::error('Google Calendar Update Error: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public function deleteEvent($eventId)
     {
-        $calendarId = config('google-calendar.calendar_id');
-        return $this->service->events->delete($calendarId, $eventId);
+        if (!$this->service || !$eventId) {
+            return false;
+        }
+
+        try {
+            $this->service->events->delete(config('services.google.calendar_id'), $eventId);
+            return true;
+        } catch (Exception $e) {
+            Log::error('Google Calendar Delete Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function listEvents($startDate = null, $endDate = null)
+    {
+        if (!$this->service) {
+            return [];
+        }
+
+        try {
+            $optParams = [
+                'maxResults' => 100,
+                'orderBy' => 'startTime',
+                'singleEvents' => true,
+                'timeMin' => $startDate ? Carbon::parse($startDate)->toRfc3339String() : Carbon::now()->startOfMonth()->toRfc3339String(),
+                'timeMax' => $endDate ? Carbon::parse($endDate)->toRfc3339String() : Carbon::now()->endOfMonth()->toRfc3339String(),
+            ];
+
+            $results = $this->service->events->listEvents(config('services.google.calendar_id'), $optParams);
+            return $results->getItems();
+        } catch (Exception $e) {
+            Log::error('Google Calendar List Error: ' . $e->getMessage());
+            return [];
+        }
     }
 }

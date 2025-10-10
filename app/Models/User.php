@@ -21,15 +21,21 @@ class User extends Authenticatable implements JWTSubject
         'role',
         'avatar',
         'address',
-        'unique_id',
-        'is_google_signin',
-        'google_id',
-        'is_apple_signin',
-        'apple_id',
+        'google_access_token',
+        'google_refresh_token',
+        'google_token_expires_at',
     ];
 
+    protected $hidden = [
+        'password',
+        'remember_token',
+        'google_access_token',
+        'google_refresh_token',
+    ];
 
-
+    protected $casts = [
+        'google_token_expires_at' => 'datetime',
+    ];
 
     public function getJWTIdentifier()
     {
@@ -56,5 +62,4 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->belongsToMany(Team::class, 'team_users', 'user_id', 'team_id');
     }
-
 }

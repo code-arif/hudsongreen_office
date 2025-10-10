@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Support\Carbon;
 use Spatie\GoogleCalendar\Event;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Work extends Model
 {
-    protected $guarded = [];
+    use HasFactory;
 
-    // fillable fields
     protected $fillable = [
         'title',
         'description',
@@ -19,6 +19,8 @@ class Work extends Model
         'longitude',
         'time',
         'work_date',
+        'start_datetime',
+        'end_datetime',
         'is_completed',
         'is_rescheduled',
         'note',
@@ -28,11 +30,12 @@ class Work extends Model
         'google_event_id',
     ];
 
-    // casting fields
     protected $casts = [
-        'work_date' => 'date',
         'is_completed' => 'boolean',
         'is_rescheduled' => 'boolean',
+        'work_date' => 'date',
+        'start_datetime' => 'datetime',
+        'end_datetime' => 'datetime',
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
     ];
@@ -67,55 +70,73 @@ class Work extends Model
         return $this->hasOne(RescheduleRequest::class, 'work_id');
     }
 
-    public function getStartDateTimeAttribute()
+    // Accessors
+    public function getStartDateTimeAttribute($value)
     {
-        return $this->work_date->format('Y-m-d') . ' ' . $this->time->format('H:i:s');
-    }
-
-    public function getEndDateTimeAttribute()
-    {
-        $endTime = Carbon::parse($this->time)->addHour();
-        return $this->work_date->format('Y-m-d') . ' ' . $endTime->format('H:i:s');
-    }
-
-    public function syncToGoogleCalendar()
-    {
-        if (!$this->google_event_id) {
-            $event = Event::create([
-                'name' => $this->title,
-                'description' => $this->description . "\n\nLocation: " . $this->location . "\nTeam: " . ($this->team?->name ?? 'N/A'),
-                'startDateTime' => $this->start_date_time,
-                'endDateTime' => $this->end_date_time,
-            ]);
-
-            $this->update(['google_event_id' => $event->id]);
-            return $event;
+        if ($value) {
+            return $value;
         }
+
+        if ($this->work_date && $this->time) {
+            return Carbon::parse($this->work_date . ' ' . $this->time);
+        }
+
+        return null;
     }
 
-    public function updateGoogleCalendar()
+    public function getEndDateTimeAttribute($value)
     {
-        if ($this->google_event_id) {
-            $event = Event::find($this->google_event_id);
-            if ($event) {
-                $event
-                    ->name($this->title)
-                    ->description($this->description . "\n\nLocation: " . $this->location . "\nTeam: " . ($this->team?->name ?? 'N/A'))
-                    ->startDateTime($this->start_date_time)
-                    ->endDateTime($this->end_date_time)
-                    ->save();
-            }
+        if ($value) {
+            return $value;
         }
+
+        if ($this->start_date_time) {
+            return Carbon::parse($this->start_date_time)->addHour();
+        }
+
+        return null;
     }
 
-    public function deleteFromGoogleCalendar()
+    // Scopes
+    public function scopeCompleted($query)
     {
-        if ($this->google_event_id) {
-            $event = \Spatie\GoogleCalendar\Event::find($this->google_event_id);
-            if ($event) {
-                $event->delete();
-            }
-            $this->update(['google_event_id' => null]);
-        }
+        return $query->where('is_completed', true);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('is_completed', false);
+    }
+
+    public function scopeRescheduled($query)
+    {
+        return $query->where('is_rescheduled', true);
+    }
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('work_date', Carbon::today());
+    }
+
+    public function scopeUpcoming($query)
+    {
+        return $query->where('work_date', '>=', Carbon::today())
+            ->orderBy('work_date')
+            ->orderBy('time');
+    }
+
+    public function scopeByTeam($query, $teamId)
+    {
+        return $query->where('team_id', $teamId);
+    }
+
+    public function scopeByCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+
+    public function scopeDateRange($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('work_date', [$startDate, $endDate]);
     }
 }
