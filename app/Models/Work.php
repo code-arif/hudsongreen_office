@@ -19,8 +19,6 @@ class Work extends Model
         'longitude',
         'time',
         'work_date',
-        'start_datetime',
-        'end_datetime',
         'is_completed',
         'is_rescheduled',
         'note',
@@ -34,8 +32,6 @@ class Work extends Model
         'is_completed' => 'boolean',
         'is_rescheduled' => 'boolean',
         'work_date' => 'date',
-        'start_datetime' => 'datetime',
-        'end_datetime' => 'datetime',
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
     ];
@@ -68,33 +64,6 @@ class Work extends Model
     public function request()
     {
         return $this->hasOne(RescheduleRequest::class, 'work_id');
-    }
-
-    // Accessors
-    public function getStartDateTimeAttribute($value)
-    {
-        if ($value) {
-            return $value;
-        }
-
-        if ($this->work_date && $this->time) {
-            return Carbon::parse($this->work_date . ' ' . $this->time);
-        }
-
-        return null;
-    }
-
-    public function getEndDateTimeAttribute($value)
-    {
-        if ($value) {
-            return $value;
-        }
-
-        if ($this->start_date_time) {
-            return Carbon::parse($this->start_date_time)->addHour();
-        }
-
-        return null;
     }
 
     // Scopes

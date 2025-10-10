@@ -1,11 +1,12 @@
 <?php
 
-use App\Http\Controllers\GoogleAuthContreoller;
-use App\Http\Controllers\Web\Backend\WorkCalendarController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
-use App\Http\Controllers\Api\Auth\AuthenticationController;
+use App\Http\Controllers\GoogleAuthContreoller;
 use App\Http\Controllers\GoogleCalendarController;
+use App\Http\Controllers\Api\Auth\AuthenticationController;
+use App\Http\Controllers\Web\Backend\WorkCalendarController;
 
 
 Route::get('/', function () {
@@ -120,9 +121,35 @@ Route::middleware(['auth'])->group(function () {
     // Work CRUD Routes (Modal based)
     Route::post('/calendar/store', [GoogleCalendarController::class, 'store'])->name('calendar.store');
     Route::get('/calendar/{work}', [GoogleCalendarController::class, 'show'])->name('calendar.show');
-    Route::put('/calendar/{work}', [GoogleCalendarController::class, 'update'])->name('calendar.update');
+    Route::post('/calendar/{work}', [GoogleCalendarController::class, 'update'])->name('calendar.update');
     Route::delete('/calendar/{work}', [GoogleCalendarController::class, 'destroy'])->name('calendar.destroy');
     Route::post('/calendar/{work}/toggle', [GoogleCalendarController::class, 'toggleStatus'])->name('calendar.toggle');
 });
+
+
+// Temporary debug route
+Route::get('/debug-calendar', function () {
+    $user = Auth::user();
+    $works = \App\Models\Work::latest()->take(5)->get();
+
+    return response()->json([
+        'google_connected' => !empty($user->google_access_token),
+        'works_count' => \App\Models\Work::count(),
+        'latest_works' => $works->map(function ($work) {
+            return [
+                'id' => $work->id,
+                'title' => $work->title,
+                'work_date' => $work->work_date,
+                'time' => $work->time,
+                'start_datetime' => $work->start_datetime,
+                'end_datetime' => $work->end_datetime,
+                'google_event_id' => $work->google_event_id,
+            ];
+        }),
+        'token_exists' => !empty($user->google_access_token),
+        'token_length' => $user->google_access_token ? strlen($user->google_access_token) : 0,
+    ]);
+})->middleware('auth');
+
 
 require __DIR__ . '/auth.php';

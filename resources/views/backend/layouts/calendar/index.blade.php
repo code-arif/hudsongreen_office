@@ -3,256 +3,147 @@
 @section('title', 'Work Calendar')
 
 @section('content')
-    <style>
-        .calendar-wrapper {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .fc {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .fc-toolbar-title {
-            font-size: 1.5rem !important;
-            font-weight: 600 !important;
-            color: #1a202c;
-        }
-
-        .fc-button {
-            background: #fff !important;
-            border: 1px solid #e2e8f0 !important;
-            color: #4a5568 !important;
-            text-transform: capitalize !important;
-            padding: 0.5rem 1rem !important;
-            border-radius: 6px !important;
-            font-weight: 500 !important;
-        }
-
-        .fc-button:hover {
-            background: #f7fafc !important;
-            border-color: #cbd5e0 !important;
-        }
-
-        .fc-button-active {
-            background: #3b82f6 !important;
-            color: #fff !important;
-            border-color: #3b82f6 !important;
-        }
-
-        .fc-event {
-            border-radius: 4px;
-            padding: 2px 4px;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .fc-event:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-        .fc-daygrid-day-number {
-            color: #4a5568;
-            font-weight: 500;
-        }
-
-        .fc-day-today {
-            background-color: #eff6ff !important;
-        }
-
-        .filter-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 1.5rem;
-        }
-
-        .badge-connected {
-            background: #10b981;
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .badge-disconnected {
-            background: #ef4444;
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .modal-content {
-            border-radius: 12px;
-            border: none;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px 12px 0 0;
-            padding: 1.5rem;
-        }
-
-        .modal-body {
-            padding: 2rem;
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: #4a5568;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-control,
-        .form-select {
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            padding: 0.625rem 0.875rem;
-            transition: all 0.2s;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 0.625rem 1.25rem;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: #f8fafc;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-
-        .event-detail-item {
-            display: flex;
-            align-items: start;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            border-left: 3px solid #e2e8f0;
-            margin-bottom: 0.5rem;
-            background: #f8fafc;
-            border-radius: 0 8px 8px 0;
-        }
-
-        .event-detail-item i {
-            color: #667eea;
-            margin-top: 0.25rem;
-        }
-    </style>
-
     <div class="app-content main-content mt-0">
         <div class="side-app">
-            <div class="main-container container-fluid">
-                <!-- PAGE HEADER -->
+            <div class="main-container container-fluid" style="padding: 0;">
+
+                {{-- page header --}}
                 <div class="page-header">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h3 class="page-title mb-0">
-                                <i class="fas fa-calendar-alt me-2 text-primary"></i>
-                                Work Schedule Calendar
-                            </h3>
-                            <p class="text-muted mt-2">Manage and organize your team's work schedule</p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createWorkModal">
-                                <i class="fas fa-plus me-2"></i>Create Event
-                            </button>
+                    <div class="card shadow-sm mb-2 border-0">
+                        <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+                            <div>
+                                <h1 class="page-title mb-0">Calendar For Work Management</h1>
+                            </div>
+                            <div class="text-end">
+                            </div>
                         </div>
                     </div>
                 </div>
+                {{-- page header end --}}
 
-                <!-- FILTERS & SYNC STATUS -->
-                <div class="filter-card">
-                    <div class="row align-items-center">
-                        <div class="col-md-3">
-                            <label class="form-label">Team</label>
-                            <select id="teamFilter" class="form-select">
-                                <option value="">All Teams</option>
-                                @foreach ($teams as $team)
-                                    <option value="{{ $team->id }}">{{ $team->name }}</option>
-                                @endforeach
-                            </select>
+                {{-- calendar intrigation --}}
+                <div class="calendar-container">
+                    <!-- Sidebar -->
+                    <div class="calendar-sidebar">
+                        <div class="sidebar-header">
+                            <button class="create-btn" data-bs-toggle="modal" data-bs-target="#createWorkModal">
+                                <i class="fas fa-plus"></i>
+                                <span>Create</span>
+                            </button>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Status</label>
-                            <select id="statusFilter" class="form-select">
-                                <option value="">All Status</option>
-                                <option value="completed">Completed</option>
-                                <option value="pending">Pending</option>
-                            </select>
+
+                        <!-- Mini Calendar -->
+                        <div class="mini-calendar">
+                            <div class="mini-calendar-header">
+                                <button class="mini-nav-btn" id="miniPrevMonth">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span class="mini-calendar-title" id="miniCalendarTitle">October 2025</span>
+                                <button class="mini-nav-btn" id="miniNextMonth">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <div class="mini-calendar-grid" id="miniCalendarGrid">
+                                <!-- Calendar days will be generated by JavaScript -->
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Category</label>
-                            <select id="categoryFilter" class="form-select">
-                                <option value="">All Categories</option>
-                                @foreach ($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Google Calendar</label>
-                            <div class="d-flex gap-2">
-                                @if ($isGoogleConnected)
-                                    <button class="btn btn-success btn-sm flex-grow-1" id="syncGoogleBtn">
-                                        <i class="fas fa-sync me-1"></i>Sync
-                                    </button>
-                                    <a href="{{ route('google.disconnect') }}" class="btn btn-outline-danger btn-sm">
-                                        <i class="fas fa-unlink"></i>
-                                    </a>
-                                @else
-                                    <a href="{{ route('google.redirect') }}" class="btn btn-primary btn-sm flex-grow-1">
-                                        <i class="fab fa-google me-1"></i>Connect Google
-                                    </a>
-                                @endif
+
+                        <!-- Filters -->
+                        <div class="sidebar-filters">
+                            <div class="filter-group">
+                                <label class="filter-label">Team</label>
+                                <select id="teamFilter" class="filter-select">
+                                    <option value="">All Teams</option>
+                                    @foreach ($teams as $team)
+                                        <option value="{{ $team->id }}">{{ $team->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label class="filter-label">Status</label>
+                                <select id="statusFilter" class="filter-select">
+                                    <option value="">All Status</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="rescheduled">Rescheduled</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label class="filter-label">Category</label>
+                                <select id="categoryFilter" class="filter-select">
+                                    <option value="">All Categories</option>
+                                    @foreach ($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="google-sync-section">
+                                <div class="sync-status">
+                                    <i class="fab fa-google"></i>
+                                    <span>Google Calendar</span>
+                                    @if ($isGoogleConnected)
+                                        <span class="status-badge connected">
+                                            <i class="fas fa-check-circle"></i>
+                                            Connected
+                                        </span>
+                                    @else
+                                        <span class="status-badge disconnected">
+                                            <i class="fas fa-times-circle"></i>
+                                            Not Connected
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="sync-actions">
+                                    @if ($isGoogleConnected)
+                                        <button class="sync-btn primary" id="syncGoogleBtn"
+                                            style="flex: 0 0 calc(80% - 4px);">
+                                            <i class="fas fa-sync"></i> Sync
+                                        </button>
+                                        <a href="{{ route('google.disconnect') }}" class="sync-btn"
+                                            style="flex: 0 0 calc(20% - 4px); display: flex; align-items: center; justify-content: center; text-decoration: none; color: #5f6368;">
+                                            <i class="fas fa-unlink"></i>
+                                        </a>
+                                    @else
+                                        <a href="{{ route('google.redirect') }}" class="sync-btn primary"
+                                            style="flex: 1; text-align: center; text-decoration: none; color: white;">
+                                            <i class="fab fa-google"></i> Connect
+                                        </a>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="sync-status">
-                        <i class="fas fa-info-circle text-primary"></i>
-                        <span class="text-muted">
-                            Google Calendar Status:
-                            @if ($isGoogleConnected)
-                                <span class="badge-connected">Connected</span>
-                            @else
-                                <span class="badge-disconnected">Not Connected</span>
-                            @endif
-                        </span>
+                    <!-- Main Calendar -->
+                    <div class="calendar-main">
+                        <div class="calendar-header">
+                            <div class="calendar-header-left">
+                                <button class="today-btn" id="todayBtn">Today</button>
+                                <div class="calendar-nav">
+                                    <button class="nav-btn" id="prevBtn">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="nav-btn" id="nextBtn">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                                <h2 class="calendar-title" id="calendarTitle">October 2025</h2>
+                            </div>
+                            <div class="calendar-header-right">
+                                <div class="view-switcher">
+                                    <button class="view-btn" data-view="dayGridDay">Day</button>
+                                    <button class="view-btn" data-view="timeGridWeek">Week</button>
+                                    <button class="view-btn active" data-view="dayGridMonth">Month</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="calendar-content">
+                            <div id="calendar"></div>
+                        </div>
                     </div>
-                </div>
-
-                <!-- CALENDAR -->
-                <div class="calendar-wrapper">
-                    <div id="calendar" style="padding: 1.5rem;"></div>
                 </div>
             </div>
         </div>
@@ -266,7 +157,7 @@
                     <h5 class="modal-title" id="modalTitle">
                         <i class="fas fa-calendar-plus me-2"></i>Create New Work Schedule
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="workForm">
@@ -276,49 +167,49 @@
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-heading me-1"></i>Title *
+                                    <i class="fas fa-heading"></i>Title *
                                 </label>
                                 <input type="text" class="form-control" name="title" id="title" required>
                             </div>
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-align-left me-1"></i>Description
+                                    <i class="fas fa-align-left"></i>Description
                                 </label>
                                 <textarea class="form-control" name="description" id="description" rows="3"></textarea>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-calendar me-1"></i>Date *
+                                    <i class="fas fa-calendar"></i>Date *
                                 </label>
                                 <input type="date" class="form-control" name="work_date" id="work_date" required>
                             </div>
 
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-clock me-1"></i>Start Time *
+                                    <i class="fas fa-clock"></i>Start Time *
                                 </label>
                                 <input type="time" class="form-control" name="time" id="time" required>
                             </div>
 
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-clock me-1"></i>End Time
+                                    <i class="fas fa-clock"></i>End Time
                                 </label>
                                 <input type="time" class="form-control" name="end_time" id="end_time">
                             </div>
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-map-marker-alt me-1"></i>Location
+                                    <i class="fas fa-map-marker-alt"></i>Location
                                 </label>
                                 <input type="text" class="form-control" name="location" id="location">
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-users me-1"></i>Team
+                                    <i class="fas fa-users"></i>Team
                                 </label>
                                 <select class="form-select" name="team_id" id="team_id">
                                     <option value="">Select Team</option>
@@ -330,7 +221,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-tag me-1"></i>Category
+                                    <i class="fas fa-tag"></i>Category
                                 </label>
                                 <select class="form-select" name="category_id" id="category_id">
                                     <option value="">Select Category</option>
@@ -342,7 +233,7 @@
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-sticky-note me-1"></i>Note
+                                    <i class="fas fa-sticky-note"></i>Note
                                 </label>
                                 <textarea class="form-control" name="note" id="note" rows="2"></textarea>
                             </div>
@@ -372,7 +263,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveWorkBtn">
-                        <i class="fas fa-save me-2"></i>Save Work
+                        <i class="fas fa-save me-2"></i>Save
                     </button>
                 </div>
             </div>
@@ -387,7 +278,7 @@
                     <h5 class="modal-title">
                         <i class="fas fa-info-circle me-2"></i>Event Details
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="eventDetailsContent">
                     <!-- Event details will be loaded here -->
@@ -416,27 +307,19 @@
         document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
             let currentEventId = null;
+            let selectedDates = [];
+            let miniCalendarDate = new Date();
 
+            // Initialize FullCalendar
             const calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-                },
-                buttonText: {
-                    today: 'Today',
-                    month: 'Month',
-                    week: 'Week',
-                    day: 'Day',
-                    list: 'List'
-                },
+                headerToolbar: false,
                 editable: true,
                 selectable: true,
                 selectMirror: true,
                 dayMaxEvents: true,
                 weekends: true,
-                height: 'auto',
+                height: '100%',
                 events: {
                     url: '{{ route('calendar.events') }}',
                     method: 'GET',
@@ -463,10 +346,148 @@
                 },
                 eventResize: function(info) {
                     updateEventDate(info.event);
+                },
+                datesSet: function(info) {
+                    updateCalendarTitle(info.view);
                 }
             });
 
             calendar.render();
+
+            // Initialize Mini Calendar
+            renderMiniCalendar();
+
+            // Update calendar title
+            function updateCalendarTitle(view) {
+                const title = view.title;
+                document.getElementById('calendarTitle').textContent = title;
+            }
+
+            // Render Mini Calendar
+            function renderMiniCalendar() {
+                const year = miniCalendarDate.getFullYear();
+                const month = miniCalendarDate.getMonth();
+
+                // Update title
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                ];
+                document.getElementById('miniCalendarTitle').textContent = `${monthNames[month]} ${year}`;
+
+                // Get first day of month and number of days
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+                const grid = document.getElementById('miniCalendarGrid');
+                grid.innerHTML = '';
+
+                // Day headers
+                const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                dayHeaders.forEach(day => {
+                    const header = document.createElement('div');
+                    header.className = 'mini-calendar-day-header';
+                    header.textContent = day;
+                    grid.appendChild(header);
+                });
+
+                // Previous month days
+                for (let i = firstDay - 1; i >= 0; i--) {
+                    const day = daysInPrevMonth - i;
+                    const dayEl = createMiniCalendarDay(day, year, month - 1, true);
+                    grid.appendChild(dayEl);
+                }
+
+                // Current month days
+                const today = new Date();
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const isToday = day === today.getDate() &&
+                        month === today.getMonth() &&
+                        year === today.getFullYear();
+                    const dayEl = createMiniCalendarDay(day, year, month, false, isToday);
+                    grid.appendChild(dayEl);
+                }
+
+                // Next month days
+                const totalCells = firstDay + daysInMonth;
+                const remainingCells = 42 - totalCells; // 6 rows * 7 days
+                for (let day = 1; day <= remainingCells; day++) {
+                    const dayEl = createMiniCalendarDay(day, year, month + 1, true);
+                    grid.appendChild(dayEl);
+                }
+            }
+
+            function createMiniCalendarDay(day, year, month, isOtherMonth, isToday = false) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'mini-calendar-day';
+                if (isOtherMonth) dayEl.classList.add('other-month');
+                if (isToday) dayEl.classList.add('today');
+                dayEl.textContent = day;
+
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                dayEl.addEventListener('click', function() {
+                    // Multi-select with Ctrl/Cmd key
+                    if (event.ctrlKey || event.metaKey) {
+                        const index = selectedDates.indexOf(dateStr);
+                        if (index > -1) {
+                            selectedDates.splice(index, 1);
+                            dayEl.classList.remove('selected');
+                        } else {
+                            selectedDates.push(dateStr);
+                            dayEl.classList.add('selected');
+                        }
+                    } else {
+                        // Single select - clear previous and select new
+                        document.querySelectorAll('.mini-calendar-day.selected').forEach(el => {
+                            el.classList.remove('selected');
+                        });
+                        selectedDates = [dateStr];
+                        dayEl.classList.add('selected');
+
+                        // Navigate main calendar to selected date
+                        calendar.gotoDate(dateStr);
+                    }
+                });
+
+                return dayEl;
+            }
+
+            // Mini calendar navigation
+            document.getElementById('miniPrevMonth').addEventListener('click', function() {
+                miniCalendarDate.setMonth(miniCalendarDate.getMonth() - 1);
+                renderMiniCalendar();
+            });
+
+            document.getElementById('miniNextMonth').addEventListener('click', function() {
+                miniCalendarDate.setMonth(miniCalendarDate.getMonth() + 1);
+                renderMiniCalendar();
+            });
+
+            // Main calendar navigation
+            document.getElementById('todayBtn').addEventListener('click', function() {
+                calendar.today();
+                miniCalendarDate = new Date();
+                renderMiniCalendar();
+            });
+
+            document.getElementById('prevBtn').addEventListener('click', function() {
+                calendar.prev();
+            });
+
+            document.getElementById('nextBtn').addEventListener('click', function() {
+                calendar.next();
+            });
+
+            // View switcher
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove(
+                        'active'));
+                    this.classList.add('active');
+                    calendar.changeView(this.dataset.view);
+                });
+            });
 
             // Filter change handlers
             $('#teamFilter, #statusFilter, #categoryFilter').on('change', function() {
@@ -504,87 +525,84 @@
                         '<span class="badge bg-primary">Pending</span>');
 
                 let detailsHtml = `
-            <div class="event-detail-item">
-                <i class="fas fa-heading"></i>
-                <div>
-                    <strong>Title:</strong><br>
-                    ${event.title}
-                </div>
-            </div>
+                    <div style="padding: 8px 0;">
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #5f6368; font-size: 12px;">TITLE</strong>
+                            <div style="font-size: 16px; color: #3c4043; margin-top: 4px;">${event.title}</div>
+                        </div>
 
-            <div class="event-detail-item">
-                <i class="fas fa-calendar"></i>
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #5f6368; font-size: 12px;">DATE & TIME</strong>
+                            <div style="font-size: 14px; color: #3c4043; margin-top: 4px;">
+                                <i class="far fa-clock" style="margin-right: 8px;"></i>
+                                ${startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                <br>
+                                ${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                ${endDate ? ' - ' + endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </div>
+                        </div>
 
-            </div>
-
-            <div class="event-detail-item">
-                <i class="fas fa-flag"></i>
-                <div>
-                    <strong>Status:</strong><br>
-                    ${statusBadge}
-                </div>
-            </div>
-        `;
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #5f6368; font-size: 12px;">STATUS</strong>
+                            <div style="margin-top: 4px;">${statusBadge}</div>
+                        </div>
+                `;
 
                 if (event.extendedProps.description) {
                     detailsHtml += `
-                <div class="event-detail-item">
-                    <i class="fas fa-align-left"></i>
-                    <div>
-                        <strong>Description:</strong><br>
-                        ${event.extendedProps.description}
-                    </div>
-                </div>
-            `;
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #5f6368; font-size: 12px;">DESCRIPTION</strong>
+                            <div style="font-size: 14px; color: #3c4043; margin-top: 4px;">${event.extendedProps.description}</div>
+                        </div>
+                    `;
                 }
 
                 if (event.extendedProps.location) {
                     detailsHtml += `
-                <div class="event-detail-item">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <div>
-                        <strong>Location:</strong><br>
-                        ${event.extendedProps.location}
-                    </div>
-                </div>
-            `;
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #5f6368; font-size: 12px;">LOCATION</strong>
+                            <div style="font-size: 14px; color: #3c4043; margin-top: 4px;">
+                                <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>
+                                ${event.extendedProps.location}
+                            </div>
+                        </div>
+                    `;
                 }
 
                 if (props.team) {
                     detailsHtml += `
-                <div class="event-detail-item">
-                    <i class="fas fa-users"></i>
-                    <div>
-                        <strong>Team:</strong><br>
-                        ${props.team}
-                    </div>
-                </div>
-            `;
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #5f6368; font-size: 12px;">TEAM</strong>
+                            <div style="font-size: 14px; color: #3c4043; margin-top: 4px;">
+                                <i class="fas fa-users" style="margin-right: 8px;"></i>
+                                ${props.team}
+                            </div>
+                        </div>
+                    `;
                 }
 
                 if (props.category) {
                     detailsHtml += `
-                <div class="event-detail-item">
-                    <i class="fas fa-tag"></i>
-                    <div>
-                        <strong>Category:</strong><br>
-                        ${props.category}
-                    </div>
-                </div>
-            `;
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #5f6368; font-size: 12px;">CATEGORY</strong>
+                            <div style="font-size: 14px; color: #3c4043; margin-top: 4px;">
+                                <i class="fas fa-tag" style="margin-right: 8px;"></i>
+                                ${props.category}
+                            </div>
+                        </div>
+                    `;
                 }
 
                 if (props.note) {
                     detailsHtml += `
-                <div class="event-detail-item">
-                    <i class="fas fa-sticky-note"></i>
-                    <div>
-                        <strong>Note:</strong><br>
-                        ${props.note}
-                    </div>
-                </div>
-            `;
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #5f6368; font-size: 12px;">NOTE</strong>
+                            <div style="font-size: 14px; color: #3c4043; margin-top: 4px;">${props.note}</div>
+                        </div>
+                    `;
                 }
+
+                detailsHtml += '</div>';
 
                 $('#eventDetailsContent').html(detailsHtml);
                 $('#viewEventModal').modal('show');
@@ -666,7 +684,8 @@
                         showToast(response.message, 'success');
                     },
                     error: function(xhr) {
-                        showToast('Failed to save work', 'error');
+                        const message = xhr.responseJSON?.message || 'Failed to save work';
+                        showToast(message, 'error');
                     }
                 });
             });
@@ -697,15 +716,19 @@
                 const startDate = new Date(event.start);
                 const endDate = event.end ? new Date(event.end) : null;
 
+                const formData = {
+                    _token: '{{ csrf_token() }}',
+                    _method: 'PUT',
+                    title: event.title,
+                    work_date: startDate.toISOString().split('T')[0],
+                    time: startDate.toTimeString().split(' ')[0],
+                    end_time: endDate ? endDate.toTimeString().split(' ')[0] : null
+                };
+
                 $.ajax({
                     url: `/calendar/${event.id}`,
-                    method: 'PUT',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        work_date: startDate.toISOString().split('T')[0],
-                        time: startDate.toTimeString().split(' ')[0],
-                        end_time: endDate ? endDate.toTimeString().split(' ')[0] : null
-                    },
+                    method: 'POST',
+                    data: formData,
                     success: function(response) {
                         showToast('Event updated successfully', 'success');
                     },
@@ -719,7 +742,7 @@
             // Sync from Google Calendar
             $('#syncGoogleBtn').on('click', function() {
                 const btn = $(this);
-                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Syncing...');
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Syncing...');
 
                 $.ajax({
                     url: '{{ route('google.sync') }}',
@@ -734,27 +757,23 @@
                         showToast(response.message, 'success');
                     },
                     error: function(xhr) {
-                        showToast(xhr.responseJSON?.message || 'Failed to sync', 'error');
+                        const message = xhr.responseJSON?.message || 'Failed to sync';
+                        showToast(message, 'error');
                     },
                     complete: function() {
-                        btn.prop('disabled', false).html(
-                            '<i class="fas fa-sync me-1"></i>Sync');
+                        btn.prop('disabled', false).html('<i class="fas fa-sync"></i> Sync');
                     }
                 });
             });
 
             // Toast notification function
             function showToast(message, type = 'info') {
-                const bgColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
-                const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' :
-                    'info-circle';
-
                 const toast = $(`
-            <div class="toast-notification" style="position: fixed; top: 20px; right: 20px; background: ${bgColor}; color: white; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 9999; display: flex; align-items: center; gap: 0.75rem;">
-                <i class="fas fa-${icon}"></i>
-                <span>${message}</span>
-            </div>
-        `);
+                    <div class="toast-notification ${type}">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}" style="color: ${type === 'success' ? '#34a853' : type === 'error' ? '#ea4335' : '#4285f4'}"></i>
+                        <span style="color: #3c4043; font-size: 14px;">${message}</span>
+                    </div>
+                `);
 
                 $('body').append(toast);
 
@@ -764,22 +783,604 @@
                     });
                 }, 3000);
             }
+
+            // Session messages
+            @if (session('success'))
+                showToast('{{ session('success') }}', 'success');
+            @endif
+
+            @if (session('error'))
+                showToast('{{ session('error') }}', 'error');
+            @endif
         });
     </script>
+@endpush
 
-    @if (session('success'))
-        <script>
-            setTimeout(() => {
-                showToast('{{ session('success') }}', 'success');
-            }, 100);
-        </script>
-    @endif
+@push('scripts')
+    <style>
+        :root {
+            --google-blue: #1a73e8;
+            --google-blue-hover: #1765cc;
+            --border-color: #dadce0;
+            --sidebar-bg: #ffffff;
+            --hover-bg: #f1f3f4;
+            --selected-bg: #e8f0fe;
+        }
 
-    @if (session('error'))
-        <script>
-            setTimeout(() => {
-                showToast('{{ session('error') }}', 'error');
-            }, 100);
-        </script>
-    @endif
+        .calendar-container {
+            display: flex;
+            height: calc(100vh - 120px);
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Sidebar Styles */
+        .calendar-sidebar {
+            width: 280px;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            background: var(--sidebar-bg);
+        }
+
+        .sidebar-header {
+            padding: 13px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .create-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            background: var(--google-blue);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            justify-content: center;
+        }
+
+        .create-btn:hover {
+            background: var(--google-blue-hover);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .create-btn i {
+            font-size: 18px;
+        }
+
+        /* Mini Calendar */
+        .mini-calendar {
+            padding: 8px 12px;
+            flex-shrink: 0;
+        }
+
+        .mini-calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 0 8px;
+        }
+
+        .mini-calendar-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #3c4043;
+        }
+
+        .mini-nav-btn {
+            background: none;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5f6368;
+            transition: background 0.2s;
+        }
+
+        .mini-nav-btn:hover {
+            background: var(--hover-bg);
+        }
+
+        .mini-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
+        .mini-calendar-day-header {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 500;
+            color: #70757a;
+            padding: 4px 0;
+        }
+
+        .mini-calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: #3c4043;
+            transition: all 0.2s;
+        }
+
+        .mini-calendar-day:hover {
+            background: var(--hover-bg);
+        }
+
+        .mini-calendar-day.other-month {
+            color: #9aa0a6;
+        }
+
+        .mini-calendar-day.today {
+            background: var(--google-blue);
+            color: white;
+            font-weight: 600;
+        }
+
+        .mini-calendar-day.selected {
+            background: var(--selected-bg);
+            color: var(--google-blue);
+            font-weight: 600;
+        }
+
+        .mini-calendar-day.has-events::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            width: 4px;
+            height: 4px;
+            background: var(--google-blue);
+            border-radius: 50%;
+        }
+
+        /* Filters Section */
+        .sidebar-filters {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .filter-group {
+            margin-bottom: 20px;
+        }
+
+        .filter-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #3c4043;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            color: #3c4043;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--google-blue);
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+        }
+
+        .google-sync-section {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #5f6368;
+            margin-bottom: 12px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.connected {
+            background: #e6f4ea;
+            color: #137333;
+        }
+
+        .status-badge.disconnected {
+            background: #fce8e6;
+            color: #c5221f;
+        }
+
+        .sync-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .sync-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sync-btn:hover {
+            background: var(--hover-bg);
+        }
+
+        .sync-btn.primary {
+            background: var(--google-blue);
+            color: white;
+            border: none;
+        }
+
+        .sync-btn.primary:hover {
+            background: var(--google-blue-hover);
+        }
+
+        /* Main Calendar Area */
+        .calendar-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: white;
+        }
+
+        .calendar-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .today-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: white;
+            color: #3c4043;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .today-btn:hover {
+            background: var(--hover-bg);
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 4px;
+        }
+
+        .nav-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5f6368;
+            transition: background 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: var(--hover-bg);
+        }
+
+        .calendar-title {
+            font-size: 22px;
+            font-weight: 400;
+            color: #3c4043;
+            margin-left: 16px;
+        }
+
+        .calendar-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-switcher {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .view-btn {
+            padding: 8px 16px;
+            border: none;
+            background: white;
+            color: #5f6368;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .view-btn:last-child {
+            border-right: none;
+        }
+
+        .view-btn:hover {
+            background: var(--hover-bg);
+        }
+
+        .view-btn.active {
+            background: var(--selected-bg);
+            color: var(--google-blue);
+        }
+
+        .calendar-content {
+            flex: 1;
+            overflow: auto;
+            background: #fff;
+        }
+
+        /* FullCalendar Custom Styles */
+        .fc {
+            font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
+        }
+
+        .fc .fc-toolbar {
+            display: none;
+        }
+
+        .fc-theme-standard td,
+        .fc-theme-standard th {
+            border-color: var(--border-color);
+        }
+
+        .fc-col-header-cell {
+            padding: 12px 4px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #70757a;
+            text-transform: uppercase;
+            background: #fff;
+        }
+
+        .fc-daygrid-day-number {
+            color: #3c4043;
+            font-size: 12px;
+            padding: 8px;
+        }
+
+        .fc-day-today {
+            background-color: #e8f0fe !important;
+        }
+
+        .fc-day-today .fc-daygrid-day-number {
+            background: var(--google-blue);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .fc-event {
+            border: none !important;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 1px 2px;
+            transition: all 0.2s;
+        }
+
+        .fc-event:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
+        }
+
+        .fc-event-title {
+            font-weight: 500;
+        }
+
+        .fc-daygrid-event-dot {
+            display: none;
+        }
+
+        /* Time Grid Styles */
+        .fc-timegrid-slot {
+            height: 48px;
+        }
+
+        .fc-timegrid-slot-label {
+            font-size: 12px;
+            color: #70757a;
+        }
+
+        /* Modal Styles */
+        .modal-content {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 24px;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #3c4043;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #3c4043;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-control,
+        .form-select {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px 12px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--google-blue);
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+            outline: none;
+        }
+
+        .btn-primary {
+            background: var(--google-blue);
+            border: none;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--google-blue-hover);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: #5f6368;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Toast Notification */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-notification.success {
+            border-left: 4px solid #34a853;
+        }
+
+        .toast-notification.error {
+            border-left: 4px solid #ea4335;
+        }
+
+        .toast-notification.info {
+            border-left: 4px solid #4285f4;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .calendar-sidebar {
+                position: fixed;
+                left: -280px;
+                z-index: 1000;
+                height: 100vh;
+                transition: left 0.3s;
+            }
+
+            .calendar-sidebar.open {
+                left: 0;
+            }
+        }
+    </style>
 @endpush

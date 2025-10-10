@@ -2,14 +2,14 @@
 
 namespace App\Services;
 
-use Exception;
-use Carbon\Carbon;
 use Google\Client;
-use App\Models\Work;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
-use Illuminate\Support\Facades\Log;
 use Google\Service\Calendar\EventDateTime;
+use App\Models\Work;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Support\Facades\Log;
 
 class GoogleCalendarService
 {
@@ -47,10 +47,20 @@ class GoogleCalendarService
     {
         $this->client->setAccessToken($token);
 
+        // Check if token is expired and refresh
         if ($this->client->isAccessTokenExpired()) {
             if ($this->client->getRefreshToken()) {
                 $newToken = $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+
+                if (isset($newToken['error'])) {
+                    throw new Exception('Error refreshing token: ' . $newToken['error']);
+                }
+
+                $this->client->setAccessToken($newToken);
+                $this->service = new Calendar($this->client);
                 return $newToken;
+            } else {
+                throw new Exception('No refresh token available. Please reconnect Google Calendar.');
             }
         }
 
@@ -61,20 +71,29 @@ class GoogleCalendarService
     public function createEvent(Work $work)
     {
         if (!$this->service) {
-            return null;
+            throw new Exception('Calendar service not initialized');
         }
+
+        // Build start and end datetime
+        $startDateTime = $work->start_datetime
+            ? Carbon::parse($work->start_datetime)
+            : Carbon::parse($work->work_date . ' ' . ($work->time ?? '09:00:00'));
+
+        $endDateTime = $work->end_datetime
+            ? Carbon::parse($work->end_datetime)
+            : $startDateTime->copy()->addHour();
 
         $event = new Event([
             'summary' => $work->title,
-            'description' => $work->description,
+            'description' => $this->buildDescription($work),
             'location' => $work->location,
             'start' => [
-                'dateTime' => Carbon::parse($work->start_datetime)->toRfc3339String(),
-                'timeZone' => config('app.timezone'),
+                'dateTime' => $startDateTime->toRfc3339String(),
+                'timeZone' => config('app.timezone', 'Asia/Dhaka'),
             ],
             'end' => [
-                'dateTime' => Carbon::parse($work->end_datetime)->toRfc3339String(),
-                'timeZone' => config('app.timezone'),
+                'dateTime' => $endDateTime->toRfc3339String(),
+                'timeZone' => config('app.timezone', 'Asia/Dhaka'),
             ],
             'reminders' => [
                 'useDefault' => false,
@@ -83,48 +102,80 @@ class GoogleCalendarService
                     ['method' => 'popup', 'minutes' => 30],
                 ],
             ],
-            'colorId' => $work->is_completed ? '10' : ($work->is_rescheduled ? '5' : '11'),
+            'colorId' => $this->getColorId($work),
         ]);
 
         try {
-            $createdEvent = $this->service->events->insert(config('services.google.calendar_id'), $event);
+            $createdEvent = $this->service->events->insert(
+                config('services.google.calendar_id', 'primary'),
+                $event
+            );
+
+            Log::info('Google Calendar event created', [
+                'work_id' => $work->id,
+                'event_id' => $createdEvent->getId()
+            ]);
+
             return $createdEvent->getId();
         } catch (Exception $e) {
-            Log::error('Google Calendar Create Error: ' . $e->getMessage());
-            return null;
+            Log::error('Google Calendar Create Error', [
+                'work_id' => $work->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
         }
     }
 
     public function updateEvent(Work $work)
     {
         if (!$this->service || !$work->google_event_id) {
-            return false;
+            throw new Exception('Service not initialized or no event ID');
         }
 
         try {
-            $event = $this->service->events->get(config('services.google.calendar_id'), $work->google_event_id);
+            $calendarId = config('services.google.calendar_id', 'primary');
+            $event = $this->service->events->get($calendarId, $work->google_event_id);
+
+            $startDateTime = $work->start_datetime
+                ? Carbon::parse($work->start_datetime)
+                : Carbon::parse($work->work_date . ' ' . ($work->time ?? '09:00:00'));
+
+            $endDateTime = $work->end_datetime
+                ? Carbon::parse($work->end_datetime)
+                : $startDateTime->copy()->addHour();
 
             $event->setSummary($work->title);
-            $event->setDescription($work->description);
+            $event->setDescription($this->buildDescription($work));
             $event->setLocation($work->location);
 
             $start = new EventDateTime();
-            $start->setDateTime(Carbon::parse($work->start_datetime)->toRfc3339String());
-            $start->setTimeZone(config('app.timezone'));
+            $start->setDateTime($startDateTime->toRfc3339String());
+            $start->setTimeZone(config('app.timezone', 'Asia/Dhaka'));
             $event->setStart($start);
 
             $end = new EventDateTime();
-            $end->setDateTime(Carbon::parse($work->end_datetime)->toRfc3339String());
-            $end->setTimeZone(config('app.timezone'));
+            $end->setDateTime($endDateTime->toRfc3339String());
+            $end->setTimeZone(config('app.timezone', 'Asia/Dhaka'));
             $event->setEnd($end);
 
-            $event->setColorId($work->is_completed ? '10' : ($work->is_rescheduled ? '5' : '11'));
+            $event->setColorId($this->getColorId($work));
 
-            $this->service->events->update(config('services.google.calendar_id'), $event->getId(), $event);
+            $this->service->events->update($calendarId, $event->getId(), $event);
+
+            Log::info('Google Calendar event updated', [
+                'work_id' => $work->id,
+                'event_id' => $work->google_event_id
+            ]);
+
             return true;
         } catch (Exception $e) {
-            Log::error('Google Calendar Update Error: ' . $e->getMessage());
-            return false;
+            Log::error('Google Calendar Update Error', [
+                'work_id' => $work->id,
+                'event_id' => $work->google_event_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
         }
     }
 
@@ -135,10 +186,16 @@ class GoogleCalendarService
         }
 
         try {
-            $this->service->events->delete(config('services.google.calendar_id'), $eventId);
+            $calendarId = config('services.google.calendar_id', 'primary');
+            $this->service->events->delete($calendarId, $eventId);
+
+            Log::info('Google Calendar event deleted', ['event_id' => $eventId]);
             return true;
         } catch (Exception $e) {
-            Log::error('Google Calendar Delete Error: ' . $e->getMessage());
+            Log::error('Google Calendar Delete Error', [
+                'event_id' => $eventId,
+                'error' => $e->getMessage()
+            ]);
             return false;
         }
     }
@@ -146,23 +203,68 @@ class GoogleCalendarService
     public function listEvents($startDate = null, $endDate = null)
     {
         if (!$this->service) {
-            return [];
+            throw new Exception('Calendar service not initialized');
         }
 
         try {
             $optParams = [
-                'maxResults' => 100,
+                'maxResults' => 2500,
                 'orderBy' => 'startTime',
                 'singleEvents' => true,
-                'timeMin' => $startDate ? Carbon::parse($startDate)->toRfc3339String() : Carbon::now()->startOfMonth()->toRfc3339String(),
-                'timeMax' => $endDate ? Carbon::parse($endDate)->toRfc3339String() : Carbon::now()->endOfMonth()->toRfc3339String(),
+                'timeMin' => $startDate
+                    ? Carbon::parse($startDate)->toRfc3339String()
+                    : Carbon::now()->startOfMonth()->toRfc3339String(),
+                'timeMax' => $endDate
+                    ? Carbon::parse($endDate)->toRfc3339String()
+                    : Carbon::now()->endOfMonth()->toRfc3339String(),
             ];
 
-            $results = $this->service->events->listEvents(config('services.google.calendar_id'), $optParams);
+            $calendarId = config('services.google.calendar_id', 'primary');
+            $results = $this->service->events->listEvents($calendarId, $optParams);
+
+            Log::info('Google Calendar events fetched', [
+                'count' => count($results->getItems())
+            ]);
+
             return $results->getItems();
         } catch (Exception $e) {
-            Log::error('Google Calendar List Error: ' . $e->getMessage());
-            return [];
+            Log::error('Google Calendar List Error', [
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
         }
+    }
+
+    private function buildDescription(Work $work)
+    {
+        $description = $work->description ?? '';
+
+        if ($work->note) {
+            $description .= "\n\nNote: " . $work->note;
+        }
+
+        if ($work->team) {
+            $description .= "\n\nTeam: " . $work->team->name;
+        }
+
+        if ($work->category) {
+            $description .= "\nCategory: " . $work->category->name;
+        }
+
+        return $description;
+    }
+
+    private function getColorId(Work $work)
+    {
+        // Google Calendar color IDs
+        // 10 = Green (Completed)
+        // 5 = Yellow (Rescheduled)
+        // 9 = Blue (Pending)
+        if ($work->is_completed) {
+            return '10'; // Green
+        } elseif ($work->is_rescheduled) {
+            return '5'; // Yellow
+        }
+        return '9'; // Blue
     }
 }

@@ -10,8 +10,6 @@ return new class extends Migration
     {
         Schema::table('works', function (Blueprint $table) {
             $table->string('google_event_id')->nullable()->after('category_id');
-            $table->dateTime('start_datetime')->nullable()->after('work_date');
-            $table->dateTime('end_datetime')->nullable()->after('start_datetime');
         });
 
         Schema::table('users', function (Blueprint $table) {
