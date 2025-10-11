@@ -17,13 +17,13 @@ class GoogleCalendarController extends Controller
 {
     protected $googleCalendar;
 
-    // service injection
+    // serivce injection
     public function __construct(GoogleCalendarService $googleCalendar)
     {
         $this->googleCalendar = $googleCalendar;
     }
 
-    // Display the calendar view
+    // show calendar view
     public function index(Request $request)
     {
         $teams = Team::all();
@@ -35,7 +35,7 @@ class GoogleCalendarController extends Controller
         return view('backend.layouts.calendar.index', compact('teams', 'categories', 'isGoogleConnected'));
     }
 
-    // Fetch events with filters
+    // fetch events for calendar
     public function getEvents(Request $request)
     {
         try {
@@ -49,12 +49,10 @@ class GoogleCalendarController extends Controller
 
             // Date range filter
             if ($start && $end) {
-                $query->where(function ($q) use ($start, $end) {
-                    $q->whereBetween('work_date', [
-                        Carbon::parse($start)->startOfDay(),
-                        Carbon::parse($end)->endOfDay()
-                    ]);
-                });
+                $query->whereBetween('work_date', [
+                    Carbon::parse($start)->startOfDay(),
+                    Carbon::parse($end)->endOfDay()
+                ]);
             }
 
             // Team filter
@@ -83,13 +81,8 @@ class GoogleCalendarController extends Controller
                     $workDate = Carbon::parse($work->work_date);
                     $timeStr = $work->time ?? '09:00:00';
 
-                    $startDateTime = $work->start_datetime
-                        ? Carbon::parse($work->start_datetime)
-                        : Carbon::parse($workDate->format('Y-m-d') . ' ' . $timeStr);
-
-                    $endDateTime = $work->end_datetime
-                        ? Carbon::parse($work->end_datetime)
-                        : $startDateTime->copy()->addHour();
+                    $startDateTime = Carbon::parse($workDate->format('Y-m-d') . ' ' . $timeStr);
+                    $endDateTime = $startDateTime->copy()->addHour();
 
                     return [
                         'id' => $work->id,
@@ -134,7 +127,7 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Store a new work schedule
+    // store new work
     public function store(Request $request)
     {
         try {
@@ -146,33 +139,31 @@ class GoogleCalendarController extends Controller
                 'longitude' => 'nullable|numeric',
                 'time' => 'required',
                 'work_date' => 'required|date',
-                'end_time' => 'nullable',
                 'team_id' => 'nullable|exists:teams,id',
                 'category_id' => 'nullable|exists:categories,id',
-                'is_completed' => 'boolean',
-                'is_rescheduled' => 'boolean',
+                'category_name' => 'nullable|string|max:255',
                 'note' => 'nullable|string',
             ]);
 
-            $startDateTime = Carbon::parse($validated['work_date'] . ' ' . $validated['time']);
-            $endDateTime = isset($validated['end_time']) && $validated['end_time']
-                ? Carbon::parse($validated['work_date'] . ' ' . $validated['end_time'])
-                : $startDateTime->copy()->addHour();
+            // Handle new category creation if category_id is empty
+            if (empty($validated['category_id']) && !empty($validated['category_name'])) {
+                $category = Category::create([
+                    'name' => $validated['category_name'],
+                ]);
+                $validated['category_id'] = $category->id;
+            }
 
-            $validated['start_datetime'] = $startDateTime;
-            $validated['end_datetime'] = $endDateTime;
-            $validated['is_completed'] = $request->has('is_completed');
-            $validated['is_rescheduled'] = $request->has('is_rescheduled');
+            // Remove category_name so it doesn’t interfere with mass assignment
+            unset($validated['category_name']);
 
             $work = Work::create($validated);
-            dd($work);
 
             // Sync to Google Calendar
             if (Auth::user()->google_access_token) {
                 try {
                     $this->syncWorkToGoogle($work);
                 } catch (Exception $e) {
-                    Log::warning('Failed to sync to Google Calendar', [
+                    Log::error('Failed to sync to Google Calendar', [
                         'work_id' => $work->id,
                         'error' => $e->getMessage()
                     ]);
@@ -197,14 +188,14 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Show details of a specific work schedule
+    // show work details
     public function show(Work $work)
     {
         $work->load(['team', 'category']);
         return response()->json($work);
     }
 
-    // Update an existing work schedule
+    // update work
     public function update(Request $request, Work $work)
     {
         try {
@@ -216,27 +207,26 @@ class GoogleCalendarController extends Controller
                 'longitude' => 'nullable|numeric',
                 'time' => 'required',
                 'work_date' => 'required|date',
-                'end_time' => 'nullable',
                 'team_id' => 'nullable|exists:teams,id',
                 'category_id' => 'nullable|exists:categories,id',
-                'is_completed' => 'boolean',
-                'is_rescheduled' => 'boolean',
+                'category_name' => 'nullable|string|max:255',
                 'note' => 'nullable|string',
             ]);
 
-            $startDateTime = Carbon::parse($validated['work_date'] . ' ' . $validated['time']);
-            $endDateTime = isset($validated['end_time']) && $validated['end_time']
-                ? Carbon::parse($validated['work_date'] . ' ' . $validated['end_time'])
-                : $startDateTime->copy()->addHour();
+            // Handle new category creation if no category_id is selected
+            if (empty($validated['category_id']) && !empty($validated['category_name'])) {
+                $category = Category::create([
+                    'name' => $validated['category_name'],
+                ]);
+                $validated['category_id'] = $category->id;
+            }
 
-            $validated['start_datetime'] = $startDateTime;
-            $validated['end_datetime'] = $endDateTime;
-            $validated['is_completed'] = $request->has('is_completed');
-            $validated['is_rescheduled'] = $request->has('is_rescheduled');
+            // Remove temporary input
+            unset($validated['category_name']);
 
             $work->update($validated);
 
-            // Update Google Calendar
+            // ✅ Update Google Calendar (unchanged)
             if (Auth::user()->google_access_token && $work->google_event_id) {
                 try {
                     $this->syncWorkToGoogle($work, true);
@@ -266,7 +256,8 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Delete a work schedule
+
+    // delete work
     public function destroy(Work $work)
     {
         try {
@@ -303,7 +294,7 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Toggle completion status
+    // toggle status
     public function toggleStatus(Request $request, Work $work)
     {
         try {
@@ -339,7 +330,7 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Redirect to Google for authentication
+    // redirect to google for auth
     public function redirectToGoogle()
     {
         try {
@@ -355,7 +346,7 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Handle Google OAuth callback
+    // handle google callback after auth
     public function handleGoogleCallback(Request $request)
     {
         try {
@@ -384,7 +375,8 @@ class GoogleCalendarController extends Controller
 
             $user->save();
 
-            Log::info('Google Calendar connected', ['user_id' => $user->id]);
+            // Log::info('Google Calendar connected', ['user_id' => $user->id]);
+            // Log::channel('single')->info('Google Calendar connected', ['user_id' => $user->id]);
 
             return redirect()->route('calendar.index')
                 ->with('success', 'Google Calendar connected successfully!');
@@ -399,7 +391,7 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Disconnect Google Calendar
+    // disconnet google calendar
     public function disconnect()
     {
         try {
@@ -409,7 +401,6 @@ class GoogleCalendarController extends Controller
             $user->google_token_expires_at = null;
             $user->save();
 
-            // Keep google_event_id for reference but clear sync
             Work::whereNotNull('google_event_id')->update(['google_event_id' => null]);
 
             return redirect()->route('calendar.index')
@@ -424,7 +415,7 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Sync events from Google Calendar
+    // sync from google calendar
     public function syncFromGoogle(Request $request)
     {
         try {
@@ -461,16 +452,13 @@ class GoogleCalendarController extends Controller
 
             foreach ($events as $event) {
                 if (!$event->getStart()->getDateTime()) {
-                    continue; // Skip all-day events
+                    continue;
                 }
 
                 $googleEventId = $event->getId();
                 $existingWork = Work::where('google_event_id', $googleEventId)->first();
 
                 $startDateTime = Carbon::parse($event->getStart()->getDateTime());
-                $endDateTime = $event->getEnd()->getDateTime()
-                    ? Carbon::parse($event->getEnd()->getDateTime())
-                    : $startDateTime->copy()->addHour();
 
                 $workData = [
                     'title' => $event->getSummary() ?? 'Untitled Event',
@@ -478,8 +466,6 @@ class GoogleCalendarController extends Controller
                     'location' => $event->getLocation(),
                     'work_date' => $startDateTime->toDateString(),
                     'time' => $startDateTime->toTimeString(),
-                    'start_datetime' => $startDateTime,
-                    'end_datetime' => $endDateTime,
                     'google_event_id' => $googleEventId,
                 ];
 
@@ -514,7 +500,7 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Sync a single work to Google Calendar
+    // sync single work to google calendar
     private function syncWorkToGoogle(Work $work, $update = false)
     {
         try {
@@ -556,18 +542,18 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    // Determine event color based on status
+    // event color based on status
     private function getEventColor($work)
     {
         if ($work->is_completed) {
-            return '#10b981'; // Green
+            return '#10b981';
         } elseif ($work->is_rescheduled) {
-            return '#f59e0b'; // Amber
+            return '#f59e0b';
         }
-        return '#3b82f6'; // Blue
+        return '#3b82f6';
     }
 
-    // Determine event border color based on status
+    // event border color based on status
     private function getEventBorderColor($work)
     {
         if ($work->is_completed) {

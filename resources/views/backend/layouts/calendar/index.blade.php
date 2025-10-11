@@ -14,14 +14,12 @@
                             <div>
                                 <h1 class="page-title mb-0">Calendar For Work Management</h1>
                             </div>
-                            <div class="text-end">
-                            </div>
                         </div>
                     </div>
                 </div>
                 {{-- page header end --}}
 
-                {{-- calendar intrigation --}}
+                {{-- calendar integration --}}
                 <div class="calendar-container">
                     <!-- Sidebar -->
                     <div class="calendar-sidebar">
@@ -134,9 +132,9 @@
                             </div>
                             <div class="calendar-header-right">
                                 <div class="view-switcher">
-                                    <button class="view-btn" data-view="dayGridDay">Day</button>
+                                    <button class="view-btn active" data-view="dayGridDay">Day</button>
                                     <button class="view-btn" data-view="timeGridWeek">Week</button>
-                                    <button class="view-btn active" data-view="dayGridMonth">Month</button>
+                                    <button class="view-btn" data-view="dayGridMonth">Month</button>
                                 </div>
                             </div>
                         </div>
@@ -145,6 +143,7 @@
                         </div>
                     </div>
                 </div>
+                {{-- calendar integration end --}}
             </div>
         </div>
     </div>
@@ -163,106 +162,83 @@
                     <form id="workForm">
                         <input type="hidden" id="workId" name="work_id">
                         <input type="hidden" name="_method" id="formMethod" value="POST">
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
 
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-heading"></i>Title *
+                                    <i class="fas fa-heading"></i> Title *
                                 </label>
-                                <input type="text" class="form-control" name="title" id="title" required>
+                                <input type="text" class="form-control form-control-sm" name="title" id="title"
+                                    required>
                             </div>
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-align-left"></i>Description
+                                    <i class="fas fa-align-left"></i> Description
                                 </label>
                                 <textarea class="form-control" name="description" id="description" rows="3"></textarea>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-calendar"></i>Date *
+                                    <i class="fas fa-calendar"></i> Date *
                                 </label>
-                                <input type="date" class="form-control" name="work_date" id="work_date" required>
+                                <input type="date" class="form-control form-control-sm" name="work_date"
+                                    id="work_date" required>
                             </div>
 
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-clock"></i>Start Time *
+                                    <i class="fas fa-clock"></i> Time *
                                 </label>
-                                <input type="time" class="form-control" name="time" id="time" required>
-                            </div>
-
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-clock"></i>End Time
-                                </label>
-                                <input type="time" class="form-control" name="end_time" id="end_time">
+                                <input type="time" class="form-control form-control-sm" name="time" id="time"
+                                    required>
                             </div>
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-map-marker-alt"></i>Location
+                                    <i class="fas fa-map-marker-alt"></i> Location
                                 </label>
-                                <input type="text" class="form-control" name="location" id="location">
+                                <input type="text" class="form-control form" name="location" id="location"
+                                    placeholder="Search for a location...">
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-users"></i>Team
-                                </label>
-                                <select class="form-select" name="team_id" id="team_id">
-                                    <option value="">Select Team</option>
-                                    @foreach ($teams as $team)
-                                        <option value="{{ $team->id }}">{{ $team->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-tag"></i>Category
-                                </label>
-                                <select class="form-select" name="category_id" id="category_id">
-                                    <option value="">Select Category</option>
-                                    @foreach ($categories as $category)
-                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-sticky-note"></i>Note
-                                </label>
-                                <textarea class="form-control" name="note" id="note" rows="2"></textarea>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="is_completed"
-                                        id="is_completed">
-                                    <label class="form-check-label" for="is_completed">
-                                        Mark as Completed
+                            {{-- team and category selection --}}
+                            <div class="form-section">
+                                <div class="col-md-6 equal-box">
+                                    <label class="form-label">
+                                        <i class="fas fa-users"></i> Team
                                     </label>
+                                    <select class="form-select" name="team_id" id="team_id">
+                                        <option value="">Select Team</option>
+                                        @foreach ($teams as $team)
+                                            <option value="{{ $team->id }}">{{ $team->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                            </div>
 
-                            <div class="col-md-6 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="is_rescheduled"
-                                        id="is_rescheduled">
-                                    <label class="form-check-label" for="is_rescheduled">
-                                        Mark as Rescheduled
+                                <div class="col-md-6 equal-box">
+                                    <label class="form-label">
+                                        <i class="fas fa-tag"></i> Category
                                     </label>
+                                    <select class="form-select" name="category_id" id="category_id">
+                                        <option value="">Select Category</option>
+                                        @foreach ($categories as $category)
+                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <input type="text" name="category_name" id="category_name"
+                                        class="form-control mt-2" placeholder="Or create new category">
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveWorkBtn">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="saveWorkBtn">
                         <i class="fas fa-save me-2"></i>Save
                     </button>
                 </div>
@@ -276,7 +252,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fas fa-info-circle me-2"></i>Event Details
+                        <i class="fas fa-info-circle me-2"></i>Work Details
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -284,24 +260,25 @@
                     <!-- Event details will be loaded here -->
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-warning" id="editEventBtn">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-sm btn-warning" id="editEventBtn">
                         <i class="fas fa-edit me-1"></i>Edit
                     </button>
-                    <button type="button" class="btn btn-danger" id="deleteEventBtn">
+                    <button type="button" class="btn btn-sm btn-danger" id="deleteEventBtn">
                         <i class="fas fa-trash me-1"></i>Delete
                     </button>
                 </div>
             </div>
         </div>
     </div>
-
 @endsection
 
 @push('scripts')
-    <!-- FullCalendar -->
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfGOjmqKtEBRsfVN9szUo_tac20wcI9HM&libraries=places">
+    </script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -309,10 +286,75 @@
             let currentEventId = null;
             let selectedDates = [];
             let miniCalendarDate = new Date();
+            let autocomplete;
+
+            // Initialize Google Places Autocomplete
+            function initAutocomplete() {
+                const input = document.getElementById('location');
+
+                // Clear any existing autocomplete
+                if (autocomplete) {
+                    google.maps.event.clearInstanceListeners(input);
+                }
+
+                // Create new autocomplete instance
+                autocomplete = new google.maps.places.Autocomplete(input, {
+                    types: ['geocode', 'establishment'],
+                    fields: ['formatted_address', 'geometry', 'name']
+                });
+
+                // Listen for place selection
+                autocomplete.addListener('place_changed', function() {
+                    const place = autocomplete.getPlace();
+
+                    if (!place.geometry) {
+                        showToast('No details available for: ' + place.name, 'error');
+                        return;
+                    }
+
+                    if (place.geometry) {
+                        const lat = place.geometry.location.lat();
+                        const lng = place.geometry.location.lng();
+
+                        document.getElementById('latitude').value = lat;
+                        document.getElementById('longitude').value = lng;
+                        document.getElementById('location').value = place.formatted_address || place.name;
+
+                        console.log('Location selected:', {
+                            address: place.formatted_address || place.name,
+                            lat: lat,
+                            lng: lng
+                        });
+                    }
+                });
+            }
+
+            // Wait for Google Maps to load before initializing
+            function waitForGoogleMaps(callback) {
+                if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+                    callback();
+                } else {
+                    setTimeout(() => waitForGoogleMaps(callback), 100);
+                }
+            }
+
+            // Initialize autocomplete when ready
+            waitForGoogleMaps(function() {
+                initAutocomplete();
+            });
+
+            // Re-initialize autocomplete when modal opens
+            $('#createWorkModal').on('shown.bs.modal', function() {
+                setTimeout(function() {
+                    waitForGoogleMaps(function() {
+                        initAutocomplete();
+                    });
+                }, 300);
+            });
 
             // Initialize FullCalendar
             const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
+                initialView: 'dayGridDay',
                 headerToolbar: false,
                 editable: true,
                 selectable: true,
@@ -320,6 +362,7 @@
                 dayMaxEvents: true,
                 weekends: true,
                 height: '100%',
+                displayEventTime: false,
                 events: {
                     url: '{{ route('calendar.events') }}',
                     method: 'GET',
@@ -368,13 +411,11 @@
                 const year = miniCalendarDate.getFullYear();
                 const month = miniCalendarDate.getMonth();
 
-                // Update title
                 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                     'July', 'August', 'September', 'October', 'November', 'December'
                 ];
                 document.getElementById('miniCalendarTitle').textContent = `${monthNames[month]} ${year}`;
 
-                // Get first day of month and number of days
                 const firstDay = new Date(year, month, 1).getDay();
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const daysInPrevMonth = new Date(year, month, 0).getDate();
@@ -382,7 +423,6 @@
                 const grid = document.getElementById('miniCalendarGrid');
                 grid.innerHTML = '';
 
-                // Day headers
                 const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
                 dayHeaders.forEach(day => {
                     const header = document.createElement('div');
@@ -391,14 +431,12 @@
                     grid.appendChild(header);
                 });
 
-                // Previous month days
                 for (let i = firstDay - 1; i >= 0; i--) {
                     const day = daysInPrevMonth - i;
                     const dayEl = createMiniCalendarDay(day, year, month - 1, true);
                     grid.appendChild(dayEl);
                 }
 
-                // Current month days
                 const today = new Date();
                 for (let day = 1; day <= daysInMonth; day++) {
                     const isToday = day === today.getDate() &&
@@ -408,14 +446,18 @@
                     grid.appendChild(dayEl);
                 }
 
-                // Next month days
                 const totalCells = firstDay + daysInMonth;
-                const remainingCells = 42 - totalCells; // 6 rows * 7 days
+                const remainingCells = 42 - totalCells;
                 for (let day = 1; day <= remainingCells; day++) {
                     const dayEl = createMiniCalendarDay(day, year, month + 1, true);
                     grid.appendChild(dayEl);
                 }
             }
+
+            // Drag-to-select variables
+            let isDragging = false;
+            let dragStartDate = null;
+            let dragEndDate = null;
 
             function createMiniCalendarDay(day, year, month, isOtherMonth, isToday = false) {
                 const dayEl = document.createElement('div');
@@ -425,32 +467,117 @@
                 dayEl.textContent = day;
 
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                dayEl.dataset.date = dateStr;
 
-                dayEl.addEventListener('click', function() {
-                    // Multi-select with Ctrl/Cmd key
-                    if (event.ctrlKey || event.metaKey) {
-                        const index = selectedDates.indexOf(dateStr);
-                        if (index > -1) {
-                            selectedDates.splice(index, 1);
-                            dayEl.classList.remove('selected');
-                        } else {
-                            selectedDates.push(dateStr);
-                            dayEl.classList.add('selected');
-                        }
-                    } else {
-                        // Single select - clear previous and select new
-                        document.querySelectorAll('.mini-calendar-day.selected').forEach(el => {
-                            el.classList.remove('selected');
-                        });
+                // Drag-to-select functionality
+                dayEl.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    isDragging = true;
+                    dragStartDate = dateStr;
+                    dragEndDate = dateStr;
+                    selectedDates = [dateStr];
+                    updateSelectedDates();
+                });
+
+                dayEl.addEventListener('mouseenter', function() {
+                    if (isDragging && dragStartDate) {
+                        dragEndDate = dateStr;
+                        selectedDates = getDateRange(dragStartDate, dragEndDate);
+                        updateSelectedDates();
+                    }
+                });
+
+                dayEl.addEventListener('mouseup', function() {
+                    if (isDragging) {
+                        isDragging = false;
+                        dragEndDate = dateStr;
+                        selectedDates = getDateRange(dragStartDate, dragEndDate);
+                        updateSelectedDates();
+                        filterCalendarByDates();
+                    }
+                });
+
+                // Fallback: single click (for touch or non-drag)
+                dayEl.addEventListener('click', function(e) {
+                    if (!isDragging) {
+                        document.querySelectorAll('.mini-calendar-day.selected').forEach(el => el.classList
+                            .remove('selected'));
                         selectedDates = [dateStr];
-                        dayEl.classList.add('selected');
-
-                        // Navigate main calendar to selected date
-                        calendar.gotoDate(dateStr);
+                        updateSelectedDates();
+                        filterCalendarByDates();
                     }
                 });
 
                 return dayEl;
+            }
+
+            // Helper: Update UI
+            function updateSelectedDates() {
+                document.querySelectorAll('.mini-calendar-day').forEach(el => {
+                    el.classList.toggle('selected', selectedDates.includes(el.dataset.date));
+                });
+            }
+
+            // Helper: Get all dates between two points
+            function getDateRange(start, end) {
+                const range = [];
+                const startDate = new Date(start);
+                const endDate = new Date(end);
+
+                const step = startDate <= endDate ? 1 : -1;
+                for (let d = new Date(startDate);
+                    (step === 1 ? d <= endDate : d >= endDate); d.setDate(d.getDate() + step)) {
+                    const formatted = d.toISOString().split('T')[0];
+                    range.push(formatted);
+                }
+                return range;
+            }
+
+            // Global event listener to stop drag if mouse leaves calendar
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Get date range between two dates
+            function getDateRange(startStr, endStr) {
+                const start = new Date(startStr);
+                const end = new Date(endStr);
+                const range = [];
+
+                const [earlierDate, laterDate] = start <= end ? [start, end] : [end, start];
+                const current = new Date(earlierDate);
+
+                while (current <= laterDate) {
+                    const dateStr = current.toISOString().split('T')[0];
+                    range.push(dateStr);
+                    current.setDate(current.getDate() + 1);
+                }
+
+                return range;
+            }
+
+            // Filter calendar by selected dates
+            function filterCalendarByDates() {
+                if (selectedDates.length === 0) {
+                    return;
+                }
+
+                selectedDates.sort();
+                const startDate = selectedDates[0];
+                const endDate = selectedDates[selectedDates.length - 1];
+
+                calendar.gotoDate(startDate);
+
+                if (selectedDates.length === 1) {
+                    calendar.changeView('dayGridDay', startDate);
+                } else {
+                    const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+                    if (daysDiff <= 7) {
+                        calendar.changeView('timeGridWeek', startDate);
+                    } else {
+                        calendar.changeView('dayGridMonth', startDate);
+                    }
+                }
             }
 
             // Mini calendar navigation
@@ -468,7 +595,14 @@
             document.getElementById('todayBtn').addEventListener('click', function() {
                 calendar.today();
                 miniCalendarDate = new Date();
+                selectedDates = [new Date().toISOString().split('T')[0]];
                 renderMiniCalendar();
+
+                const todayStr = new Date().toISOString().split('T')[0];
+                const todayEl = document.querySelector(`.mini-calendar-day[data-date="${todayStr}"]`);
+                if (todayEl) {
+                    todayEl.classList.add('selected');
+                }
             });
 
             document.getElementById('prevBtn').addEventListener('click', function() {
@@ -500,6 +634,8 @@
                 $('#workForm')[0].reset();
                 $('#workId').val('');
                 $('#formMethod').val('POST');
+                $('#latitude').val('');
+                $('#longitude').val('');
 
                 if (date) {
                     $('#work_date').val(date);
@@ -511,18 +647,18 @@
                 $('#createWorkModal').modal('show');
             }
 
-            // Show event details
+            // Show event details in eventDetailsContent modal
             function showEventDetails(event) {
                 currentEventId = event.id;
                 const props = event.extendedProps;
 
                 const startDate = new Date(event.start);
-                const endDate = event.end ? new Date(event.end) : null;
 
                 const statusBadge = props.completed ?
                     '<span class="badge bg-success">Completed</span>' :
                     (props.rescheduled ? '<span class="badge bg-warning">Rescheduled</span>' :
                         '<span class="badge bg-primary">Pending</span>');
+
 
                 let detailsHtml = `
                     <div style="padding: 8px 0;">
@@ -532,13 +668,10 @@
                         </div>
 
                         <div style="margin-bottom: 16px;">
-                            <strong style="color: #5f6368; font-size: 12px;">DATE & TIME</strong>
+                            <strong style="color: #5f6368; font-size: 12px;">DATE</strong>
                             <div style="font-size: 14px; color: #3c4043; margin-top: 4px;">
-                                <i class="far fa-clock" style="margin-right: 8px;"></i>
+                                <i class="far fa-calendar" style="margin-right: 8px;"></i>
                                 ${startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                <br>
-                                ${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                ${endDate ? ' - ' + endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
                             </div>
                         </div>
 
@@ -558,12 +691,21 @@
                 }
 
                 if (event.extendedProps.location) {
+                    const lat = props.latitude;
+                    const lng = props.longitude;
+                    const mapsUrl = lat && lng ?
+                        `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` :
+                        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.extendedProps.location)}`;
+
                     detailsHtml += `
                         <div style="margin-bottom: 16px;">
                             <strong style="color: #5f6368; font-size: 12px;">LOCATION</strong>
                             <div style="font-size: 14px; color: #3c4043; margin-top: 4px;">
                                 <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>
-                                ${event.extendedProps.location}
+                                <a href="${mapsUrl}" target="_blank" style="color: #1a73e8; text-decoration: none;">
+                                    ${event.extendedProps.location}
+                                    <i class="fas fa-external-link-alt" style="font-size: 12px; margin-left: 4px;"></i>
+                                </a>
                             </div>
                         </div>
                     `;
@@ -627,19 +769,11 @@
                         $('#description').val(work.description);
                         $('#work_date').val(work.work_date);
                         $('#time').val(work.time);
-
-                        if (work.end_datetime) {
-                            const endTime = new Date(work.end_datetime).toTimeString().split(' ')[0]
-                                .substring(0, 5);
-                            $('#end_time').val(endTime);
-                        }
-
                         $('#location').val(work.location);
+                        $('#latitude').val(work.latitude);
+                        $('#longitude').val(work.longitude);
                         $('#team_id').val(work.team_id);
                         $('#category_id').val(work.category_id);
-                        $('#note').val(work.note);
-                        $('#is_completed').prop('checked', work.is_completed);
-                        $('#is_rescheduled').prop('checked', work.is_rescheduled);
 
                         $('#createWorkModal').modal('show');
                     },
@@ -655,24 +789,51 @@
                 const method = $('#formMethod').val();
                 const url = workId ? `/calendar/${workId}` : '{{ route('calendar.store') }}';
 
+                // Validate required fields
+                if (!$('#title').val()) {
+                    showToast('Title is required', 'error');
+                    return;
+                }
+                if (!$('#work_date').val()) {
+                    showToast('Date is required', 'error');
+                    return;
+                }
+                if (!$('#time').val()) {
+                    showToast('Time is required', 'error');
+                    return;
+                }
+
+                // Collect form data
                 const formData = {
                     _token: '{{ csrf_token() }}',
                     title: $('#title').val(),
-                    description: $('#description').val(),
+                    description: $('#description').val() || null,
                     work_date: $('#work_date').val(),
                     time: $('#time').val(),
-                    end_time: $('#end_time').val(),
-                    location: $('#location').val(),
-                    team_id: $('#team_id').val(),
-                    category_id: $('#category_id').val(),
-                    note: $('#note').val(),
-                    is_completed: $('#is_completed').is(':checked') ? 1 : 0,
-                    is_rescheduled: $('#is_rescheduled').is(':checked') ? 1 : 0
+                    location: $('#location').val() || null,
+                    latitude: $('#latitude').val() || null,
+                    longitude: $('#longitude').val() || null,
+                    team_id: $('#team_id').val() || null,
                 };
 
-                if (method === 'PUT') {
-                    formData._method = 'PUT';
+                // Handle category fields properly
+                const categoryId = $('#category_id').val();
+                const categoryName = $('#category_name').val()?.trim();
+
+                if (categoryId && categoryId !== '') {
+                    formData.category_id = categoryId;
                 }
+
+                if (categoryName && categoryName !== '') {
+                    formData.category_name = categoryName;
+                }
+
+                if (method === 'POST') {
+                    formData._method = 'POST';
+                }
+
+                const saveBtn = $('#saveWorkBtn');
+                saveBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
 
                 $.ajax({
                     url: url,
@@ -684,45 +845,91 @@
                         showToast(response.message, 'success');
                     },
                     error: function(xhr) {
-                        const message = xhr.responseJSON?.message || 'Failed to save work';
+                        console.error('Save error:', xhr);
+                        let message = 'Failed to save work';
+
+                        if (xhr.responseJSON) {
+                            if (xhr.responseJSON.message) {
+                                message = xhr.responseJSON.message;
+                            } else if (xhr.responseJSON.errors) {
+                                const errors = Object.values(xhr.responseJSON.errors).flat();
+                                message = errors.join(', ');
+                            }
+                        }
+
                         showToast(message, 'error');
+                    },
+                    complete: function() {
+                        saveBtn.prop('disabled', false).html(
+                            '<i class="fas fa-save me-2"></i>Save');
                     }
                 });
             });
 
-            // Delete event
-            $('#deleteEventBtn').on('click', function() {
-                if (confirm('Are you sure you want to delete this work schedule?')) {
-                    $.ajax({
-                        url: `/calendar/${currentEventId}`,
-                        method: 'DELETE',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function(response) {
-                            $('#viewEventModal').modal('hide');
-                            calendar.refetchEvents();
-                            showToast(response.message, 'success');
-                        },
-                        error: function() {
-                            showToast('Failed to delete work', 'error');
-                        }
-                    });
-                }
+            // Delete button click
+            $('#deleteEventBtn').on('click', function(e) {
+                e.preventDefault();
+                showDeleteConfirm(currentEventId);
             });
+
+            // SweetAlert confirmation + delete request
+            function showDeleteConfirm(id) {
+                Swal.fire({
+                    title: 'Are you sure you want to delete this work?',
+                    text: 'If you delete this, it will be gone forever.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        deleteItem(id);
+                    }
+                });
+            }
+
+            // AJAX delete function
+            function deleteItem(id) {
+                $.ajax({
+                    url: `/calendar/${id}`,
+                    method: 'DELETE',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    beforeSend: function() {
+                        Swal.fire({
+                            title: 'Deleting...',
+                            text: 'Please wait while we remove the work.',
+                            allowOutsideClick: false,
+                            didOpen: () => Swal.showLoading()
+                        });
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        $('#viewEventModal').modal('hide');
+                        calendar.refetchEvents();
+                        showToast(response.message, 'success');
+                    },
+                    error: function() {
+                        Swal.close();
+                        showToast('Failed to delete work', 'error');
+                    }
+                });
+            }
+
 
             // Update event date/time via drag
             function updateEventDate(event) {
                 const startDate = new Date(event.start);
-                const endDate = event.end ? new Date(event.end) : null;
 
                 const formData = {
                     _token: '{{ csrf_token() }}',
-                    _method: 'PUT',
+                    _method: 'POST',
                     title: event.title,
                     work_date: startDate.toISOString().split('T')[0],
-                    time: startDate.toTimeString().split(' ')[0],
-                    end_time: endDate ? endDate.toTimeString().split(' ')[0] : null
+                    time: startDate.toTimeString().split(' ')[0]
                 };
 
                 $.ajax({
@@ -792,11 +999,25 @@
             @if (session('error'))
                 showToast('{{ session('error') }}', 'error');
             @endif
+
+            // Initialize with today selected
+            const todayStr = new Date().toISOString().split('T')[0];
+            selectedDates = [todayStr];
+            setTimeout(() => {
+                const todayEl = document.querySelector(`.mini-calendar-day[data-date="${todayStr}"]`);
+                if (todayEl) {
+                    todayEl.classList.add('selected');
+                }
+            }, 100);
         });
     </script>
 @endpush
 
 @push('scripts')
+    <!-- FullCalendar -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+
+    {{-- calendar styiling --}}
     <style>
         :root {
             --google-blue: #1a73e8;
@@ -814,6 +1035,7 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+            margin-bottom: 20px;
         }
 
         /* Sidebar Styles */
@@ -940,6 +1162,12 @@
             color: var(--google-blue);
             font-weight: 600;
         }
+
+        .mini-calendar-day {
+            user-select: none;
+            cursor: pointer;
+        }
+
 
         .mini-calendar-day.has-events::after {
             content: '';
@@ -1381,6 +1609,87 @@
             .calendar-sidebar.open {
                 left: 0;
             }
+        }
+    </style>
+
+    <style>
+        /* Google Places Autocomplete styling */
+        .pac-container {
+            z-index: 10000 !important;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            margin-top: 2px;
+        }
+
+        .pac-item {
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pac-item:hover {
+            background-color: #f1f3f4;
+        }
+
+        .pac-icon {
+            margin-right: 10px;
+        }
+
+        .pac-item-query {
+            font-weight: 600;
+            color: #202124;
+        }
+    </style>
+
+    {{-- style for team and category selection --}}
+    <style>
+        .equal-box {
+            min-height: 120px;
+            background-color: #f8f9fa;
+            /* light gray */
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .equal-box label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .equal-box select,
+        .equal-box input {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 14px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            box-shadow: none;
+            background-color: #fff;
+        }
+
+        /* Optional: cleaner hover/focus */
+        .equal-box select:focus,
+        .equal-box input:focus {
+            border-color: #86b7fe;
+            outline: none;
+            box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.25);
+        }
+
+        .form-section {
+            display: flex;
+            gap: 20px;
+        }
+
+        .form-section .col-md-6 {
+            flex: 1;
         }
     </style>
 @endpush

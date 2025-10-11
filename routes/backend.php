@@ -24,9 +24,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('/update/{id}', [EmployeeManageController::class, 'update'])->name('update');
         Route::delete('/delete/{id}', [EmployeeManageController::class, 'delete'])->name('delete');
 
-        // routes/web.php
-        Route::get('/calendar/{id}/works', [EmployeeManageController::class, 'workList'])->name('user.work.list');
-
         // empoyee work view in map with polyline
         Route::get('/map/{id}/works', [EmployeeManageController::class, 'mapWorkList'])->name('user.map.list');
     });
@@ -40,9 +37,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::delete('/delete/{id}', [TeamManageController::class, 'delete'])->name('delete');
 
         Route::get('/teams', [TeamManageController::class, 'teamList'])->name('list.work');
-
-        // team work list
-        Route::get('/calendar/team/{id}/works', [TeamManageController::class, 'workList'])->name('work.list');
 
         // team work view in map with polyline
         Route::get('/map/team/{id}/works', [TeamManageController::class, 'mapWorkList'])->name('work.map.list');

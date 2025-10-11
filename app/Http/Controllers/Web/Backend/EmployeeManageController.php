@@ -68,7 +68,6 @@ class EmployeeManageController extends Controller
 
                 // Action buttons
                 ->addColumn('action', function ($item) {
-                    $calendarUrl = route('employee.user.work.list', ['id' => $item->id]);
                     $mapUrl = route('employee.user.map.list', ['id' => $item->id]);
                     $actionButtons = '<div class="d-flex justify-content-start align-items-center gap-1">';
 
@@ -341,108 +340,6 @@ class EmployeeManageController extends Controller
                 'error'   => $e->getMessage()
             ], 500);
         }
-    }
-
-    // Employee work flow in calendar
-    public function workList($id)
-    {
-        // Fetch the user with their teams
-        $user = User::with('teams')->findOrFail($id);
-
-        // Check if the user is an employee
-        if ($user->role !== 'employee') {
-            abort(404, 'Employee not found');
-        }
-
-        // Get all team IDs the user belongs to
-        $teamIds = $user->teams->pluck('id');
-
-        // Fetch works assigned to the user's teams
-        $works = $teamIds->isEmpty()
-            ? collect()
-            : Work::whereIn('team_id', $teamIds)
-            ->whereNotNull('work_date')
-            ->get();
-
-        $events = $works->map(function ($work) {
-            // Ensure work_date is valid
-            if (!$work->work_date) {
-                return null; // Skip invalid
-            }
-
-            // Clean time values: only allow HH:MM:SS format
-            $cleanStartTime = null;
-            $cleanEndTime = null;
-
-            if ($work->start_time && preg_match('/^\d{2}:\d{2}:\d{2}$/', $work->start_time)) {
-                $cleanStartTime = $work->start_time;
-            }
-
-            if ($work->end_time && preg_match('/^\d{2}:\d{2}:\d{2}$/', $work->end_time)) {
-                $cleanEndTime = $work->end_time;
-            }
-
-            // If no valid times or incomplete times, treat as all-day
-            if (!$cleanStartTime || !$cleanEndTime) {
-                return [
-                    'id' => $work->id,
-                    'title' => $work->title,
-                    'start' => $work->work_date,
-                    'description' => $work->description ?? 'No description',
-                    'allDay' => true,
-                    'backgroundColor' => $work->is_completed ? '#34c38f' : '#60a5fa', // Green for completed, blue for pending
-                    'borderColor' => $work->is_completed ? '#2a926f' : '#1e88e5',
-                    'extendedProps' => [
-                        'location' => $work->location ?? 'Not specified',
-                        'status' => $work->status,
-                        'is_rescheduled' => $work->is_rescheduled,
-                        'note' => $work->note ?? 'No notes',
-                    ],
-                ];
-            }
-
-            // Build full datetime strings
-            $startStr = $work->work_date . ' ' . $cleanStartTime;
-            $endStr = $work->work_date . ' ' . $cleanEndTime;
-
-            try {
-                return [
-                    'id' => $work->id,
-                    'title' => $work->title,
-                    'start' => Carbon::parse($startStr)->toISOString(),
-                    'end' => Carbon::parse($endStr)->toISOString(),
-                    'description' => $work->description ?? 'No description',
-                    'allDay' => false,
-                    'backgroundColor' => $work->is_completed ? '#34c38f' : '#60a5fa',
-                    'borderColor' => $work->is_completed ? '#2a926f' : '#1e88e5',
-                    'extendedProps' => [
-                        'location' => $work->location ?? 'Not specified',
-                        'status' => $work->status,
-                        'is_rescheduled' => $work->is_rescheduled,
-                        'note' => $work->note ?? 'No notes',
-                    ],
-                ];
-            } catch (Exception $e) {
-                // Fallback to all-day if parsing fails
-                return [
-                    'id' => $work->id,
-                    'title' => $work->title,
-                    'start' => $work->work_date,
-                    'description' => $work->description ?? 'No description',
-                    'allDay' => true,
-                    'backgroundColor' => $work->is_completed ? '#34c38f' : '#60a5fa',
-                    'borderColor' => $work->is_completed ? '#2a926f' : '#1e88e5',
-                    'extendedProps' => [
-                        'location' => $work->location ?? 'Not specified',
-                        'status' => $work->status,
-                        'is_rescheduled' => $work->is_rescheduled,
-                        'note' => $work->note ?? 'No notes',
-                    ],
-                ];
-            }
-        })->filter()->values(); // Remove nulls and reindex
-
-        return view('backend.layouts.users.calendar', compact('events', 'user'));
     }
 
     // Employee work list in map with polyline
