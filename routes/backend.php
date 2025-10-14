@@ -54,7 +54,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('/store', [WorkManageController::class, 'store'])->name('store');
         Route::get('/edit/{id}', [WorkManageController::class, 'edit'])->name('edit');
         Route::post('/update/{id}', [WorkManageController::class, 'update'])->name('update');
-        Route::delete('/delete/{id}', [WorkManageController::class, 'delete'])->name('delete');
+        Route::delete('/delete/{work}', [WorkManageController::class, 'destroy'])->name('delete');
         Route::post('/complation/{id}', [WorkManageController::class, 'complation'])->name('complation.status');
 
         // category

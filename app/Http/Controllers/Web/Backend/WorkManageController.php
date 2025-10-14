@@ -2,18 +2,30 @@
 
 namespace App\Http\Controllers\Web\Backend;
 
-use App\Models\Category;
-use App\Models\RescheduleRequest;
 use Exception;
 use App\Models\Work;
+use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use App\Models\RescheduleRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use App\Services\GoogleCalendarService;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 
 class WorkManageController extends Controller
 {
+    protected $googleCalendar;
+
+    // serivce injection
+    public function __construct(GoogleCalendarService $googleCalendar)
+    {
+        $this->googleCalendar = $googleCalendar;
+    }
+
     // List of all work
     public function index(Request $request)
     {
@@ -55,27 +67,19 @@ class WorkManageController extends Controller
                 // Category
                 ->addColumn('category', function ($item) {
                     $categoryName = $item->category ? $item->category->name : 'No Category';
-
-                    // truncate if more than 15 chars
                     if (strlen($categoryName) > 15) {
                         $categoryName = substr($categoryName, 0, 15) . '...';
                     }
-
                     return '<span class="badge bg-info">' . e($categoryName) . '</span>';
                 })
 
                 // Team
                 ->addColumn('team', function ($item) {
                     $teamName = $item->team ? $item->team->name : 'No Team';
-
-                    // truncate if more than 15 chars
                     if (strlen($teamName) > 15) {
                         $teamName = substr($teamName, 0, 15) . '...';
                     }
-
-                    return '<span class="badge bg-success">'
-                        . e($teamName)
-                        . ' </span>';
+                    return '<span class="badge bg-success">' . e($teamName) . '</span>';
                 })
 
                 // Location
@@ -83,25 +87,39 @@ class WorkManageController extends Controller
                     return strlen($item->location) > 20 ? substr($item->location, 0, 20) . '...' : $item->location;
                 })
 
-                // Time
-                ->addColumn('time', fn($item) => $item->time ? date('h:i A', strtotime($item->time)) : '---')
+                // Start Time (12-hour format)
+                ->addColumn('start_time', function ($item) {
+                    if ($item->is_all_day) {
+                        return '<span class="badge bg-primary">All Day</span>';
+                    }
+                    return $item->start_datetime ? date('h:i A', strtotime($item->start_datetime)) : '---';
+                })
+
+                // End Time (12-hour format)
+                ->addColumn('end_time', function ($item) {
+                    if ($item->is_all_day) {
+                        return '<span class="badge bg-primary">All Day</span>';
+                    }
+                    return $item->end_datetime ? date('h:i A', strtotime($item->end_datetime)) : '---';
+                })
 
                 // Work Date
-                ->addColumn('work_date', fn($item) => $item->work_date ? date('d M Y', strtotime($item->work_date)) : '---')
+                ->addColumn('work_date', function ($item) {
+                    return $item->start_datetime ? date('d M Y', strtotime($item->start_datetime)) : '---';
+                })
 
                 // Is Completed
                 ->addColumn('is_completed', function ($item) {
                     $isCompleted = $item->is_completed ? true : false;
-
                     $yesActive = $isCompleted ? 'active' : '';
                     $noActive = !$isCompleted ? 'active' : '';
 
                     return '
-                        <div class="completion-toggle" data-id="' . $item->id . '">
-                            <span onclick="showCompletionChangeAlert(' . $item->id . ', 0)" class="toggle-option ' . $noActive . ' left">No</span>
-                            <span onclick="showCompletionChangeAlert(' . $item->id . ', 1)" class="toggle-option ' . $yesActive . ' right">Yes</span>
-                        </div>
-                    ';
+                    <div class="completion-toggle" data-id="' . $item->id . '">
+                        <span onclick="showCompletionChangeAlert(' . $item->id . ', 0)" class="toggle-option ' . $noActive . ' left">No</span>
+                        <span onclick="showCompletionChangeAlert(' . $item->id . ', 1)" class="toggle-option ' . $yesActive . ' right">Yes</span>
+                    </div>
+                ';
                 })
 
                 // Is Rescheduled
@@ -110,55 +128,52 @@ class WorkManageController extends Controller
                 // Actions
                 ->addColumn('action', function ($item) {
                     $buttons = '<div class="d-flex justify-content-start align-items-center gap-1">
-                    <button type="button" class="btn btn-primary btn-sm editwork" data-id="' . $item->id . '">
-                        <i class="fa fa-pen-to-square"></i> Edit
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger deleteBtn" onclick="showDeleteConfirm(' . $item->id . ')">
-                        <i class="fa fa-trash"></i> Delete
-                    </button>';
-
+                <button type="button" class="btn btn-primary btn-sm editwork" data-id="' . $item->id . '">
+                    <i class="fa fa-pen-to-square"></i> Edit
+                </button>
+                <button type="button" class="btn btn-sm btn-danger deleteBtn" onclick="showDeleteConfirm(' . $item->id . ')">
+                    <i class="fa fa-trash"></i> Delete
+                </button>';
 
                     if ($item->reschedule_requests_count > 0) {
                         $buttons .= '<button type="button" class="btn btn-warning btn-sm WorkRescheduleBtn"
-                             data-id="' . $item->id . '">
-                             <i class="fa fa-clock-rotate-left"></i> Reschedule
-                         </button>';
+                         data-id="' . $item->id . '">
+                         <i class="fa fa-clock-rotate-left"></i> Reschedule
+                     </button>';
                     }
 
                     $buttons .= '</div>';
                     return $buttons;
                 })
 
-                ->rawColumns(['title', 'location', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
+                ->rawColumns(['title', 'location', 'start_time', 'end_time', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
                 ->make();
         }
 
         // work reschedule request
         $scheduleRequest = RescheduleRequest::where('status', true)->count();
 
-        // compact use
         return view("backend.layouts.works.index", compact('scheduleRequest'));
     }
 
     // Store work
     public function store(Request $request)
     {
-        $request->all();
+        // dd($request->all());
         DB::beginTransaction();
-
         try {
             // Validation
             $validator = Validator::make($request->all(), [
-                'title'        => 'required|string|max:255',
-                'description'  => 'nullable|string',
-                'location'     => 'nullable|string',
-                'latitude'     => 'nullable|numeric|between:-90,90',
-                'longitude'    => 'nullable|numeric|between:-180,180',
-                'time'     => 'nullable',
-                'work_date'    => 'nullable|date',
-                'team_id'      => 'nullable|exists:teams,id',
-
-                // Category
+                'title'         => 'required|string|max:255',
+                'description'   => 'nullable|string',
+                'location'      => 'nullable|string',
+                'latitude'      => 'nullable|numeric|between:-90,90',
+                'longitude'     => 'nullable|numeric|between:-180,180',
+                'start_time'    => 'required_if:is_all_day,false|date_format:h:i A',
+                'end_time'      => 'required_if:is_all_day,false|date_format:h:i A',
+                'work_date'     => 'required|date',
+                'is_all_day'    => 'nullable|boolean',
+                'team_id'       => 'nullable|exists:teams,id',
                 'category_id'   => 'nullable|exists:categories,id',
                 'category_name' => 'nullable|string|max:255',
             ]);
@@ -173,7 +188,6 @@ class WorkManageController extends Controller
 
             // Handle Category
             $categoryId = $request->category_id;
-
             if (!$categoryId && $request->category_name) {
                 $category = Category::create([
                     'name' => $request->category_name,
@@ -181,18 +195,77 @@ class WorkManageController extends Controller
                 $categoryId = $category->id;
             }
 
+            // Prepare DateTime fields
+            $isAllDay = $request->is_all_day ?? false;
+
+            if ($isAllDay) {
+                // All day event
+                $startDatetime = Carbon::parse($request->work_date)->startOfDay();
+                $endDatetime = Carbon::parse($request->work_date)->endOfDay();
+            } else {
+                // Specific time event - Convert 12-hour to datetime
+                $startDatetime = Carbon::parse($request->work_date . ' ' . $request->start_time);
+                $endDatetime = Carbon::parse($request->work_date . ' ' . $request->end_time);
+            }
+
             // Save Work
             $work = Work::create([
-                'title'         => $request->title,
-                'description'   => $request->description,
-                'location'      => $request->location,
-                'latitude'      => $request->latitude,
-                'longitude'     => $request->longitude,
-                'time'    => $request->time,
-                'work_date'     => $request->work_date,
-                'team_id'       => $request->team_id,
-                'category_id'   => $categoryId,
+                'title'           => $request->title,
+                'description'     => $request->description,
+                'location'        => $request->location,
+                'latitude'        => $request->latitude,
+                'longitude'       => $request->longitude,
+                'start_datetime'  => $startDatetime,
+                'end_datetime'    => $endDatetime,
+                'is_all_day'      => $isAllDay,
+                'team_id'         => $request->team_id,
+                'category_id'     => $categoryId,
             ]);
+
+            // Google Calendar Sync (if user has connected Google)
+            $user = auth()->user();
+            if ($user && $user->google_access_token) {
+                try {
+                    $googleService = new GoogleCalendarService();
+
+                    // Set access token
+                    $token = [
+                        'access_token' => $user->google_access_token,
+                        'refresh_token' => $user->google_refresh_token,
+                        'expires_in' => Carbon::parse($user->google_token_expires_at)->diffInSeconds(now()),
+                    ];
+
+                    $newToken = $googleService->setAccessToken($token);
+
+                    // If token was refreshed, update user
+                    if ($newToken) {
+                        $user->update([
+                            'google_access_token' => $newToken['access_token'],
+                            'google_token_expires_at' => now()->addSeconds($newToken['expires_in']),
+                        ]);
+                    }
+
+                    // Create event in Google Calendar
+                    $googleEventId = $googleService->createEvent($work);
+
+                    // Update work with Google event ID
+                    $work->update([
+                        'google_event_id' => $googleEventId,
+                        'google_synced_at' => now(),
+                    ]);
+
+                    Log::info('Work synced to Google Calendar', [
+                        'work_id' => $work->id,
+                        'google_event_id' => $googleEventId
+                    ]);
+                } catch (Exception $e) {
+                    // Don't fail the whole operation if Google sync fails
+                    Log::error('Google Calendar sync failed during work creation', [
+                        'work_id' => $work->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
 
             DB::commit();
 
@@ -203,7 +276,6 @@ class WorkManageController extends Controller
             ], 201);
         } catch (Exception $e) {
             DB::rollBack();
-
             return response()->json([
                 'status'  => false,
                 'message' => 'Something went wrong: ' . $e->getMessage(),
@@ -231,10 +303,8 @@ class WorkManageController extends Controller
     public function update(Request $request, $id)
     {
         DB::beginTransaction();
-
         try {
             $work = Work::find($id);
-
             if (!$work) {
                 return response()->json([
                     'status'  => false,
@@ -249,8 +319,10 @@ class WorkManageController extends Controller
                 'location'      => 'nullable|string',
                 'latitude'      => 'nullable|numeric|between:-90,90',
                 'longitude'     => 'nullable|numeric|between:-180,180',
-                'time'    => 'nullable',
-                'work_date'     => 'nullable|date',
+                'start_time'    => 'required_if:is_all_day,false|date_format:h:i A',
+                'end_time'      => 'required_if:is_all_day,false|date_format:h:i A',
+                'work_date'     => 'required|date',
+                'is_all_day'    => 'nullable|boolean',
                 'team_id'       => 'nullable|exists:teams,id',
                 'category_id'   => 'nullable|exists:categories,id',
                 'category_name' => 'nullable|string|max:255',
@@ -266,24 +338,81 @@ class WorkManageController extends Controller
 
             // Handle Category
             $categoryId = $request->category_id;
-
             if (!$categoryId && $request->category_name) {
                 $category = Category::firstOrCreate(['name' => $request->category_name]);
                 $categoryId = $category->id;
             }
 
+            // Prepare DateTime fields
+            $isAllDay = $request->is_all_day ?? false;
+
+            if ($isAllDay) {
+                // All day event
+                $startDatetime = Carbon::parse($request->work_date)->startOfDay();
+                $endDatetime = Carbon::parse($request->work_date)->endOfDay();
+            } else {
+                // Specific time event - Convert 12-hour to datetime
+                $startDatetime = Carbon::parse($request->work_date . ' ' . $request->start_time);
+                $endDatetime = Carbon::parse($request->work_date . ' ' . $request->end_time);
+            }
+
             // Update Work
             $work->update([
-                'title'        => $request->title,
-                'description'  => $request->description,
-                'location'     => $request->location,
-                'latitude'     => $request->latitude,
-                'longitude'    => $request->longitude,
-                'time'   => $request->time,
-                'work_date'    => $request->work_date,
-                'team_id'      => $request->team_id,
-                'category_id'  => $categoryId,
+                'title'          => $request->title,
+                'description'    => $request->description,
+                'location'       => $request->location,
+                'latitude'       => $request->latitude,
+                'longitude'      => $request->longitude,
+                'start_datetime' => $startDatetime,
+                'end_datetime'   => $endDatetime,
+                'is_all_day'     => $isAllDay,
+                'team_id'        => $request->team_id,
+                'category_id'    => $categoryId,
             ]);
+
+            // Google Calendar Sync (if work is already synced)
+            $user = auth()->user();
+            if ($user && $user->google_access_token && $work->google_event_id) {
+                try {
+                    $googleService = new GoogleCalendarService();
+
+                    // Set access token
+                    $token = [
+                        'access_token' => $user->google_access_token,
+                        'refresh_token' => $user->google_refresh_token,
+                        'expires_in' => Carbon::parse($user->google_token_expires_at)->diffInSeconds(now()),
+                    ];
+
+                    $newToken = $googleService->setAccessToken($token);
+
+                    // If token was refreshed, update user
+                    if ($newToken) {
+                        $user->update([
+                            'google_access_token' => $newToken['access_token'],
+                            'google_token_expires_at' => now()->addSeconds($newToken['expires_in']),
+                        ]);
+                    }
+
+                    // Update event in Google Calendar
+                    $googleEventId = $googleService->updateEvent($work);
+
+                    // Update sync timestamp
+                    $work->update([
+                        'google_synced_at' => now(),
+                    ]);
+
+                    Log::info('Work synced to Google Calendar (update)', [
+                        'work_id' => $work->id,
+                        'google_event_id' => $googleEventId
+                    ]);
+                } catch (Exception $e) {
+                    // Don't fail the whole operation if Google sync fails
+                    Log::error('Google Calendar sync failed during work update', [
+                        'work_id' => $work->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
 
             DB::commit();
 
@@ -294,7 +423,6 @@ class WorkManageController extends Controller
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
-
             return response()->json([
                 'status'  => false,
                 'message' => 'Something went wrong: ' . $e->getMessage(),
@@ -303,27 +431,96 @@ class WorkManageController extends Controller
     }
 
     // Delete work
-    public function delete($id)
+    // public function delete($id)
+    // {
+    //     try {
+    //         $work = Work::with(['team'])->find($id);
+
+    //         if (!$work) {
+    //             return response()->json(['success' => false, 'message' => 'Work not found.'], 404);
+    //         }
+
+    //         if ($work->google_event_id) {
+    //             try {
+    //                 $token = json_decode(Auth::user()->google_access_token, true);
+    //                 $this->googleCalendar->setAccessToken($token);
+    //                 $this->googleCalendar->deleteEvent($work->google_event_id);
+    //             } catch (Exception $e) {
+    //                 Log::warning('Failed to delete from Google Calendar', [
+    //                     'work_id' => $work->id,
+    //                     'error' => $e->getMessage()
+    //                 ]);
+    //             }
+    //         }
+
+    //         $work->delete();
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Work deleted successfully.'
+    //         ], 200);
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Failed to delete work. ' . $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
+    public function destroy(Work $work)
     {
         try {
-            $work = Work::with(['team'])->find($id);
+            // Delete from Google Calendar first
+            if (Auth::user()->google_access_token && $work->google_event_id) {
+                try {
+                    $token = json_decode(Auth::user()->google_access_token, true);
 
-            if (!$work) {
-                return response()->json(['success' => false, 'message' => 'Work not found.'], 404);
+                    // Set access token and handle token refresh
+                    $newToken = $this->googleCalendar->setAccessToken($token);
+
+                    // If token was refreshed, update user's token
+                    if ($newToken) {
+                        Auth::user()->update([
+                            'google_access_token' => json_encode($newToken)
+                        ]);
+                    }
+
+                    // Now delete the event
+                    $this->googleCalendar->deleteEvent($work->google_event_id);
+
+                    Log::info('Successfully deleted from Google Calendar', [
+                        'work_id' => $work->id,
+                        'google_event_id' => $work->google_event_id
+                    ]);
+                } catch (Exception $e) {
+                    Log::warning('Failed to delete from Google Calendar', [
+                        'work_id' => $work->id,
+                        'google_event_id' => $work->google_event_id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
             }
 
+            // Delete from local database
             $work->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Work deleted successfully.'
-            ], 200);
+                'message' => 'Work schedule deleted successfully!'
+            ]);
         } catch (Exception $e) {
-            DB::rollBack();
+            Log::error('Error deleting work', [
+                'work_id' => $work->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete work. ' . $e->getMessage()
+                'message' => 'Failed to delete work: ' . $e->getMessage()
             ], 500);
         }
     }

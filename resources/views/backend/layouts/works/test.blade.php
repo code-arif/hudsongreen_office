@@ -90,8 +90,7 @@
                                                 <th>Category</th>
                                                 <th>Team</th>
                                                 <th>Location</th>
-                                                <th>Start Time</th>
-                                                <th>End Time</th>
+                                                <th>Time</th>
                                                 <th>Work Date</th>
                                                 <th>Completed</th>
                                                 <th>Rescheduled</th>
@@ -119,10 +118,6 @@
 @endsection
 
 @push('styles')
-    <!-- Timepicker CSS -->
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.13.18/jquery.timepicker.min.css">
-
     <style>
         #map {
             height: 300px;
@@ -205,9 +200,6 @@
     {{-- Google Maps JavaScript API --}}
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfGOjmqKtEBRsfVN9szUo_tac20wcI9HM&libraries=places">
     </script>
-
-    <!-- Timepicker JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.13.18/jquery.timepicker.min.js"></script>
 
     <script>
         // Global variables
@@ -388,10 +380,7 @@
                         data: 'location'
                     },
                     {
-                        data: 'start_time'
-                    },
-                    {
-                        data: 'end_time'
+                        data: 'time'
                     },
                     {
                         data: 'work_date'
@@ -530,41 +519,16 @@
 
                     // Fill simple fields
                     $('#work_title').val(response.data.title);
+                    $('#work_description').val(response.data.description);
                     $('#work_location').val(response.data.location);
                     $('#work_latitude').val(response.data.latitude);
                     $('#work_longitude').val(response.data.longitude);
+                    $('#time').val(response.data.time);
+                    $('#work_date').val(response.data.work_date);
 
                     // Set Summernote content
                     $('#work_description').summernote('reset');
                     $('#work_description').summernote('code', response.data.description || '');
-
-                    // Set work date from start_datetime
-                    if (response.data.start_datetime) {
-                        let date = new Date(response.data.start_datetime);
-                        $('#work_date').val(date.toISOString().split('T')[0]);
-                    }
-
-                    // Set all day checkbox
-                    $('#is_all_day').prop('checked', response.data.is_all_day);
-
-                    if (response.data.is_all_day) {
-                        $('#start_time, #end_time').prop('disabled', true).val('');
-                        $('#start_time_wrapper, #end_time_wrapper').hide();
-                    } else {
-                        $('#start_time, #end_time').prop('disabled', false);
-                        $('#start_time_wrapper, #end_time_wrapper').show();
-
-                        // Set time in 12-hour format
-                        if (response.data.start_datetime) {
-                            let startTime = new Date(response.data.start_datetime);
-                            $('#start_time').val(formatTime12Hour(startTime));
-                        }
-
-                        if (response.data.end_datetime) {
-                            let endTime = new Date(response.data.end_datetime);
-                            $('#end_time').val(formatTime12Hour(endTime));
-                        }
-                    }
 
                     // Load teams and set selected value
                     $.get("{{ route('team.list.work') }}", function(teamResponse) {
@@ -606,6 +570,7 @@
                             const lat = parseFloat(response.data.latitude);
                             const lng = parseFloat(response.data.longitude);
 
+                            // Wait for modal to be fully shown
                             $('#workModal').one('shown.bs.modal', function() {
                                 if (mapInitialized) {
                                     updateLocation(lat, lng, response.data
@@ -617,42 +582,17 @@
                 });
             });
 
-
-            // Initialize 12-hour time picker
-            $('.timepicker').timepicker({
-                timeFormat: 'h:i A', // 12-hour format with AM/PM
-                interval: 15, // 15 minute intervals
-                dynamic: false,
-                dropdown: true,
-                scrollbar: true,
-                startTime: '12:00 AM',
-                endTime: '11:45 PM'
-            });
-
-            // All day checkbox toggle
-            $('#is_all_day').on('change', function() {
+            // All day button functionl
+            $('#all_day').on('change', function() {
                 if ($(this).is(':checked')) {
-                    $('#start_time, #end_time').prop('disabled', true).val('');
-                    $('#start_time_wrapper, #end_time_wrapper').hide();
+                    $('#star_time').prop('disabled', true).val('');
+                    $('#end_time').prop('disabled', true).val('');
                 } else {
-                    $('#start_time, #end_time').prop('disabled', false);
-                    $('#start_time_wrapper, #end_time_wrapper').show();
+                    $('#star_time').prop('disabled', false);
+                    $('#end_time').prop('disabled', false);
                 }
             });
         });
-    </script>
-
-    {{-- Helper function to format time in 12-hour format --}}
-    <script>
-        function formatTime12Hour(date) {
-            let hours = date.getHours();
-            let minutes = date.getMinutes();
-            let ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12; // 0 should be 12
-            minutes = minutes < 10 ? '0' + minutes : minutes;
-            return hours + ':' + minutes + ' ' + ampm;
-        }
     </script>
 
     {{-- Work delete and complation system --}}

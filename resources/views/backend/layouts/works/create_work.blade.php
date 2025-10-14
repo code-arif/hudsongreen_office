@@ -52,21 +52,48 @@
                             <span class="text-danger error-text description_error"></span>
                         </div>
 
-                        {{-- Time --}}
-                        <div class="col-md-6 mt-3">
-                            <label class="form-label">Time <span class="text-muted"></span>
-                            </label>
-                            <input type="time" class="form-control" name="time" id="time">
-                            <span class="text-danger error-text time_error"></span>
-                        </div>
-
-
                         {{-- Work Date --}}
-                        <div class="col-md-6 mt-3">
+                        <div class="col-md-4 mt-3">
                             <label class="form-label">Work Date</label>
                             <input type="date" class="form-control" name="work_date" id="work_date">
                             <span class="text-danger error-text work_date_error"></span>
                         </div>
+
+                        {{-- Start Time --}}
+                        <div class="col-md-3 mt-3" id="start_time_wrapper">
+                            <label class="form-label">Start Time</label>
+                            <input type="text" class="form-control timepicker" name="start_time" id="start_time"
+                                placeholder="02:30 PM">
+                            <span class="text-danger error-text start_time_error"></span>
+                        </div>
+
+                        {{-- End Time --}}
+                        <div class="col-md-3 mt-3" id="end_time_wrapper">
+                            <label class="form-label">End Time</label>
+                            <input type="text" class="form-control timepicker" name="end_time" id="end_time"
+                                placeholder="04:30 PM">
+                            <span class="text-danger error-text end_time_error"></span>
+                        </div>
+
+                        <!-- All Day Checkbox -->
+                        <div class="col-md-2 mt-3">
+                            <label class="form-label form-switch">All Day</label>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input custom-checkbox" name="is_all_day"
+                                    id="is_all_day" value="1">
+                                <label class="form-check-label" for="is_all_day">All Day Event</label>
+                            </div>
+                        </div>
+
+                        {{-- <div class="col-md-2 mt-3">
+                            <label class="form-label fw-bold text-primary">All Day</label>
+                            <div class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input custom-switch" name="is_all_day"
+                                    id="is_all_day" value="1">
+                                <label class="form-check-label ms-2 text-muted" for="is_all_day">All Day Event</label>
+                            </div>
+                            <small class="text-info d-block mt-1">Toggle to disable time inputs</small>
+                        </div> --}}
 
                         {{-- Map Search Box --}}
                         <div class="col-md-12 mt-3">

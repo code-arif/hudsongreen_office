@@ -17,15 +17,16 @@ class Work extends Model
         'location',
         'latitude',
         'longitude',
-        'time',
-        'work_date',
+        'start_datetime',
+        'end_datetime',
+        'is_all_day',
         'is_completed',
         'is_rescheduled',
         'note',
-        'status',
         'team_id',
         'category_id',
         'google_event_id',
+        'google_synced_at'
     ];
 
     protected $casts = [

@@ -127,29 +127,4 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-// Temporary debug route
-Route::get('/debug-calendar', function () {
-    $user = Auth::user();
-    $works = \App\Models\Work::latest()->take(5)->get();
-
-    return response()->json([
-        'google_connected' => !empty($user->google_access_token),
-        'works_count' => \App\Models\Work::count(),
-        'latest_works' => $works->map(function ($work) {
-            return [
-                'id' => $work->id,
-                'title' => $work->title,
-                'work_date' => $work->work_date,
-                'time' => $work->time,
-                'start_datetime' => $work->start_datetime,
-                'end_datetime' => $work->end_datetime,
-                'google_event_id' => $work->google_event_id,
-            ];
-        }),
-        'token_exists' => !empty($user->google_access_token),
-        'token_length' => $user->google_access_token ? strlen($user->google_access_token) : 0,
-    ]);
-})->middleware('auth');
-
-
 require __DIR__ . '/auth.php';

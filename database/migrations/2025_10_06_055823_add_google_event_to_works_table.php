@@ -8,10 +8,6 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::table('works', function (Blueprint $table) {
-            $table->string('google_event_id')->nullable()->after('category_id');
-        });
-
         Schema::table('users', function (Blueprint $table) {
             $table->text('google_access_token')->nullable()->after('password');
             $table->text('google_refresh_token')->nullable()->after('google_access_token');
@@ -21,10 +17,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('works', function (Blueprint $table) {
-            $table->dropColumn(['google_event_id', 'start_datetime', 'end_datetime']);
-        });
-
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn(['google_access_token', 'google_refresh_token', 'google_token_expires_at']);
         });
