@@ -35,6 +35,7 @@ class GoogleCalendarController extends Controller
         return view('backend.layouts.calendar.index', compact('teams', 'categories', 'isGoogleConnected'));
     }
 
+    //
     // fetch events for calendar
     // public function getEvents(Request $request)
     // {
