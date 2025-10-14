@@ -17,21 +17,19 @@ class UserSeeder extends Seeder
                 'phone' => '1234546788',
                 'role' => 'admin',
                 'password' => Hash::make('12345678'), // admin hashed password
-                'unique_id' => '198563'
             ],
         ];
 
         // Generate 19 employees
-        // for ($i = 1; $i <= 19; $i++) {
-        //     $users[] = [
-        //         'name' => 'employee' . $i,
-        //         'email' => 'employee' . $i . '@gmail.com',
-        //         'phone' => '9876543' . str_pad($i, 3, '0', STR_PAD_LEFT),
-        //         'role' => 'employee',
-        //         'password' => '12345678',
-        //         'unique_id' => uniqid()
-        //     ];
-        // }
+        for ($i = 1; $i <= 19; $i++) {
+            $users[] = [
+                'name' => 'employee' . $i,
+                'email' => 'employee' . $i . '@gmail.com',
+                'phone' => '9876543' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                'role' => 'employee',
+                'password' => '12345678',
+            ];
+        }
 
         foreach ($users as $user) {
             User::create($user);

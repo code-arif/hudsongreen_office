@@ -1,12 +1,15 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\GoogleAuthContreoller;
+use App\Http\Controllers\GoogleCalendarController;
 use App\Http\Controllers\Api\Auth\AuthenticationController;
-use App\Http\Controllers\Api\React\User\Auth\SocialLoginController;
+use App\Http\Controllers\Web\Backend\WorkCalendarController;
 
 
-Route::get('/',function (){
+Route::get('/', function () {
     return view('welcome');
 });
 
@@ -102,10 +105,26 @@ Route::get('/run-storage-link', function () {
 // teacher email verification
 Route::get('/verify-email/{token}', [AuthenticationController::class, 'verifyEmail'])->name('verify.email');
 
-//Social login test routes
 
 
-require __DIR__.'/auth.php';
+Route::middleware(['auth'])->group(function () {
+    // Calendar Routes
+    Route::get('/calendar', [GoogleCalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar/events', [GoogleCalendarController::class, 'getEvents'])->name('calendar.events');
+
+    // Google OAuth Routes
+    Route::get('/google/redirect', [GoogleCalendarController::class, 'redirectToGoogle'])->name('google.redirect');
+    Route::get('/google/callback', [GoogleCalendarController::class, 'handleGoogleCallback'])->name('google.callback');
+    Route::get('/google/disconnect', [GoogleCalendarController::class, 'disconnect'])->name('google.disconnect');
+    Route::post('/google/sync', [GoogleCalendarController::class, 'syncFromGoogle'])->name('google.sync');
+
+    // Work CRUD Routes (Modal based)
+    Route::post('/calendar/store', [GoogleCalendarController::class, 'store'])->name('calendar.store');
+    Route::get('/calendar/{work}', [GoogleCalendarController::class, 'show'])->name('calendar.show');
+    Route::post('/calendar/{work}', [GoogleCalendarController::class, 'update'])->name('calendar.update');
+    Route::delete('/calendar/{work}', [GoogleCalendarController::class, 'destroy'])->name('calendar.destroy');
+    Route::post('/calendar/{work}/toggle', [GoogleCalendarController::class, 'toggleStatus'])->name('calendar.toggle');
+});
 
 
-
+require __DIR__ . '/auth.php';

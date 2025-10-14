@@ -7,14 +7,14 @@ use App\Http\Controllers\Web\Backend\WorkScheduleRequest;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\Backend\DashboardController;
 use App\Http\Controllers\Web\Backend\EmployeeManageController;
+use App\Http\Controllers\Web\Backend\MapController;
 use App\Http\Controllers\Web\Backend\Settings\ProfileController;
 use App\Http\Controllers\Web\Backend\Settings\SettingController;
-use App\Http\Controllers\Web\Backend\Settings\DynamicPageController;
-use App\Http\Controllers\Web\Backend\Settings\MailSettingController;
 use App\Http\Controllers\Web\Backend\TeamManageController;
 
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('dashboard/data', [DashboardController::class, 'getDashboardData'])->name('dashboard.data');
 
     // employee manage
     Route::prefix('employee')->name('employee.')->group(function () {
@@ -24,10 +24,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('/update/{id}', [EmployeeManageController::class, 'update'])->name('update');
         Route::delete('/delete/{id}', [EmployeeManageController::class, 'delete'])->name('delete');
 
-        // routes/web.php
-        Route::get('/calendar/{id}/works', [EmployeeManageController::class, 'workList'])->name('user.work.list');
+        // empoyee work view in map with polyline
+        Route::get('/map/{id}/works', [EmployeeManageController::class, 'mapWorkList'])->name('user.map.list');
     });
-
 
     // team manage
     Route::prefix('team')->name('team.')->group(function () {
@@ -38,8 +37,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::delete('/delete/{id}', [TeamManageController::class, 'delete'])->name('delete');
 
         Route::get('/teams', [TeamManageController::class, 'teamList'])->name('list.work');
-    });
 
+        // team work view in map with polyline
+        Route::get('/map/team/{id}/works', [TeamManageController::class, 'mapWorkList'])->name('work.map.list');
+    });
 
     // assing employee into team manage
     Route::prefix('assign-emplyee')->name('assing.employee.')->group(function () {
@@ -53,11 +54,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('/store', [WorkManageController::class, 'store'])->name('store');
         Route::get('/edit/{id}', [WorkManageController::class, 'edit'])->name('edit');
         Route::post('/update/{id}', [WorkManageController::class, 'update'])->name('update');
-        Route::delete('/delete/{id}', [WorkManageController::class, 'delete'])->name('delete');
-        Route::post('/status/{id}', [WorkManageController::class, 'status'])->name('status');
+        Route::delete('/delete/{work}', [WorkManageController::class, 'destroy'])->name('delete');
+        Route::post('/complation/{id}', [WorkManageController::class, 'complation'])->name('complation.status');
 
         // category
         Route::get('/category', [WorkManageController::class, 'getCategory'])->name('categroy');
+
+        // work reschedule request
+        Route::get('/reschedule-request/edit/{id}', [WorkManageController::class, 'reschedultEdit'])->name('reschedule.edit');
+        Route::post('/reschedule-request/update/{id}', [WorkManageController::class, 'rescheduleUpdate'])->name('reschedule.update');
     });
 
     // work reschedule request
@@ -67,10 +72,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // work calendar
     Route::get('/calendar', [CalendarController::class, 'calendar'])->name('calendar');
+
+    // work map view
+    Route::get('/global-map', [MapController::class, 'globalMap'])->name('map.global');
+    Route::get('/filter-works/{teamId}', [MapController::class, 'filterWorksByTeam'])->name('works.filter');
+    Route::get('/works/search-teams', [MapController::class, 'searchTeams'])->name('works.searchTeams');
 });
-
-
-
 
 
 
@@ -82,26 +89,10 @@ Route::controller(ProfileController::class)->group(function () {
     Route::post('setting/profile/update/Picture', 'UpdateProfilePicture')->name('update.profile.picture');
 });
 
-//! Route for Mail Settings
-Route::controller(MailSettingController::class)->group(function () {
-    Route::get('setting/mail', 'index')->name('setting.mail.index');
-    Route::patch('setting/mail', 'update')->name('setting.mail.update');
-});
 
 
 //! Route for Stripe Settings
 Route::controller(SettingController::class)->group(function () {
     Route::get('setting/general', 'index')->name('setting.general.index');
     Route::patch('setting/general', 'update')->name('setting.general.update');
-});
-
-
-Route::controller(DynamicPageController::class)->group(function () {
-    Route::get('/dynamic-page', 'index')->name('admin.dynamic_page.index');
-    Route::get('/dynamic-page/create', 'create')->name('admin.dynamic_page.create');
-    Route::post('/dynamic-page/store', 'store')->name('admin.dynamic_page.store');
-    Route::get('/dynamic-page/edit/{id}', 'edit')->name('admin.dynamic_page.edit');
-    Route::put('/dynamic-page/update/{id}', 'update')->name('admin.dynamic_page.update');
-    Route::post('/dynamic-page/status/{id}', 'status')->name('admin.dynamic_page.status');
-    Route::delete('/dynamic-page/destroy/{id}', 'destroy')->name('admin.dynamic_page.destroy');
 });

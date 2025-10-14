@@ -40,7 +40,6 @@
                                                 <th>#</th>
                                                 <th>Team Name</th>
                                                 <th>Description</th>
-                                                <th>ID</th>
                                                 <th>Users</th>
                                                 <th>Action</th>
                                             </tr>
@@ -106,36 +105,139 @@
 
     <!-- Assign Employee Modal -->
     <div class="modal fade" id="assignEmployeeModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <form id="assignEmployeeForm">
                     @csrf
                     <input type="hidden" name="team_id" id="assign_team_id">
 
                     <div class="modal-header">
-                        <h5 class="modal-title">Assign Employees</h5>
+                        <h5 class="modal-title">Assign Employees to Team</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
 
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="user_ids">Select Employees</label>
-                            <select name="user_ids[]" id="user_ids" class="form-control" multiple required
-                                style="height: 300px">
-                                <!-- Employees will be loaded dynamically -->
-                            </select>
+                        <div class="row">
+                            <!-- Selected Employees Section -->
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-users"></i> Assigned Employees
+                                            <span class="badge bg-light text-primary" id="selectedCount">0</span>
+                                        </h6>
+                                    </div>
+                                    <div class="card-body" style="min-height: 350px; max-height: 350px; overflow-y: auto;">
+                                        <div id="selectedEmployees">
+                                            <p class="text-muted text-center mt-5">
+                                                <i class="fas fa-info-circle"></i><br>
+                                                No employees assigned yet.<br>
+                                                Click on employees from the right to assign.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Available Employees Section -->
+                            <div class="col-md-6">
+                                <div class="card border-secondary">
+                                    <div class="card-header bg-secondary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-user-plus"></i> Available Employees
+                                            <span class="badge bg-light text-dark" id="availableCount">0</span>
+                                        </h6>
+                                    </div>
+                                    <div class="card-body"
+                                        style="min-height: 350px; max-height: 350px; overflow-y: auto;">
+                                        <!-- Search Box -->
+                                        <div class="mb-3">
+                                            <input type="text" class="form-control form-control-sm"
+                                                id="searchEmployee" placeholder="Search employee...">
+                                        </div>
+                                        <div id="availableEmployees">
+                                            <!-- Employees will be loaded here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Assign</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check"></i> Update Assignment
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 @endsection
+
+@push('styles')
+    <style>
+        .employee-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+            background: #fff;
+        }
+
+        .employee-item:hover {
+            background: #f8f9fa;
+            border-color: #007bff;
+            transform: translateX(5px);
+        }
+
+        .employee-item.selected {
+            background: #e7f3ff;
+            border-color: #007bff;
+        }
+
+        .selected-employee-item {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #e7f3ff;
+            border: 1px solid #007bff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .selected-employee-item:hover {
+            background: #d0e8ff;
+        }
+
+        .remove-employee {
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s ease;
+        }
+
+        .remove-employee:hover {
+            color: #a71d2a;
+            transform: scale(1.2);
+        }
+
+        .employee-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .employee-id {
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+@endpush
 
 
 @push('scripts')
@@ -190,10 +292,7 @@
                             data: 'description',
                             name: 'description'
                         },
-                        {
-                            data: 'unique_id',
-                            name: 'unique_id'
-                        },
+
                         {
                             data: 'users',
                             name: 'users'
@@ -341,57 +440,191 @@
         }
     </script>
 
-
+    {{-- Assing imployee --}}
     <script>
         $(document).ready(function() {
+            let selectedEmployees = [];
+            let allEmployees = [];
+            let assignedEmployees = [];
 
             // Open Assign Employee modal
             $(document).on('click', '.assignBtn', function() {
                 let teamId = $(this).data('id');
                 $('#assign_team_id').val(teamId);
-                $('#user_ids').html(''); // clear previous options
 
-                // Fetch all employees + already assigned for this team
+                // Reset
+                selectedEmployees = [];
+                allEmployees = [];
+                assignedEmployees = [];
+                $('#selectedEmployees').html(
+                    '<p class="text-muted text-center mt-5"><i class="fas fa-spinner fa-spin"></i><br>Loading...</p>'
+                );
+                $('#availableEmployees').html('');
+
+                // Fetch employees
                 $.get("{{ route('assing.employee.edit', '') }}/" + teamId, function(res) {
                     if (res.status) {
-                        let allUsers = res.all_users; // all employees
-                        let assignedUsers = res.assigned_users.map(u => u.id); // already assigned
+                        allEmployees = res.all_users;
+                        assignedEmployees = res.assigned_users;
 
-                        allUsers.forEach(user => {
-                            let selected = assignedUsers.includes(user.id) ? 'selected' :
-                                '';
-                            $('#user_ids').append('<option value="' + user.id + '" ' +
-                                selected + '>' + user.name + ' (' + user.unique_id +
-                                ')</option>');
-                        });
+                        // Pre-select already assigned employees
+                        selectedEmployees = assignedEmployees.map(u => ({
+                            id: u.id,
+                            name: u.name,
+                        }));
 
+                        renderEmployees();
+                        renderSelectedEmployees();
                         $('#assignEmployeeModal').modal('show');
                     } else {
                         toastr.error('Failed to load employees');
                     }
+                }).fail(function() {
+                    toastr.error('Failed to load employees');
                 });
             });
 
-            // Submit Assign Employee form
-            $('#assignEmployeeForm').on('submit', function(e) {
-                e.preventDefault();
-                let formData = $(this).serialize();
+            // Render available employees
+            function renderEmployees(searchTerm = '') {
+                let html = '';
+                let availableCount = 0;
 
-                $.post("{{ route('assing.employee.store') }}", formData, function(res) {
-                    if (res.status) {
-                        toastr.success(res.message);
-                        $('#assignEmployeeModal').modal('hide');
-                        $('#datatable').DataTable().ajax.reload();
-                    } else {
-                        toastr.error(res.message || 'Something went wrong');
-                    }
-                }).fail(function(xhr) {
-                    if (xhr.status === 409) {
-                        toastr.error(xhr.responseJSON.message);
-                    } else {
-                        toastr.error('Something went wrong. Try again.');
+                allEmployees.forEach(employee => {
+                    // Check if employee is already selected
+                    let isSelected = selectedEmployees.some(e => e.id === employee.id);
+
+                    // Check if employee matches search term
+                    let matchesSearch = searchTerm === '' ||
+                        employee.name.toLowerCase().includes(searchTerm.toLowerCase())
+
+                    if (!isSelected && matchesSearch) {
+                        availableCount++;
+                        html += `
+                    <div class="employee-item" data-id="${employee.id}" data-name="${employee.name}">
+                        <div class="employee-name">${employee.name}</div>
+                    </div>
+                `;
                     }
                 });
+
+                if (availableCount === 0) {
+                    html =
+                        '<p class="text-muted text-center mt-5"><i class="fas fa-inbox"></i><br>No available employees</p>';
+                }
+
+                $('#availableEmployees').html(html);
+                $('#availableCount').text(availableCount);
+            }
+
+            // Render selected employees
+            function renderSelectedEmployees() {
+                let html = '';
+
+                if (selectedEmployees.length === 0) {
+                    html = `
+                <p class="text-muted text-center mt-5">
+                    <i class="fas fa-info-circle"></i><br>
+                    No employees assigned yet.<br>
+                    Click on employees from the right to assign.
+                </p>
+            `;
+                } else {
+                    selectedEmployees.forEach(employee => {
+                        html += `
+                    <div class="selected-employee-item">
+                        <div>
+                            <div class="employee-name">${employee.name}</div>
+                        </div>
+                        <span class="remove-employee" data-id="${employee.id}" title="Remove">
+                            <i class="fas fa-times-circle"></i>
+                        </span>
+                    </div>
+                `;
+                    });
+                }
+
+                $('#selectedEmployees').html(html);
+                $('#selectedCount').text(selectedEmployees.length);
+            }
+
+            // Add employee to selection
+            $(document).on('click', '.employee-item', function() {
+                let id = $(this).data('id');
+                let name = $(this).data('name');
+
+                // Add to selected
+                selectedEmployees.push({
+                    id: id,
+                    name: name,
+                });
+
+                // Re-render both lists
+                renderEmployees($('#searchEmployee').val());
+                renderSelectedEmployees();
+            });
+
+            // Remove employee from selection
+            $(document).on('click', '.remove-employee', function() {
+                let id = $(this).data('id');
+
+                // Remove from selected
+                selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+
+                // Re-render both lists
+                renderEmployees($('#searchEmployee').val());
+                renderSelectedEmployees();
+            });
+
+            // Search functionality
+            $('#searchEmployee').on('keyup', function() {
+                let searchTerm = $(this).val();
+                renderEmployees(searchTerm);
+            });
+
+            // Submit form
+            $('#assignEmployeeForm').on('submit', function(e) {
+                e.preventDefault();
+
+                if (selectedEmployees.length === 0) {
+                    toastr.warning('Please select at least one employee');
+                    return;
+                }
+
+                let teamId = $('#assign_team_id').val();
+                let userIds = selectedEmployees.map(e => e.id);
+
+                $.ajax({
+                    url: "{{ route('assing.employee.store') }}",
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        team_id: teamId,
+                        user_ids: userIds
+                    },
+                    success: function(res) {
+                        if (res.status) {
+                            toastr.success(res.message);
+                            $('#assignEmployeeModal').modal('hide');
+                            $('#datatable').DataTable().ajax.reload();
+                        } else {
+                            toastr.error(res.message || 'Something went wrong');
+                        }
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 409) {
+                            toastr.error(xhr.responseJSON.message);
+                        } else if (xhr.status === 422) {
+                            toastr.error('Validation failed. Please check your selection.');
+                        } else {
+                            toastr.error('Something went wrong. Try again.');
+                        }
+                    }
+                });
+            });
+
+            // Reset search when modal closes
+            $('#assignEmployeeModal').on('hidden.bs.modal', function() {
+                $('#searchEmployee').val('');
             });
         });
     </script>

@@ -60,6 +60,8 @@ class WorkScheduleRequest extends Controller
                 'note'                 => $request->note
             ]);
 
+            $work->is_completed = false;
+
             return $this->success($reschedule, 'Reschedule request created successfully!', 200);
         } catch (Exception $e) {
             return $this->error([], $e->getMessage(), 500);

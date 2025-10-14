@@ -12,9 +12,8 @@ class RescheduleRequest extends Model
     protected $fillable = [
         'work_id',
         'team_id',
-        'suggested_start_time',
-        'suggested_end_time',
-        'suggested_work_date',
+        'time',
+        'suggested_date',
         'status',
         'note'
     ];

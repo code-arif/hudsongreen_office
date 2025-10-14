@@ -18,7 +18,7 @@ class WorkScheduleRequest extends Controller
     {
         if ($request->ajax()) {
             $rescheduleRequest = RescheduleRequest::where('status', true)->with([
-                'work:id,title,unique_id',
+                'work:id,title',
                 'team:id,name'
             ])->get();
 
@@ -31,9 +31,6 @@ class WorkScheduleRequest extends Controller
                         ? substr($item->work->title, 0, 15) . '...'
                         : $item->work->title;
                 })
-
-                // Unique ID
-                ->addColumn('id', fn($item) => $item->work->unique_id)
 
                 // Team
                 ->addColumn('team', function ($item) {
@@ -53,19 +50,10 @@ class WorkScheduleRequest extends Controller
 
                 // Start Time
                 ->addColumn(
-                    'start_time',
+                    'time',
                     fn($item) =>
-                    $item->suggested_start_time
-                        ? date('h:i A', strtotime($item->suggested_start_time))
-                        : '---'
-                )
-
-                // End Time
-                ->addColumn(
-                    'end_time',
-                    fn($item) =>
-                    $item->suggested_end_time
-                        ? date('h:i A', strtotime($item->suggested_end_time))
+                    $item->time
+                        ? date('h:i A', strtotime($item->time))
                         : '---'
                 )
 
@@ -73,8 +61,8 @@ class WorkScheduleRequest extends Controller
                 ->addColumn(
                     'work_date',
                     fn($item) =>
-                    $item->suggested_work_date
-                        ? date('d M Y', strtotime($item->suggested_work_date))
+                    $item->suggested_date
+                        ? date('d M Y', strtotime($item->suggested_date))
                         : '---'
                 )
 
@@ -83,7 +71,7 @@ class WorkScheduleRequest extends Controller
                     return '<div class="d-flex justify-content-start align-items-center gap-1">
                          <button type="button" class="btn btn-sm btn-success rescheduleBtn"
                              data-id="' . $item->id . '">
-                             <i class="fas fa-calendar"></i> Reschedule
+                             <i class="fas fa-clock-rotate-left"></i> Reschedule
                          </button>
                     </div>';
                 })
@@ -126,9 +114,8 @@ class WorkScheduleRequest extends Controller
 
             // Validation (match frontend fields!)
             $validator = Validator::make($request->all(), [
-                'suggested_start_time' => 'nullable|date_format:H:i',
-                'suggested_end_time'   => 'nullable|date_format:H:i|after_or_equal:suggested_start_time',
-                'suggested_work_date'  => 'nullable|date',
+                'time' => 'nullable|date_format:H:i',
+                'suggested_date'  => 'nullable|date',
             ]);
 
             if ($validator->fails()) {
@@ -141,10 +128,10 @@ class WorkScheduleRequest extends Controller
 
             // Update Work
             $work->update([
-                'start_time'     => $request->suggested_start_time,
-                'end_time'       => $request->suggested_end_time,
-                'work_date'      => $request->suggested_work_date,
+                'time'     => $request->time,
+                'work_date'      => $request->suggested_date,
                 'is_rescheduled' => true,
+                'is_completed' => false,
             ]);
 
             // Update Reschedule request

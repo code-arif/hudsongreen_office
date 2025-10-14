@@ -117,6 +117,14 @@
     };
 </script>
 
+<script>
+    $('.summernote').summernote({
+        placeholder: 'Your Content Here...',
+        tabsize: 2,
+        height: 100
+    });
+</script>
+
 @include('backend.partials.toster')
 
 @include('backend.partials.ajax')

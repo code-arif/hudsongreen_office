@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Carbon;
+use Spatie\GoogleCalendar\Event;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Work extends Model
 {
-    protected $guarded = [];
-
+    use HasFactory;
 
     protected $fillable = [
         'title',
@@ -15,24 +17,24 @@ class Work extends Model
         'location',
         'latitude',
         'longitude',
-        'start_time',
-        'end_time',
-        'work_date',
+        'start_datetime',
+        'end_datetime',
+        'is_all_day',
         'is_completed',
         'is_rescheduled',
         'note',
-        'status',
         'team_id',
         'category_id',
-        'unique_id'
+        'google_event_id',
+        'google_synced_at'
     ];
 
     protected $casts = [
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
-        'work_date' => 'date:Y-m-d',
         'is_completed' => 'boolean',
         'is_rescheduled' => 'boolean',
+        'work_date' => 'date',
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
     ];
 
     // relation with team table
@@ -51,5 +53,60 @@ class Work extends Model
     public function images()
     {
         return $this->hasMany(WorkImage::class, 'work_id');
+    }
+
+    // relation with reschedule_requests table
+    public function rescheduleRequests()
+    {
+        return $this->hasMany(RescheduleRequest::class, 'work_id');
+    }
+
+    // relation with reschedule_requests table
+    public function request()
+    {
+        return $this->hasOne(RescheduleRequest::class, 'work_id');
+    }
+
+    // Scopes
+    public function scopeCompleted($query)
+    {
+        return $query->where('is_completed', true);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('is_completed', false);
+    }
+
+    public function scopeRescheduled($query)
+    {
+        return $query->where('is_rescheduled', true);
+    }
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('work_date', Carbon::today());
+    }
+
+    public function scopeUpcoming($query)
+    {
+        return $query->where('work_date', '>=', Carbon::today())
+            ->orderBy('work_date')
+            ->orderBy('time');
+    }
+
+    public function scopeByTeam($query, $teamId)
+    {
+        return $query->where('team_id', $teamId);
+    }
+
+    public function scopeByCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+
+    public function scopeDateRange($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('work_date', [$startDate, $endDate]);
     }
 }

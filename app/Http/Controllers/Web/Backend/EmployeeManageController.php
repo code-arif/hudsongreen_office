@@ -3,13 +3,15 @@
 namespace App\Http\Controllers\Web\Backend;
 
 use Exception;
+use App\Models\Team;
 use App\Models\User;
 use App\Models\Work;
 use App\Helper\Helper;
+use App\Models\TeamUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Models\TeamUser;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 
@@ -39,67 +41,75 @@ class EmployeeManageController extends Controller
                 // Password
                 ->addColumn('password', fn($item) => $item->password ?? '---')
 
-                // address
+                // Address
                 ->addColumn('address', function ($item) {
                     return $item->address
                         ? (strlen($item->address) > 25 ? substr($item->address, 0, 25) . '...' : $item->address)
                         : '---';
                 })
 
-                // teams
+                // Teams
                 ->addColumn('team', function ($item) {
                     if (!$item->team || !$item->team->team) {
                         return '<span class="badge bg-secondary">No Team</span>';
                     }
-
                     return '<span class="badge bg-primary">'
-                        . $item->team->team->name
-                        . ' (' . $item->team->team->unique_id . ')</span>';
+                        . $item->team->team->name . ' </span>';
                 })
 
-
-                // Avatar
                 ->addColumn('avatar', function ($item) {
-                    if ($item->avatar) {
-                        return '<img src="' . asset('/' . $item->avatar) . '" alt="avatar" width="60" height="40">';
-                    }
-                    return '<span class="badge bg-secondary">No Avatar</span>';
+                    $avatarPath = $item->avatar
+                        ? asset($item->avatar)
+                        : asset('default/default_person.jpg');
+
+                    return '<img src="' . $avatarPath . '" alt="avatar" class="avatar-img img-fluid">';
                 })
 
-                // Unique ID
-                ->addColumn('unique_id', fn($item) => $item->unique_id)
 
                 // Action buttons
                 ->addColumn('action', function ($item) {
-                    $calendarUrl = route('employee.user.work.list', ['id' => $item->id]);
-                    return '<div class="d-flex justify-content-start align-items-center gap-1">
-                            <button type="button"
-                                   class="btn btn-primary btn-sm editUser"
+                    $mapUrl = route('employee.user.map.list', ['id' => $item->id]);
+                    $actionButtons = '<div class="d-flex justify-content-start align-items-center gap-1">';
+
+                    // Edit button
+                    $actionButtons .= '<button type="button"
+                                   class="btn btn-warning btn-sm editUser"
                                    data-id="' . $item->id . '">
-                            <i class="fa fa-pen-to-square"></i> Edit
-                            </button>
+                                   <i class="fa fa-pen-to-square"></i> Edit
+                               </button>';
 
-                            <a href="' . $calendarUrl . '" class="btn btn-info btn-sm">
-                                <i class="fa fa-calendar"></i> Calendar
-                            </a>
+                    // Map View button (show only if user has a team)
+                    if ($item->team && $item->team->team) {
+                        $actionButtons .= '<a href="' . $mapUrl . '" class="btn btn-success btn-sm">
+                                       <i class="fa fa-map"></i> Map View
+                                   </a>';
+                    }
 
-                            <button type="button" class="btn btn-sm btn-danger deleteBtn"
-                                onclick="showDeleteConfirm(' . $item->id . ')">
-                                <i class="fa fa-trash"></i> Delete
-                            </button>
-                        </div>';
+                    // Delete button
+                    $actionButtons .= '<button type="button" class="btn btn-sm btn-danger deleteBtn"
+                                   onclick="showDeleteConfirm(' . $item->id . ')">
+                                   <i class="fa fa-trash"></i> Delete
+                               </button>';
+
+                    $actionButtons .= '</div>';
+
+                    return $actionButtons;
                 })
 
                 ->rawColumns(['avatar', 'action', 'team'])
                 ->make();
         }
 
-        return view("backend.layouts.users.index");
+        $teams = Team::get();
+
+        return view("backend.layouts.users.index", compact('teams'));
     }
 
     // store employee
     public function store(Request $request)
     {
+        DB::beginTransaction();
+
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
@@ -108,8 +118,8 @@ class EmployeeManageController extends Controller
                 'password' => 'required|min:6',
                 'address' => 'nullable|string|max:255',
                 'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+                'team_id' => 'nullable|exists:teams,id',
             ]);
-
 
             if ($validator->fails()) {
                 return response()->json([
@@ -125,42 +135,46 @@ class EmployeeManageController extends Controller
                 $avatarPath = Helper::uploadImage($request->file('avatar'), 'avatars');
             }
 
-            // Find last created user with numeric unique_id
-            $lastUser = User::where('unique_id', 'like', 'USR_%')
-                ->orderBy('id', 'desc')
-                ->first();
+            // Create employee user
+            $user = User::create([
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'phone'    => $request->phone,
+                'password' => $request->password,
+                'role'     => 'employee',
+                'address'  => $request->address,
+                'avatar'   => $avatarPath,
+            ]);
 
-            if ($lastUser) {
-                // Get numeric part and increment
-                $lastNumber = (int)substr($lastUser->unique_id, 4); // remove 'USR_'
-                $newNumber = $lastNumber + 1;
-            } else {
-                $newNumber = 1; // first user
+            // Assign team if selected
+            if ($request->filled('team_id')) {
+                $teamId = $request->team_id;
+
+                $alreadyAssigned = DB::table('team_users')
+                    ->where('team_id', $teamId)
+                    ->where('user_id', $user->id)
+                    ->exists();
+
+                if (!$alreadyAssigned) {
+                    DB::table('team_users')->insert([
+                        'team_id'    => $teamId,
+                        'user_id'    => $user->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
 
-            // Format with leading zeros
-            $uniqueId = 'USR_' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
-
-            // Create user
-            $user = User::create([
-                'name'          => $request->name,
-                'email'         => $request->email,
-                'phone'         => $request->phone,
-                'password'      => $request->password,
-                'role'          => 'employee',
-                'address'       => $request->address,
-                'avatar'        => $avatarPath,
-                'unique_id'     => $uniqueId,
-                'is_google_signin' => false,
-                'is_apple_signin'  => false,
-            ]);
+            DB::commit();
 
             return response()->json([
                 'status'  => true,
-                'message' => 'User created successfully.',
+                'message' => 'Employee created successfully' . ($request->filled('team_id') ? ' and assigned to team.' : '.'),
                 'data'    => $user,
             ], 201);
         } catch (Exception $e) {
+            DB::rollBack();
+
             return response()->json([
                 'status' => false,
                 'message' => 'Something went wrong: ' . $e->getMessage(),
@@ -168,27 +182,42 @@ class EmployeeManageController extends Controller
         }
     }
 
+
     // edit employee
     public function edit($id)
     {
         try {
-            $user = User::find($id);
+            $user = User::with('teams:id,name')->find($id);
 
             if (!$user) {
-                return response()->json(['success' => false, 'message' => 'User not found.'], 404);
+                return response()->json([
+                    'status' => false,
+                    'message' => 'User not found.',
+                ], 404);
             }
 
-            return response()->json(['success' => true, 'data' => $user]);
+            return response()->json([
+                'status' => true,
+                'data' => $user,
+            ]);
         } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => 'User to fetch test. ' . $e->getMessage()]);
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to fetch user: ' . $e->getMessage(),
+            ], 500);
         }
     }
+
+
 
     // Update employee
     public function update(Request $request, $id)
     {
+        DB::beginTransaction();
+
         try {
             $user = User::find($id);
+
             if (!$user) {
                 return response()->json([
                     'status' => false,
@@ -203,6 +232,7 @@ class EmployeeManageController extends Controller
                 'password'  => 'nullable|string|min:6',
                 'address'   => 'nullable|string|max:255',
                 'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+                'team_id'   => 'nullable|exists:teams,id',
             ]);
 
             if ($validator->fails()) {
@@ -219,11 +249,10 @@ class EmployeeManageController extends Controller
                 if ($user->avatar) {
                     Helper::deleteImage($user->avatar);
                 }
-
                 $avatarPath = Helper::uploadImage($request->file('avatar'), 'avatars');
             }
 
-            // Update user
+            // Update user details
             $user->update([
                 'name'      => $request->name,
                 'email'     => $request->email,
@@ -233,18 +262,53 @@ class EmployeeManageController extends Controller
                 'avatar'    => $avatarPath,
             ]);
 
+            // Update or assign team
+            if ($request->filled('team_id')) {
+                $teamId = $request->team_id;
+
+                // Check if already assigned to any team
+                $existingTeam = DB::table('team_users')
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                if ($existingTeam) {
+                    // If assigned to a different team, update it
+                    if ($existingTeam->team_id != $teamId) {
+                        DB::table('team_users')
+                            ->where('user_id', $user->id)
+                            ->update([
+                                'team_id' => $teamId,
+                                'updated_at' => now(),
+                            ]);
+                    }
+                } else {
+                    // If not assigned yet, assign now
+                    DB::table('team_users')->insert([
+                        'team_id'    => $teamId,
+                        'user_id'    => $user->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            DB::commit();
+
             return response()->json([
                 'status'  => true,
-                'message' => 'User updated successfully.',
+                'message' => 'User updated successfully' . ($request->filled('team_id') ? ' and team assignment updated.' : '.'),
                 'data'    => $user,
             ], 200);
         } catch (Exception $e) {
+            DB::rollBack();
+
             return response()->json([
                 'status' => false,
                 'message' => 'Something went wrong: ' . $e->getMessage(),
             ], 500);
         }
     }
+
 
     // Delete employee
     public function delete($id)
@@ -278,35 +342,36 @@ class EmployeeManageController extends Controller
         }
     }
 
-    // Employee work list
-
-    public function workList($id)
+    // Employee work list in map with polyline
+    public function mapWorkList($id)
     {
-        $user = User::find($id);
+        // Fetch teams for the given user_id
+        $teamIds = TeamUser::where('user_id', $id)->pluck('team_id');
 
-        if (!$user) {
-            abort(404, 'User not found');
+        if ($teamIds->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User is not assigned to any team',
+            ], 404);
         }
 
-        // Get all team IDs of the user
-        $team = $user->team;
-        $work = Work::where('team_id', $team->id);
-        // dd($work);
+        // Fetch works for these teams
+        $works = Work::whereIn('team_id', $teamIds)
+            ->select(
+                'id',
+                'title',
+                'description',
+                'location',
+                'latitude',
+                'longitude',
+                'work_date',
+                'time',
+                'is_completed',
+                'is_rescheduled',
+            )
+            ->get();
 
-
-        $works = Work::all()->map(function ($work) {
-            return [
-                'id' => $work->id,
-                'title' => $work->title,
-                'start' => Carbon::parse($work->start_time)->format('Y-m-d\TH:i:s'),
-                'end' => Carbon::parse($work->end_time)->format('Y-m-d\TH:i:s'),
-                'description' => $work->description,
-            ];
-        });
-
-        return view('backend.layouts.users.calendar', [
-            'events' => $works,
-            // 'user' => $user,
-        ]);
+        // Return the view with works data
+        return view('backend.layouts.users.map', compact('works'));
     }
 }

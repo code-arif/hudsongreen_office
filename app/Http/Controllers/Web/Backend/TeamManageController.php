@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Web\Backend;
 
 use Exception;
 use App\Models\Team;
+use App\Models\Work;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
@@ -37,10 +39,7 @@ class TeamManageController extends Controller
                         : '---';
                 })
 
-                // Unique ID
-                ->addColumn('unique_id', fn($item) => $item->unique_id)
-
-                // Users list (name + unique_id)
+                // Users list (name)
                 ->addColumn('users', function ($item) {
                     if ($item->users->isEmpty()) {
                         return '<span class="badge bg-secondary">No Empoyee</span>';
@@ -48,7 +47,7 @@ class TeamManageController extends Controller
 
                     // Wrap badges in a div with flex-wrap
                     $badges = $item->users->map(function ($user) {
-                        return '<span class="badge bg-primary me-1 mb-1">' . $user->name . ' (' . $user->unique_id . ')</span>';
+                        return '<span class="badge bg-primary me-1 mb-1">' . $user->name . '</span>';
                     })->implode(' ');
 
                     return '<div style="display: flex; flex-wrap: wrap;">' . $badges . '</div>';
@@ -58,9 +57,11 @@ class TeamManageController extends Controller
 
                 // Action buttons
                 ->addColumn('action', function ($item) {
+                    $mapUrl = route('team.work.map.list', ['id' => $item->id]);
+
                     return '<div class="d-flex justify-content-start align-items-center gap-1">
                            <button type="button"
-                                   class="btn btn-primary btn-sm editTeam"
+                                   class="btn btn-warning btn-sm editTeam"
                                    data-id="' . $item->id . '">
                             <i class="fa fa-pen-to-square"></i> Edit
                             </button>
@@ -69,6 +70,10 @@ class TeamManageController extends Controller
                                 data-id="' . $item->id . '">
                                 <i class="fas fa-syringe"></i> Assign Employee
                             </button>
+
+                            <a href="' . $mapUrl . '" class="btn btn-secondary btn-sm">
+                                <i class="fa fa-map"></i> Map View
+                            </a>
 
                              <button type="button" class="btn btn-sm btn-danger deleteBtn"
                                 onclick="showDeleteConfirm(' . $item->id . ')">
@@ -84,6 +89,9 @@ class TeamManageController extends Controller
         return view("backend.layouts.teams.index");
     }
 
+    /**
+     * Store new team
+     */
     public function store(Request $request)
     {
         try {
@@ -103,8 +111,6 @@ class TeamManageController extends Controller
             $team = Team::create([
                 'name' => $request->name,
                 'description' => $request->description,
-                'unique_id' => 'TEAM_' . date('ymd') . mt_rand(100, 999),
-
             ]);
 
             return response()->json([
@@ -137,6 +143,7 @@ class TeamManageController extends Controller
             return response()->json(['success' => false, 'message' => 'Team to fetch test. ' . $e->getMessage()]);
         }
     }
+
 
     /**
      * Update existing team
@@ -183,6 +190,7 @@ class TeamManageController extends Controller
         }
     }
 
+
     /**
      * Summary of delete
      */
@@ -212,16 +220,50 @@ class TeamManageController extends Controller
         }
     }
 
+
     /**
      * Team list for work assigning
      */
     public function teamList()
     {
-        $teams = Team::select('id', 'name', 'unique_id')->get();
+        $teams = Team::select('id', 'name')->get();
 
         return response()->json([
             'status' => true,
             'data'   => $teams
         ]);
+    }
+
+
+    /**
+     * Team work list in map view with polyline
+     */
+    public function mapWorkList($id)
+    {
+        // Fetch works assigned to this team
+        $works = Work::where('team_id', $id)
+            ->select(
+                'id',
+                'title',
+                'description',
+                'location',
+                'latitude',
+                'longitude',
+                'work_date',
+                'time',
+                'is_completed',
+                'is_rescheduled'
+            )
+            ->get();
+
+        if ($works->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No works found for this team',
+            ], 404);
+        }
+
+        // Return map view for team works
+        return view('backend.layouts.teams.map', compact('works'));
     }
 }

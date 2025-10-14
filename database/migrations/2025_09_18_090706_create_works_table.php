@@ -18,18 +18,24 @@ return new class extends Migration
             $table->text('location')->nullable();
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
-            $table->time('start_time')->nullable();
-            $table->time('end_time')->nullable();
-            $table->date('work_date')->nullable();
+
+            // DateTime fields (Google Calendar sync)
+            $table->dateTime('start_datetime')->nullable();
+            $table->dateTime('end_datetime')->nullable();
+            $table->boolean('is_all_day')->default(false);
+
+            // Status and flags
             $table->boolean('is_completed')->default(false);
             $table->boolean('is_rescheduled')->default(false);
             $table->text('note')->nullable();
-            $table->tinyInteger('status')->default(0);
 
+            // Relations
             $table->foreignId('team_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('cascade');
 
-            $table->string('unique_id')->unique();
+            // Google Calendar sync fields
+            $table->string('google_event_id')->nullable()->unique();
+            $table->timestamp('google_synced_at')->nullable();
 
             $table->timestamps();
         });

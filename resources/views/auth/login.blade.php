@@ -1,10 +1,12 @@
 @extends('auth.app')
 
+@section('title', 'Admin Login')
+
 @section('content')
 <!-- CONTAINER OPEN -->
 <div class="col col-login mx-auto text-center">
     <a href="index.html" class="text-center">
-        <img src="{{ asset($settings->logo ?? 'default/logo.png') }}" class="header-brand-img" alt="">
+        {{-- <img src="{{ asset($settings->logo ?? 'default/logo.png') }}" class="header-brand-img" alt=""> --}}
     </a>
 </div>
 <div class="container-login100">

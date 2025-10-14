@@ -25,8 +25,10 @@ class WorkDetailsResource extends JsonResource
             'short_note'    => $this->note ?? 'N/A',
             'unique_id'     => $this->unique_id,
             'images'        => $this->images->map(function ($image) {
-                return url($image->image_path);
-            }),
+                return [
+                    'url' => url($image->image_path)
+                ];
+            })->toArray(),
             'team'          => [
                 'id' => $this->team?->id,
                 'name' => $this->team?->name,
@@ -40,7 +42,6 @@ class WorkDetailsResource extends JsonResource
                 'latitude' => $this->latitude,
                 'longitude' => $this->longitude,
             ],
-
         ];
     }
 }
