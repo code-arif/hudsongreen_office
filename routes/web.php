@@ -3,13 +3,10 @@
 use App\Http\Controllers\Calendar\EventManageGoogleController;
 use App\Http\Controllers\Calendar\GetEventFromGoogleController;
 use App\Http\Controllers\Calendar\SyncEventFromGoogleController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
-use App\Http\Controllers\GoogleAuthContreoller;
 use App\Http\Controllers\GoogleCalendarController;
 use App\Http\Controllers\Api\Auth\AuthenticationController;
-use App\Http\Controllers\Web\Backend\WorkCalendarController;
 
 
 Route::get('/', function () {
