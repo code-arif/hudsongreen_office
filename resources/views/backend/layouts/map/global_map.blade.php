@@ -93,7 +93,7 @@
 
             const validWorks = works
                 .filter(w => w.latitude && w.longitude)
-                .sort((a, b) => new Date(`${a.work_date} ${a.time}`));
+                .sort((a, b) => new Date(`${a.start_datetime}`));
 
             if (validWorks.length === 0) return;
 
@@ -188,8 +188,7 @@
                                 work.is_completed ? 'Completed' :
                                 work.is_rescheduled ? 'Rescheduled' : 'Incomplete'
                             }</p>
-                            <p><strong>Date:</strong> ${work.work_date || 'N/A'}</p>
-                            <p><strong>Time:</strong> ${work.time || 'N/A'}</p>
+                            <p><strong>Date:</strong> ${work.start_datetime || 'N/A'}</p>
                         </div>`,
                     });
 
