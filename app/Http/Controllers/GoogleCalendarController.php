@@ -35,7 +35,6 @@ class GoogleCalendarController extends Controller
         return view('backend.layouts.calendar.index', compact('teams', 'categories', 'isGoogleConnected'));
     }
 
-
     // redirect to google for auth
     public function redirectToGoogle()
     {

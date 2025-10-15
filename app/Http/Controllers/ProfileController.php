@@ -57,4 +57,9 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+    // this is my profile
+    // another comment
+    // another comment
+    // dfdf
 }
