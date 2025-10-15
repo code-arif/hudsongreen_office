@@ -24,8 +24,7 @@ class MapController extends Controller
                 'location',
                 'latitude',
                 'longitude',
-                'work_date',
-                'time',
+                'start_datetime',
                 'is_completed',
                 'is_rescheduled'
             )
@@ -46,8 +45,7 @@ class MapController extends Controller
                 'location',
                 'latitude',
                 'longitude',
-                'work_date',
-                'time',
+                'start_datetime',
                 'is_completed',
                 'is_rescheduled'
             )
