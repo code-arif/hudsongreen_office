@@ -1,4 +1,6 @@
-@extends('backend.app', ['title' => 'General Settings'])
+@extends('backend.app')
+
+@section('title', 'General Settings')
 
 @section('content')
 <!--app-content open-->
@@ -52,7 +54,7 @@
                                         <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-                                    
+
                                     <div class="form-group">
                                         <label for="description" class="form-label">Description:</label>
                                         <textarea class="description form-control @error('description') is-invalid @enderror"
@@ -70,7 +72,7 @@
                                         <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-                                    
+
                                     <div class="form-group">
                                         <label for="author" class="form-label">Author:</label>
                                         <input type="text" class="form-control @error('author') is-invalid @enderror"

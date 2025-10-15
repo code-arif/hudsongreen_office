@@ -1,5 +1,7 @@
 @extends('backend.app')
 
+@section('title', 'Profile Settings')
+
 @section('content')
 <!--app-content open-->
 <div class="app-content main-content mt-0">
