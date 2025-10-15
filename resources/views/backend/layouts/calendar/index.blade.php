@@ -149,132 +149,17 @@
     </div>
 
     <!-- CREATE/EDIT WORK MODAL -->
-    <div class="modal fade" id="createWorkModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">
-                        <i class="fas fa-calendar-plus me-2"></i>Create New Work Schedule
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="workForm">
-                        <input type="hidden" id="workId" name="work_id">
-                        <input type="hidden" name="_method" id="formMethod" value="POST">
-                        <input type="hidden" name="latitude" id="latitude">
-                        <input type="hidden" name="longitude" id="longitude">
-
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-heading"></i> Title *
-                                </label>
-                                <input type="text" class="form-control form-control-sm" name="title" id="title"
-                                    required>
-                            </div>
-
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-align-left"></i> Description
-                                </label>
-                                <textarea class="form-control" name="description" id="description" rows="3"></textarea>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-calendar"></i> Date *
-                                </label>
-                                <input type="date" class="form-control form-control-sm" name="work_date"
-                                    id="work_date" required>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-clock"></i> Time *
-                                </label>
-                                <input type="time" class="form-control form-control-sm" name="time" id="time"
-                                    required>
-                            </div>
-
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-map-marker-alt"></i> Location
-                                </label>
-                                <input type="text" class="form-control form" name="location" id="location"
-                                    placeholder="Search for a location...">
-                            </div>
-
-                            {{-- team and category selection --}}
-                            <div class="form-section">
-                                <div class="col-md-6 equal-box">
-                                    <label class="form-label">
-                                        <i class="fas fa-users"></i> Team
-                                    </label>
-                                    <select class="form-select" name="team_id" id="team_id">
-                                        <option value="">Select Team</option>
-                                        @foreach ($teams as $team)
-                                            <option value="{{ $team->id }}">{{ $team->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="col-md-6 equal-box">
-                                    <label class="form-label">
-                                        <i class="fas fa-tag"></i> Category
-                                    </label>
-                                    <select class="form-select" name="category_id" id="category_id">
-                                        <option value="">Select Category</option>
-                                        @foreach ($categories as $category)
-                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    <input type="text" name="category_name" id="category_name"
-                                        class="form-control mt-2" placeholder="Or create new category">
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-sm btn-primary" id="saveWorkBtn">
-                        <i class="fas fa-save me-2"></i>Save
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    @include('backend.layouts.calendar.add_edit')
 
     <!-- VIEW EVENT DETAILS MODAL -->
-    <div class="modal fade" id="viewEventModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-info-circle me-2"></i>Work Details
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="eventDetailsContent">
-                    <!-- Event details will be loaded here -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-sm btn-warning" id="editEventBtn">
-                        <i class="fas fa-edit me-1"></i>Edit
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger" id="deleteEventBtn">
-                        <i class="fas fa-trash me-1"></i>Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    @include('backend.layouts.calendar.view')
 @endsection
 
 @push('scripts')
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+    <!-- Timepicker JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.13.18/jquery.timepicker.min.js"></script>
 
     <!-- Google Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfGOjmqKtEBRsfVN9szUo_tac20wcI9HM&libraries=places">
@@ -653,12 +538,31 @@
                 const props = event.extendedProps;
 
                 const startDate = new Date(event.start);
+                const endDate = event.end ? new Date(event.end) : startDate;
 
                 const statusBadge = props.completed ?
                     '<span class="badge bg-success">Completed</span>' :
                     (props.rescheduled ? '<span class="badge bg-warning">Rescheduled</span>' :
                         '<span class="badge bg-primary">Pending</span>');
 
+                let dateTimeDisplay = '';
+                if (props.is_all_day) {
+                    dateTimeDisplay = `
+                        <i class="far fa-calendar" style="margin-right: 8px;"></i>
+                        ${startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        ${endDate.getDate() !== startDate.getDate() ? ' - ' + endDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                        <span class="badge bg-info ms-2">All Day</span>
+                    `;
+                } else {
+                    dateTimeDisplay = `
+                        <i class="far fa-calendar" style="margin-right: 8px;"></i>
+                        ${startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        <br>
+                        <i class="far fa-clock" style="margin-right: 8px;"></i>
+                        ${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} -
+                        ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    `;
+                }
 
                 let detailsHtml = `
                     <div style="padding: 8px 0;">
@@ -668,10 +572,9 @@
                         </div>
 
                         <div style="margin-bottom: 16px;">
-                            <strong style="color: #5f6368; font-size: 12px;">DATE</strong>
+                            <strong style="color: #5f6368; font-size: 12px;">DATE & TIME</strong>
                             <div style="font-size: 14px; color: #3c4043; margin-top: 4px;">
-                                <i class="far fa-calendar" style="margin-right: 8px;"></i>
-                                ${startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                ${dateTimeDisplay}
                             </div>
                         </div>
 
@@ -762,109 +665,191 @@
                     url: `/calendar/${eventId}`,
                     method: 'GET',
                     success: function(work) {
+                        console.log(work);
+
                         $('#modalTitle').html('<i class="fas fa-edit me-2"></i>Edit Work Schedule');
                         $('#workId').val(work.id);
-                        $('#formMethod').val('PUT');
+                        $('#formMethod').val('PUT'); // Change to PUT for update
                         $('#title').val(work.title);
                         $('#description').val(work.description);
-                        $('#work_date').val(work.work_date);
-                        $('#time').val(work.time);
                         $('#location').val(work.location);
                         $('#latitude').val(work.latitude);
                         $('#longitude').val(work.longitude);
                         $('#team_id').val(work.team_id);
                         $('#category_id').val(work.category_id);
+                        $('#note').val(work.note);
+
+                        // Parse datetime fields
+                        const startDateTime = new Date(work.start_datetime);
+                        const endDateTime = new Date(work.end_datetime);
+
+                        // Set work date from start_datetime
+                        const workDate = startDateTime.toISOString().split('T')[0];
+                        $('#work_date').val(workDate);
+
+                        // Handle all day events
+                        if (work.is_all_day) {
+                            // Check the all day checkbox
+                            $('#is_all_day').prop('checked', true);
+
+                            // Hide time fields
+                            $('#start_time_wrapper, #end_time_wrapper').hide();
+                            $('#start_time, #end_time')
+                                .prop('disabled', true)
+                                .prop('required', false)
+                                .val('');
+                        } else {
+                            // Uncheck all day checkbox
+                            $('#is_all_day').prop('checked', false);
+
+                            // Show time fields
+                            $('#start_time_wrapper, #end_time_wrapper').show();
+                            $('#start_time, #end_time')
+                                .prop('disabled', false)
+                                .prop('required', true);
+
+                            // Format times to 12-hour format (h:i A)
+                            const startTime = formatTime12Hour(startDateTime);
+                            const endTime = formatTime12Hour(endDateTime);
+
+                            $('#start_time').val(startTime);
+                            $('#end_time').val(endTime);
+
+                            // Reinitialize timepicker with values
+                            $('#start_time, #end_time').timepicker('setTime', null);
+                            $('#start_time').timepicker('setTime', startTime);
+                            $('#end_time').timepicker('setTime', endTime);
+                        }
 
                         $('#createWorkModal').modal('show');
                     },
-                    error: function() {
+                    error: function(xhr) {
+                        console.error('Error loading work:', xhr);
                         showToast('Failed to load work details', 'error');
                     }
                 });
             }
 
-            // Save work
-            $('#saveWorkBtn').on('click', function() {
-                const workId = $('#workId').val();
-                const method = $('#formMethod').val();
-                const url = workId ? `/calendar/${workId}` : '{{ route('calendar.store') }}';
+            // Handle form submission
+            $('#saveWorkBtn').on('click', function(e) {
+                e.preventDefault();
 
-                // Validate required fields
-                if (!$('#title').val()) {
-                    showToast('Title is required', 'error');
-                    return;
-                }
-                if (!$('#work_date').val()) {
-                    showToast('Date is required', 'error');
-                    return;
-                }
-                if (!$('#time').val()) {
-                    showToast('Time is required', 'error');
-                    return;
+                let formData = new FormData($('#workForm')[0]);
+                let id = $('#workId').val(); // Correct ID field
+                let url = id ?
+                    "{{ route('calendar.update', ':id') }}".replace(':id', id) :
+                    "{{ route('calendar.store') }}";
+
+                if (id) {
+                    formData.append('_method', 'POST');
                 }
 
-                // Collect form data
-                const formData = {
-                    _token: '{{ csrf_token() }}',
-                    title: $('#title').val(),
-                    description: $('#description').val() || null,
-                    work_date: $('#work_date').val(),
-                    time: $('#time').val(),
-                    location: $('#location').val() || null,
-                    latitude: $('#latitude').val() || null,
-                    longitude: $('#longitude').val() || null,
-                    team_id: $('#team_id').val() || null,
-                };
+                // Handle all day checkbox - ensure boolean is sent properly
+                const isAllDay = $('#is_all_day').is(':checked');
+                formData.set('is_all_day', isAllDay ? '1' : '0');
 
-                // Handle category fields properly
-                const categoryId = $('#category_id').val();
-                const categoryName = $('#category_name').val()?.trim();
-
-                if (categoryId && categoryId !== '') {
-                    formData.category_id = categoryId;
+                // If all day, remove time fields
+                if (isAllDay) {
+                    formData.delete('start_time');
+                    formData.delete('end_time');
                 }
-
-                if (categoryName && categoryName !== '') {
-                    formData.category_name = categoryName;
-                }
-
-                if (method === 'POST') {
-                    formData._method = 'POST';
-                }
-
-                const saveBtn = $('#saveWorkBtn');
-                saveBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
 
                 $.ajax({
                     url: url,
-                    method: 'POST',
+                    type: 'POST',
                     data: formData,
+                    contentType: false,
+                    processData: false,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    beforeSend: function() {
+                        // Clear previous errors
+                        $('.error-text').text('');
+                        $('#saveWorkBtn').prop('disabled', true).html(
+                            '<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
+                    },
                     success: function(response) {
-                        $('#createWorkModal').modal('hide');
-                        calendar.refetchEvents();
-                        showToast(response.message, 'success');
+                        if (response.status === false) {
+                            // Validation errors
+                            $.each(response.errors, function(field, messages) {
+                                $('.' + field + '_error').text(messages[0]);
+                            });
+                            $('#saveWorkBtn').prop('disabled', false).html(
+                                '<i class="fas fa-save me-2"></i>Save');
+                        } else {
+                            // Success
+                            $('#createWorkModal').modal('hide');
+                            $('#workForm')[0].reset();
+                            calendar.refetchEvents(); // Refresh calendar
+                            showToast(response.message || 'Work saved successfully!',
+                                'success');
+                            $('#saveWorkBtn').prop('disabled', false).html(
+                                '<i class="fas fa-save me-2"></i>Save');
+                        }
                     },
                     error: function(xhr) {
-                        console.error('Save error:', xhr);
-                        let message = 'Failed to save work';
-
-                        if (xhr.responseJSON) {
-                            if (xhr.responseJSON.message) {
-                                message = xhr.responseJSON.message;
-                            } else if (xhr.responseJSON.errors) {
-                                const errors = Object.values(xhr.responseJSON.errors).flat();
-                                message = errors.join(', ');
-                            }
-                        }
-
-                        showToast(message, 'error');
-                    },
-                    complete: function() {
-                        saveBtn.prop('disabled', false).html(
+                        $('#saveWorkBtn').prop('disabled', false).html(
                             '<i class="fas fa-save me-2"></i>Save');
+
+                        if (xhr.status === 422) {
+                            // Validation errors
+                            const errors = xhr.responseJSON.errors;
+                            $.each(errors, function(field, messages) {
+                                // Handle nested field names (e.g., start_time)
+                                const fieldName = field.replace(/\./g, '_');
+                                $('.' + fieldName + '_error').text(messages[0]);
+                            });
+                            showToast('Please fix the validation errors', 'error');
+                        } else {
+                            showToast(xhr.responseJSON?.message || 'Failed to save work',
+                                'error');
+                        }
                     }
                 });
             });
+
+
+            // Modal reset on close
+            $('#createWorkModal').on('hidden.bs.modal', function() {
+                $('#workForm')[0].reset();
+                $('.error-text').text('');
+                $('#workId').val('');
+                $('#formMethod').val('POST');
+                $('#start_time_wrapper, #end_time_wrapper').show();
+                $('#start_time, #end_time').prop('disabled', false);
+                $('#is_all_day').prop('checked', false);
+            });
+
+
+            // Open create modal - improved
+            function openCreateModal(date = null) {
+                $('#modalTitle').html('<i class="fas fa-calendar-plus me-2"></i>Create New Work Schedule');
+                $('#workForm')[0].reset();
+                $('#workId').val('');
+                $('#formMethod').val('POST');
+                $('#latitude').val('');
+                $('#longitude').val('');
+                $('.error-text').text('');
+
+                // Set date
+                if (date) {
+                    $('#work_date').val(date);
+                } else {
+                    $('#work_date').val(new Date().toISOString().split('T')[0]);
+                }
+
+                // Set default times
+                $('#start_time').val('09:00 AM');
+                $('#end_time').val('05:00 PM');
+
+                // Ensure time fields are visible
+                $('#start_time_wrapper, #end_time_wrapper').show();
+                $('#start_time, #end_time').prop('disabled', false);
+                $('#is_all_day').prop('checked', false);
+
+                $('#createWorkModal').modal('show');
+            }
 
             // Delete button click
             $('#deleteEventBtn').on('click', function(e) {
@@ -1009,7 +994,44 @@
                     todayEl.classList.add('selected');
                 }
             }, 100);
+
+
+            // Initialize 12-hour time picker
+            $('.timepicker').timepicker({
+                timeFormat: 'h:i A', // 12-hour format with AM/PM
+                interval: 15, // 15 minute intervals
+                dynamic: false,
+                dropdown: true,
+                scrollbar: true,
+                startTime: '12:00 AM',
+                endTime: '11:45 PM'
+            });
+
+            // All day checkbox toggle
+            $('#is_all_day').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#start_time, #end_time').prop('disabled', true).val('');
+                    $('#start_time_wrapper, #end_time_wrapper').hide();
+                } else {
+                    $('#start_time, #end_time').prop('disabled', false);
+                    $('#start_time_wrapper, #end_time_wrapper').show();
+                }
+            });
         });
+    </script>
+
+
+    {{-- Helper function to format time in 12-hour format --}}
+    <script>
+        function formatTime12Hour(date) {
+            let hours = date.getHours();
+            let minutes = date.getMinutes();
+            let ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // 0 should be 12
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            return hours + ':' + minutes + ' ' + ampm;
+        }
     </script>
 @endpush
 
@@ -1017,11 +1039,15 @@
     <!-- FullCalendar -->
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
 
+    <!-- Timepicker CSS -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.13.18/jquery.timepicker.min.css">
+
     {{-- calendar styiling --}}
     <style>
         :root {
-            --google-blue: #1a73e8;
-            --google-blue-hover: #1765cc;
+            --google-blue: #13bfa6;
+            --google-blue-hover: #13bfa6;
             --border-color: #dadce0;
             --sidebar-bg: #ffffff;
             --hover-bg: #f1f3f4;

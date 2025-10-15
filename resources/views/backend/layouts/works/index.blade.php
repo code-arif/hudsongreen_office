@@ -178,6 +178,7 @@
         }
     </style>
 
+    {{-- checkbox style --}}
     <style>
         /* Make checkbox bigger */
         .custom-checkbox {

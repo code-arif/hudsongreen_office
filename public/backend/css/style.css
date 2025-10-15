@@ -17594,7 +17594,7 @@ table.dataTable>thead .sorting.no-btn:before {
 }
 
 .fc-day.fc-day-today .fc-daygrid-day-number {
-    color: var(--primary-bg-color) !important
+    color: #fff !important
 }
 
 .fc-day.fc-day-today .fc-h-event .fc-event-main {

@@ -85,16 +85,6 @@
                             </div>
                         </div>
 
-                        {{-- <div class="col-md-2 mt-3">
-                            <label class="form-label fw-bold text-primary">All Day</label>
-                            <div class="form-check form-switch">
-                                <input type="checkbox" class="form-check-input custom-switch" name="is_all_day"
-                                    id="is_all_day" value="1">
-                                <label class="form-check-label ms-2 text-muted" for="is_all_day">All Day Event</label>
-                            </div>
-                            <small class="text-info d-block mt-1">Toggle to disable time inputs</small>
-                        </div> --}}
-
                         {{-- Map Search Box --}}
                         <div class="col-md-12 mt-3">
                             <label class="form-label">Search Address</label>
