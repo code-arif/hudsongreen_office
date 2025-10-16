@@ -188,7 +188,7 @@
                                 work.is_completed ? 'Completed' :
                                 work.is_rescheduled ? 'Rescheduled' : 'Incomplete'
                             }</p>
-                            <p><strong>Date:</strong> ${work.start_datetime || 'N/A'}</p>
+                            <p><strong>Date:</strong> ${work.formatted_datetime || 'N/A'}</p>
                         </div>`,
                     });
 
@@ -246,5 +246,10 @@
                     select.innerHTML = '<option value="">Error loading teams</option>';
                 });
         }
+    </script>
+
+    <script>
+        const validWorks = @json($works);
+        console.log(validWorks); // ← optional: check in browser console
     </script>
 @endpush

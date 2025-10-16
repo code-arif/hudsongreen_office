@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web\Backend;
 
+use Carbon\Carbon;
 use App\Models\Team;
 use App\Models\Work;
 use Illuminate\Http\Request;
@@ -25,11 +26,29 @@ class MapController extends Controller
                 'latitude',
                 'longitude',
                 'start_datetime',
+                'end_datetime',
+                'is_all_day',
                 'is_completed',
                 'is_rescheduled'
             )
             ->get()
-            : collect(); // empty if no team exists
+            : collect(); // empty if no team exist
+
+        $works->transform(function ($work) {
+            if ($work->is_all_day && $work->start_datetime) {
+                $work->formatted_datetime = Carbon::parse($work->start_datetime)->format('M d, Y') . ' (All Day)';
+            } elseif ($work->start_datetime) {
+                $start = Carbon::parse($work->start_datetime)->format('M d, Y h:i A');
+                $end = $work->end_datetime
+                    ? Carbon::parse($work->end_datetime)->format('h:i A')
+                    : '';
+                $work->formatted_datetime = $start . ($end ? " - $end" : '');
+            } else {
+                $work->formatted_datetime = 'No date set';
+            }
+
+            return $work;
+        });
 
         return view('backend.layouts.map.global_map', compact('teams', 'works', 'firstTeam'));
     }
@@ -46,10 +65,28 @@ class MapController extends Controller
                 'latitude',
                 'longitude',
                 'start_datetime',
+                'end_datetime',
+                'is_all_day',
                 'is_completed',
                 'is_rescheduled'
             )
             ->get();
+
+        $works->transform(function ($work) {
+            if ($work->is_all_day && $work->start_datetime) {
+                $work->formatted_datetime = Carbon::parse($work->start_datetime)->format('M d, Y') . ' (All Day)';
+            } elseif ($work->start_datetime) {
+                $start = Carbon::parse($work->start_datetime)->format('M d, Y h:i A');
+                $end = $work->end_datetime
+                    ? Carbon::parse($work->end_datetime)->format('h:i A')
+                    : '';
+                $work->formatted_datetime = $start . ($end ? " - $end" : '');
+            } else {
+                $work->formatted_datetime = 'No date set';
+            }
+
+            return $work;
+        });
 
         return response()->json($works);
     }
