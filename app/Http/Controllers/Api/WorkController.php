@@ -42,7 +42,7 @@ class WorkController extends Controller
             }
 
             // Query works for the user's team
-            $query = Work::where('team_id', $team->id);
+            $query = Work::where('team_id', $team->id)->latest('id');
 
             // Filter
             $filter = $request->query('filter');
@@ -313,7 +313,6 @@ class WorkController extends Controller
             return $this->error([], 'Something went wrong: ' . $e->getMessage(), 500);
         }
     }
-
 
     // work details
     public function show($id)

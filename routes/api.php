@@ -26,10 +26,11 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/employee-list', [UserListController::class, 'index']);
 
     // Work reschedule request
-    Route::post('/reschedule-request/store', [WorkScheduleRequest::class, 'store']);
-    Route::get('/reschedule-request/edit/{id}', [WorkScheduleRequest::class, 'edit']);
-    Route::post('/reschedule-request/update/{id}', [WorkScheduleRequest::class, 'update']);
-    Route::delete('/reschedule-request/delete/{id}', [WorkScheduleRequest::class, 'destroy']);
+    Route::post('/reschedule-request', [WorkScheduleRequest::class, 'upsert']); // working
+    Route::get('/reschedule-request/edit/{id}', [WorkScheduleRequest::class, 'edit']); // working
+    Route::delete('/reschedule-request/delete/{id}', [WorkScheduleRequest::class, 'destroy']); // working
+    Route::post('/self-reschedule/{id}', [WorkScheduleRequest::class, 'selfReschedule']); // working
+
 
     // Work manage
     Route::group(['prefix' => 'work'], function () {

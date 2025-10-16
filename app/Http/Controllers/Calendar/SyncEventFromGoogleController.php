@@ -27,10 +27,10 @@ class SyncEventFromGoogleController extends Controller
         try {
             $user = Auth::user();
 
-            if (!$user->google_access_token) {
+            if (empty($user->google_access_token)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Google Calendar not connected'
+                    'message' => 'Google Calendar not connected or token missing'
                 ], 400);
             }
 
@@ -39,14 +39,28 @@ class SyncEventFromGoogleController extends Controller
             ]);
 
             // Decode token
+            // $token = json_decode($user->google_access_token, true);
+
+            // if (json_last_error() !== JSON_ERROR_NONE) {
+            //     Log::error('Failed to decode token', [
+            //         'json_error' => json_last_error_msg(),
+            //         'token_preview' => substr($user->google_access_token, 0, 100)
+            //     ]);
+
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'Invalid token format. Please reconnect Google Calendar.'
+            //     ], 400);
+            // }
+
+            // Decode token
             $token = json_decode($user->google_access_token, true);
 
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                Log::error('Failed to decode token', [
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($token)) {
+                Log::error('Invalid token format', [
                     'json_error' => json_last_error_msg(),
                     'token_preview' => substr($user->google_access_token, 0, 100)
                 ]);
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid token format. Please reconnect Google Calendar.'

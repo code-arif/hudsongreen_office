@@ -12,10 +12,15 @@ class RescheduleRequest extends Model
     protected $fillable = [
         'work_id',
         'team_id',
-        'time',
-        'suggested_date',
+        'start_datetime',
+        'end_datetime',
+        'is_all_day',
         'status',
         'note'
+    ];
+
+    protected $casts = [
+        'work_date' => 'date'
     ];
 
     // relation with work table

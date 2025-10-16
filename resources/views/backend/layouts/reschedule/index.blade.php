@@ -33,7 +33,8 @@
                                                 <th>Title</th>
                                                 <th>Team</th>
                                                 <th>Note</th>
-                                                <th>Suggested Time</th>
+                                                <th>Suggested Start Time</th>
+                                                <th>Suggested End Time</th>
                                                 <th>Suggested Date</th>
                                                 <th>Action</th>
                                             </tr>
@@ -46,7 +47,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -54,85 +54,14 @@
 
 
     {{-- Add/Edit reschedule Modal --}}
-    <div class="modal fade" id="rescheduleModal" tabindex="-1" aria-labelledby="rescheduleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <form id="rescheduleForm" enctype="multipart/form-data">
-                    @csrf
-                    <input type="hidden" name="id" id="rescheduleID">
-
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="rescheduleModalLabel">Edit Reschedule</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">×</button>
-                    </div>
-
-                    <div class="modal-body">
-                        <div class="row">
-                            {{-- Work Details (Read Only) --}}
-                            <div class="col-md-12 mb-3">
-                                <h6 class="fw-bold mb-3">Work Details</h6>
-                                <ul class="list-group shadow-sm rounded-3">
-                                    <li class="list-group-item d-flex justify-content-start align-items-center py-2">
-                                        <strong style="margin-right: 10px">Title:</strong> <span id="work_title"
-                                            class="text-success fw-semibold"></span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-start py-2">
-                                        <strong style="margin-right: 10px">Description:</strong> <span id="work_description"
-                                            class="text-muted"></span>
-                                    </li>
-
-                                    {{-- clickable location --}}
-                                    <li class="list-group-item d-flex justify-content-start py-2">
-                                        <strong style="margin-right: 10px" id="">Location:</strong>
-                                        <a href="#" target="_blank" id="reschedule_location_link"
-                                            class="text-primary fw-semibold text-decoration-underline">
-                                            <span id="reschedule_location">---</span>
-                                        </a>
-                                    </li>
-
-
-                                    <li class="list-group-item d-flex justify-content-start py-2">
-                                        <strong style="margin-right: 10px">End Time:</strong> <span id="time"
-                                            class="badge bg-warning text-dark"></span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-start py-2">
-                                        <strong style="margin-right: 10px">Work Date:</strong> <span id="work_date"
-                                            class="badge bg-secondary"></span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <hr class="my-3">
-
-                            {{-- Suggested Start Time --}}
-                            <div class="col-md-6">
-                                <label class="form-label">Suggested Time</label>
-                                <input type="time" class="form-control" name="time" id="request_time">
-                                <span class="text-danger error-text time_error"></span>
-                            </div>
-
-                            {{-- Suggested Date --}}
-                            <div class="col-md-6">
-                                <label class="form-label">Suggested Date</label>
-                                <input type="date" class="form-control" name="suggested_date" id="request_work_date">
-                                <span class="text-danger error-text suggested_work_date_error"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary" id="rescheduleSubmitBtn">Save changes</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
+    @include('backend.layouts.reschedule.reschedule')
 @endsection
 
 
 @push('scripts')
+    <!-- Timepicker JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.13.18/jquery.timepicker.min.js"></script>
+
     <script>
         //document ready function
         $(document).ready(function() {
@@ -140,6 +69,21 @@
             $.ajaxSetup({
                 headers: {
                     "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+                }
+            });
+
+            // Handle All Day checkbox toggle
+            $('#is_all_day').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#start_time_wrapper').hide();
+                    $('#end_time_wrapper').hide();
+                    $('#start_time').val('').prop('required', false);
+                    $('#end_time').val('').prop('required', false);
+                } else {
+                    $('#start_time_wrapper').show();
+                    $('#end_time_wrapper').show();
+                    $('#start_time').prop('required', true);
+                    $('#end_time').prop('required', true);
                 }
             });
 
@@ -175,10 +119,13 @@
                         data: 'note'
                     },
                     {
-                        data: 'time'
+                        data: 'suggested_start_time'
                     },
                     {
-                        data: 'work_date'
+                        data: 'suggested_end_time'
+                    },
+                    {
+                        data: 'suggested_date'
                     },
                     {
                         data: 'action',
@@ -244,16 +191,54 @@
                 $.get(url, function(response) {
                     if (response.success) {
                         $('#rescheduleModalLabel').text('Edit Reschedule');
-                        $('#rescheduleID').val(response.data.work.id);
+                        $('#rescheduleID').val(response.data.id);
 
-
-                        // Work details (read-only)
+                        // Work details (read-only) - Display from work table
                         $('#work_title').text(response.data.work.title ?? '---');
                         $('#work_description').text(response.data.work.description ?? '---');
-                        $('#time').text(response.data.work.time ?? '---');
-                        $('#work_date').text(response.data.work.work_date ?? '---');
                         $('#reschedule_location').text(response.data.work.location ?? '---');
 
+                        // Display work time and date from work.start_datetime and work.end_datetime
+                        if (response.data.work.is_all_day == 1) {
+                            $('#time').text('All Day');
+                        } else if (response.data.work.start_datetime && response.data.work
+                            .end_datetime) {
+                            let workStartTime = response.data.work.start_datetime.split(' ')[1]
+                                .substring(0, 5);
+                            let workEndTime = response.data.work.end_datetime.split(' ')[1]
+                                .substring(0, 5);
+
+                            // Convert to 12-hour format
+                            let formatTime = function(time) {
+                                let [hours, minutes] = time.split(':');
+                                let hour = parseInt(hours);
+                                let ampm = hour >= 12 ? 'PM' : 'AM';
+                                hour = hour % 12 || 12;
+                                return hour + ':' + minutes + ' ' + ampm;
+                            };
+
+                            $('#time').text(formatTime(workStartTime) + ' - ' + formatTime(
+                                workEndTime));
+                        } else {
+                            $('#time').text('---');
+                        }
+
+                        // Display work date
+                        if (response.data.work.start_datetime) {
+                            let workDate = response.data.work.start_datetime.split(' ')[0];
+                            // Format date as dd MMM yyyy
+                            let dateObj = new Date(workDate);
+                            let formattedDate = dateObj.toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                            });
+                            $('#work_date').text(formattedDate);
+                        } else {
+                            $('#work_date').text('---');
+                        }
+
+                        // Location link
                         if (response.data.work.latitude && response.data.work.longitude) {
                             let mapUrl =
                                 `https://www.google.com/maps/search/?api=1&query=${response.data.work.latitude},${response.data.work.longitude}`;
@@ -265,9 +250,39 @@
                             $('#reschedule_location_link').removeAttr('href');
                         }
 
-                        // Editable reschedule fields
-                        $('#request_time').val(response.data.time);
-                        $('#request_work_date').val(response.data.suggested_date);
+                        // Editable reschedule fields - From reschedule_requests table
+                        $('#is_all_day').prop('checked', response.data.is_all_day == 1);
+
+                        if (response.data.is_all_day == 1) {
+                            $('#start_time_wrapper').hide();
+                            $('#end_time_wrapper').hide();
+                            $('#start_time').val('').prop('required', false);
+                            $('#end_time').val('').prop('required', false);
+                        } else {
+                            $('#start_time_wrapper').show();
+                            $('#end_time_wrapper').show();
+                            $('#start_time').prop('required', true);
+                            $('#end_time').prop('required', true);
+
+                            // Extract time from reschedule start_datetime and end_datetime
+                            if (response.data.start_datetime) {
+                                let startTime = response.data.start_datetime.split(' ')[1]
+                                    .substring(0, 5);
+                                $('#start_time').val(startTime);
+                            }
+
+                            if (response.data.end_datetime) {
+                                let endTime = response.data.end_datetime.split(' ')[1].substring(0,
+                                    5);
+                                $('#end_time').val(endTime);
+                            }
+                        }
+
+                        // Extract date from reschedule start_datetime
+                        if (response.data.start_datetime) {
+                            let workDate = response.data.start_datetime.split(' ')[0];
+                            $('#work_date_input').val(workDate);
+                        }
 
                         $('#rescheduleModal').modal('show');
                     } else {
@@ -275,6 +290,58 @@
                     }
                 });
             });
+
+            // handle timepicker
+            $('.timepicker').timepicker({
+                timeFormat: 'h:i A', // 12-hour format with AM/PM
+                interval: 15, // 15 minute intervals
+                dynamic: false,
+                dropdown: true,
+                scrollbar: true,
+                startTime: '12:00 AM',
+                endTime: '11:45 PM'
+            });
         });
     </script>
+
+    {{-- Helper function to format time in 12-hour format --}}
+    <script>
+        function formatTime12Hour(date) {
+            let hours = date.getHours();
+            let minutes = date.getMinutes();
+            let ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // 0 should be 12
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            return hours + ':' + minutes + ' ' + ampm;
+        }
+    </script>
+@endpush
+
+{{-- script push --}}
+@push('styles')
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.13.18/jquery.timepicker.min.css">
+
+    <style>
+        /* Make checkbox bigger */
+        .custom-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        /* Change check color */
+        .custom-checkbox:checked {
+            background-color: #13bfa6;
+            border-color: #13bfa6;
+        }
+
+        /* Optional: adjust label alignment */
+        .form-check-label {
+            font-size: 16px;
+            padding-left: 10px;
+            padding-top: 4px;
+        }
+    </style>
 @endpush

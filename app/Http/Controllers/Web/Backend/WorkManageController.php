@@ -29,6 +29,8 @@ class WorkManageController extends Controller
     // List of all work
     public function index(Request $request)
     {
+        
+
         if ($request->ajax()) {
             $query = Work::with('category', 'team')
                 ->withCount(['rescheduleRequests' => function ($q) {
@@ -160,7 +162,7 @@ class WorkManageController extends Controller
                     return $buttons;
                 })
 
-                ->rawColumns(['title', 'location', 'start_time', 'end_time', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
+                ->rawColumns(['title', 'location', 'start_time', 'end_time', 'work_date', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
                 ->make();
         }
 
@@ -445,44 +447,6 @@ class WorkManageController extends Controller
     }
 
     // Delete work
-    // public function delete($id)
-    // {
-    //     try {
-    //         $work = Work::with(['team'])->find($id);
-
-    //         if (!$work) {
-    //             return response()->json(['success' => false, 'message' => 'Work not found.'], 404);
-    //         }
-
-    //         if ($work->google_event_id) {
-    //             try {
-    //                 $token = json_decode(Auth::user()->google_access_token, true);
-    //                 $this->googleCalendar->setAccessToken($token);
-    //                 $this->googleCalendar->deleteEvent($work->google_event_id);
-    //             } catch (Exception $e) {
-    //                 Log::warning('Failed to delete from Google Calendar', [
-    //                     'work_id' => $work->id,
-    //                     'error' => $e->getMessage()
-    //                 ]);
-    //             }
-    //         }
-
-    //         $work->delete();
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Work deleted successfully.'
-    //         ], 200);
-    //     } catch (Exception $e) {
-    //         DB::rollBack();
-
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Failed to delete work. ' . $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
-
     public function destroy(Work $work)
     {
         try {

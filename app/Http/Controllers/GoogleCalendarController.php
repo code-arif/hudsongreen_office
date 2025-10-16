@@ -82,7 +82,6 @@ class GoogleCalendarController extends Controller
             $user->save();
 
             Log::info('Google Calendar connected', ['user_id' => $user->id]);
-            // Log::channel('single')->info('Google Calendar connected', ['user_id' => $user->id]);
 
             return redirect()->route('calendar.index')
                 ->with('success', 'Google Calendar connected successfully!');

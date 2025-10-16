@@ -15,8 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('work_id')->constrained()->onDelete('cascade');
             $table->foreignId('team_id')->constrained()->onDelete('cascade');
-            $table->time('time')->nullable();
-            $table->date('suggested_date')->nullable();
+            $table->dateTime('start_datetime')->nullable();
+            $table->dateTime('end_datetime')->nullable();
+            $table->boolean('is_all_day')->default(false);
             $table->tinyInteger('status')->default(1);
             $table->string('note')->nullable();
             $table->timestamps();
