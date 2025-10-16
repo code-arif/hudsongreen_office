@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Traits\ApiResponse;
 use Exception;
 use App\Models\Work;
 use App\Helper\Helper;
@@ -17,6 +18,7 @@ use App\Http\Resources\WorkDetailsResource;
 
 class WorkController extends Controller
 {
+    use ApiResponse;
     // work list view
     public function index(Request $request)
     {
@@ -48,10 +50,10 @@ class WorkController extends Controller
 
             switch ($filter) {
                 case 'previous':
-                    $query->whereDate('work_date', '<', $today);
+                    $query->whereDate('start_datetime', '<', $today);
                     break;
                 case 'current':
-                    $query->whereDate('work_date', $today);
+                    $query->whereDate('start_datetime', $today);
                     break;
                 case 'next_2':
                 case 'next_3':
@@ -59,20 +61,19 @@ class WorkController extends Controller
                 case 'next_5':
                 case 'next_6':
                     $days = (int)str_replace('next_', '', $filter);
-                    $query->whereDate('work_date', '>', $today)
-                        ->whereDate('work_date', '<=', $today->copy()->addDays($days));
+                    $query->whereDate('start_datetime', '>', $today)
+                        ->whereDate('start_datetime', '<=', $today->copy()->addDays($days));
                     break;
             }
 
             // Pagination
             $perPage = $request->query('per_page', 10);
-            $works = $query->orderBy('work_date', 'asc')->paginate($perPage);
+            $works = $query->orderBy('start_datetime', 'asc')->paginate($perPage);
 
             // Team details
             $teamData = [
                 'id' => $team->id,
                 'name' => $team->name,
-                'unique_id' => $team->unique_id,
             ];
 
             return response()->json([
@@ -126,10 +127,10 @@ class WorkController extends Controller
 
             switch ($filter) {
                 case 'previous':
-                    $query->whereDate('work_date', '<', $today);
+                    $query->whereDate('start_datetime', '<', $today);
                     break;
                 case 'current':
-                    $query->whereDate('work_date', $today);
+                    $query->whereDate('start_datetime', $today);
                     break;
                 case 'next_2':
                 case 'next_3':
@@ -137,25 +138,24 @@ class WorkController extends Controller
                 case 'next_5':
                 case 'next_6':
                     $days = (int)str_replace('next_', '', $filter);
-                    $query->whereDate('work_date', '>', $today)
-                        ->whereDate('work_date', '<=', $today->copy()->addDays($days));
+                    $query->whereDate('start_datetime', '>', $today)
+                        ->whereDate('start_datetime', '<=', $today->copy()->addDays($days));
                     break;
             }
 
             $perPage = $request->query('per_page', 10);
-            $works = $query->orderBy('work_date', 'asc')->paginate($perPage);
+            $works = $query->orderBy('start_datetime', 'asc')->paginate($perPage);
 
             // Fetch team details
-            $team = $user->team ? [
-                'id' => $user->team->id,
-                'name' => $user->team->name,
-                'unique_id' => $user->team->unique_id,
-            ] : null;
+            $teamData = [
+                'id' => $team->id,
+                'name' => $team->name,
+            ];
 
             return response()->json([
                 'status' => true,
                 'message' => 'Works fetched successfully',
-                'team' => $team, // Include team details at the root level
+                'team' => $teamData,
                 'data' => MapWorkResource::collection($works),
                 'pagination' => [
                     'total' => $works->total(),
@@ -205,7 +205,7 @@ class WorkController extends Controller
             // Validation
             $validator = Validator::make($request->all(), [
                 'note' => 'nullable|string|max:500',
-                'images.*' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+                'images.*' => 'nullable|image',
             ]);
 
             if ($validator->fails()) {
@@ -218,7 +218,6 @@ class WorkController extends Controller
 
             // Update work
             $work->is_completed = true;
-            $work->status = 1;
             $work->note = $request->note ?? $work->note;
             $work->save();
 
@@ -250,7 +249,7 @@ class WorkController extends Controller
                     'title' => $work->title,
                     'is_completed' => $work->is_completed,
                     'note' => $work->note,
-                    'images' => $uploadedImages, // Now this variable is always defined
+                    'images' => $uploadedImages,
                 ],
             ], 200);
         } catch (Exception $e) {
@@ -261,6 +260,60 @@ class WorkController extends Controller
             ], 500);
         }
     }
+
+    // work incomplete
+    public function incompleteWork(Request $request, $id)
+    {
+        DB::beginTransaction();
+
+        try {
+            $user = auth('api')->user();
+            if (!$user) {
+                return $this->error([], 'User not found', 404);
+            }
+
+            $work = Work::with('images')->find($id);
+            if (!$work) {
+                return $this->error([], 'Work not found', 404);
+            }
+
+            // Check if already incomplete
+            if (!$work->is_completed) {
+                return $this->error([], 'This work is already marked as incomplete.', 400);
+            }
+
+            // Delete related images (both DB + physical)
+            if ($work->images && $work->images->count() > 0) {
+                foreach ($work->images as $image) {
+                    // Delete from storage (if exists)
+                    if (file_exists(public_path($image->image_path))) {
+                        @unlink(public_path($image->image_path));
+                    }
+
+                    // Delete DB record
+                    $image->delete();
+                }
+            }
+
+            // Update work to incomplete
+            $work->is_completed = false;
+            $work->note = null;
+            $work->save();
+
+            DB::commit();
+
+            return $this->success([
+                'id' => $work->id,
+                'title' => $work->title,
+                'is_completed' => $work->is_completed,
+                'images_deleted' => true,
+            ], 'Work marked as incomplete successfully.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            return $this->error([], 'Something went wrong: ' . $e->getMessage(), 500);
+        }
+    }
+
 
     // work details
     public function show($id)

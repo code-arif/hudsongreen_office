@@ -1,10 +1,9 @@
 <?php
-
-use App\Http\Controllers\Api\WorkCalendarApiController;
 use App\Http\Controllers\Api\WorkController;
 use App\Http\Controllers\Api\WorkScheduleRequest;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\AuthenticationController;
+use App\Http\Controllers\Api\UserListController;
 
 //health-check
 Route::get("/check", function () {
@@ -16,25 +15,15 @@ Route::group(['middleware' => 'guest:api'], function () {
 
     // Login & Register
     Route::post('/login', [AuthenticationController::class, 'login']);
-
-
-    Route::get('/works', [WorkCalendarApiController::class, 'index']);
-    Route::post('/works', [WorkCalendarApiController::class, 'store']);
-    Route::get('/works/{id}', [WorkCalendarApiController::class, 'show']);
-    Route::put('/works/{id}', [WorkCalendarApiController::class, 'update']);
-    Route::delete('/works/{id}', [WorkCalendarApiController::class, 'destroy']);
-    Route::post('/works/bulk-update', [WorkCalendarApiController::class, 'bulkUpdate']);
-    Route::get('/works/search', [WorkCalendarApiController::class, 'search']);
-    Route::get('/works/upcoming', [WorkCalendarApiController::class, 'upcoming']);
-    Route::get('/works/overdue', [WorkCalendarApiController::class, 'overdue']);
-    Route::get('/works/statistics', [WorkCalendarApiController::class, 'statistics']);
 });
-
 
 
 Route::group(['middleware' => 'auth:api'], function () {
     //User logout
     Route::post('/logout', [AuthenticationController::class, 'logout']);
+
+    //employee list
+    Route::get('/employee-list', [UserListController::class, 'index']);
 
     // Work reschedule request
     Route::post('/reschedule-request/store', [WorkScheduleRequest::class, 'store']);
@@ -46,7 +35,8 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::group(['prefix' => 'work'], function () {
         Route::get('/list', [WorkController::class, 'index']);
         Route::get('/map', [WorkController::class, 'mapView']);
-        Route::post('/complete/{id}', [WorkController::class, 'completeWork']);
+        Route::post('/complete/{id}', [WorkController::class, 'completeWork']); // work complation
+        Route::post('/incomplete/{id}', [WorkController::class, 'inCompleteWork']); // work imcomplation
         Route::get('/details/{id}', [WorkController::class, 'show']);
     });
 });

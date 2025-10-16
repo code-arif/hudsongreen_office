@@ -239,18 +239,18 @@
                             render: function(data) {
                                 if (data && data !== '---') {
                                     return `<div class="d-flex align-items-center justify-content-between">
-                            <span>${data}</span>
-                            <button class="btn btn-sm btn-light copyBtn" data-copy="${data}">
-                                <i class="fe fe-copy"></i>
-                            </button>
-                        </div>`;
+                                    <span>${data}</span>
+                                    <button class="btn btn-sm btn-light copyBtn" data-copy="${data}">
+                                    <i class="fe fe-copy"></i>
+                                    </button>
+                                </div>`;
                                 }
                                 return '---';
                             }
                         },
                         {
-                            data: 'password',
-                            name: 'password',
+                            data: 'phone',
+                            name: 'phone',
                             render: function(data) {
                                 if (data && data !== '---') {
                                     return `<div class="d-flex align-items-center justify-content-between">
@@ -264,8 +264,8 @@
                             }
                         },
                         {
-                            data: 'phone',
-                            name: 'phone',
+                            data: 'password',
+                            name: 'password',
                             render: function(data) {
                                 if (data && data !== '---') {
                                     return `<div class="d-flex align-items-center justify-content-between">
@@ -393,7 +393,7 @@
                         $('#name').val(response.data.name);
                         $('#email').val(response.data.email);
                         $('#phone').val(response.data.phone);
-                        $('#password').val(response.data.password); // plain text
+                        $('#password').val(response.data.password);
                         $('#address').val(response.data.address || '');
 
                         // Handle Dropify image
