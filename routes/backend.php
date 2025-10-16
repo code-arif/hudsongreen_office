@@ -23,9 +23,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/edit/{id}', [EmployeeManageController::class, 'edit'])->name('edit');
         Route::post('/update/{id}', [EmployeeManageController::class, 'update'])->name('update');
         Route::delete('/delete/{id}', [EmployeeManageController::class, 'delete'])->name('delete');
-
-        // empoyee work view in map with polyline
-        Route::get('/map/{id}/works', [EmployeeManageController::class, 'mapWorkList'])->name('user.map.list');
     });
 
     // team manage

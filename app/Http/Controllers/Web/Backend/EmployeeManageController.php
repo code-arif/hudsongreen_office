@@ -68,7 +68,6 @@ class EmployeeManageController extends Controller
 
                 // Action buttons
                 ->addColumn('action', function ($item) {
-                    $mapUrl = route('employee.user.map.list', ['id' => $item->id]);
                     $actionButtons = '<div class="d-flex justify-content-start align-items-center gap-1">';
 
                     // Edit button
@@ -77,13 +76,6 @@ class EmployeeManageController extends Controller
                                    data-id="' . $item->id . '">
                                    <i class="fa fa-pen-to-square"></i> Edit
                                </button>';
-
-                    // Map View button (show only if user has a team)
-                    if ($item->team && $item->team->team) {
-                        $actionButtons .= '<a href="' . $mapUrl . '" class="btn btn-success btn-sm">
-                                       <i class="fa fa-map"></i> Map View
-                                   </a>';
-                    }
 
                     // Delete button
                     $actionButtons .= '<button type="button" class="btn btn-sm btn-danger deleteBtn"
@@ -340,37 +332,5 @@ class EmployeeManageController extends Controller
                 'error'   => $e->getMessage()
             ], 500);
         }
-    }
-
-    // Employee work list in map with polyline
-    public function mapWorkList($id)
-    {
-        // Fetch teams for the given user_id
-        $teamIds = TeamUser::where('user_id', $id)->pluck('team_id');
-
-        if ($teamIds->isEmpty()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'User is not assigned to any team',
-            ], 404);
-        }
-
-        // Fetch works for these teams
-        $works = Work::whereIn('team_id', $teamIds)
-            ->select(
-                'id',
-                'title',
-                'description',
-                'location',
-                'latitude',
-                'longitude',
-                'start_datetime',
-                'is_completed',
-                'is_rescheduled',
-            )
-            ->get();
-
-        // Return the view with works data
-        return view('backend.layouts.users.map', compact('works'));
     }
 }

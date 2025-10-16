@@ -66,20 +66,34 @@ class WorkManageController extends Controller
 
                 // Category
                 ->addColumn('category', function ($item) {
-                    $categoryName = $item->category ? $item->category->name : 'No Category';
-                    if (strlen($categoryName) > 15) {
-                        $categoryName = substr($categoryName, 0, 15) . '...';
+                    if ($item->category) {
+                        $categoryName = $item->category->name;
+                        if (strlen($categoryName) > 15) {
+                            $categoryName = substr($categoryName, 0, 15) . '...';
+                        }
+                        $badgeClass = 'bg-info';
+                    } else {
+                        $categoryName = 'No Category';
+                        $badgeClass = 'bg-warning';
                     }
-                    return '<span class="badge bg-info">' . e($categoryName) . '</span>';
+
+                    return '<span class="badge ' . $badgeClass . '">' . e($categoryName) . '</span>';
                 })
 
                 // Team
                 ->addColumn('team', function ($item) {
-                    $teamName = $item->team ? $item->team->name : 'No Team';
-                    if (strlen($teamName) > 15) {
-                        $teamName = substr($teamName, 0, 15) . '...';
+                    if ($item->team) {
+                        $teamName = $item->team->name;
+                        if (strlen($teamName) > 15) {
+                            $teamName = substr($teamName, 0, 15) . '...';
+                        }
+                        $badgeClass = 'bg-info';
+                    } else {
+                        $teamName = 'No Team';
+                        $badgeClass = 'bg-warning';
                     }
-                    return '<span class="badge bg-success">' . e($teamName) . '</span>';
+
+                    return '<span class="badge ' . $badgeClass . '">' . e($teamName) . '</span>';
                 })
 
                 // Location

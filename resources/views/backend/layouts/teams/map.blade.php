@@ -150,7 +150,7 @@
                         icon: svgMarker,
                         label: {
                             text: (index + 1).toString(),
-                            color: "#000000",
+                            color: "#fff",
                             fontSize: "12px",
                             fontWeight: "bold",
                         },
@@ -159,19 +159,16 @@
 
                     const infoWindow = new google.maps.InfoWindow({
                         content: `
-                    <div style="min-width:200px">
-                        <h4>${work.title}</h4>
-                        <p><strong>Description:</strong> ${work.description || 'N/A'}</p>
-                        <p><strong>Location:</strong> ${work.location || 'N/A'}</p>
-                        <p><strong>Status:</strong> ${
-                            work.is_completed ? 'Completed' :
-                            work.is_rescheduled ? 'Rescheduled' : 'Incomplete'
-                        }</p>
-                        <p><strong>Date:</strong> ${work.work_date || 'N/A'}</p>
-                        <p><strong>Start:</strong> ${work.start_time || 'N/A'}</p>
-                        <p><strong>End:</strong> ${work.end_time || 'N/A'}</p>
-                    </div>
-                `,
+                        <div style="min-width:200px">
+                            <h4>${work.title}</h4>
+                            <p><strong>Location:</strong> ${work.location || 'N/A'}</p>
+                            <p><strong>Status:</strong> ${
+                                work.is_completed ? 'Completed' :
+                                work.is_rescheduled ? 'Rescheduled' : 'Incomplete'
+                            }</p>
+                            <p><strong>Date:</strong> ${work.formatted_datetime || 'N/A'}</p>
+                        </div>
+                    `,
                     });
                     marker.addListener("click", () => infoWindow.open(map, marker));
                 });

@@ -247,9 +247,4 @@
                 });
         }
     </script>
-
-    <script>
-        const validWorks = @json($works);
-        console.log(validWorks); // ← optional: check in browser console
-    </script>
 @endpush

@@ -20,8 +20,7 @@ class TeamManageController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            // $query = Team::latest('id');
-            $query = Team::with('users')->latest('id');
+            $query = Team::withCount('works')->with('users')->latest('id');
             $teams = $query->get();
 
             return DataTables::of($teams)
@@ -54,32 +53,41 @@ class TeamManageController extends Controller
                 })
 
 
-
                 // Action buttons
                 ->addColumn('action', function ($item) {
                     $mapUrl = route('team.work.map.list', ['id' => $item->id]);
+                    $actionButtons = '<div class="d-flex justify-content-start align-items-center gap-1">';
 
-                    return '<div class="d-flex justify-content-start align-items-center gap-1">
-                           <button type="button"
+                    // edit button
+                    $actionButtons .= ' <button type="button"
                                    class="btn btn-warning btn-sm editTeam"
                                    data-id="' . $item->id . '">
                             <i class="fa fa-pen-to-square"></i> Edit
-                            </button>
+                            </button>';
 
-                            <button type="button" class="btn btn-sm btn-success assignBtn"
+                    // employee assing button
+                    $actionButtons .= '<button type="button" class="btn btn-sm btn-success assignBtn"
                                 data-id="' . $item->id . '">
                                 <i class="fas fa-syringe"></i> Assign Employee
-                            </button>
+                            </button>';
 
-                            <a href="' . $mapUrl . '" class="btn btn-secondary btn-sm">
-                                <i class="fa fa-map"></i> Map View
-                            </a>
+                    // Map View button (show only if user has a team)
+                    if ($item->works_count > 0) {
+                        $actionButtons .= '<a href="' . $mapUrl . '" class="btn btn-info btn-sm">
+                        <i class="fa fa-map"></i> Map View
+                     </a>';
+                    }
 
-                             <button type="button" class="btn btn-sm btn-danger deleteBtn"
-                                onclick="showDeleteConfirm(' . $item->id . ')">
-                                <i class="fa fa-trash"></i> Delete
-                            </button>
-                        </div>';
+                    // Delete button
+                    $actionButtons .= '<button type="button" class="btn btn-sm btn-danger deleteBtn"
+                                   onclick="showDeleteConfirm(' . $item->id . ')">
+                                   <i class="fa fa-trash"></i> Delete
+                               </button>';
+
+
+                    $actionButtons .= '</div>';
+
+                    return $actionButtons;
                 })
 
                 ->rawColumns(['action', 'users'])
@@ -250,10 +258,28 @@ class TeamManageController extends Controller
                 'latitude',
                 'longitude',
                 'start_datetime',
+                'end_datetime',
+                'is_all_day',
                 'is_completed',
                 'is_rescheduled'
             )
             ->get();
+
+        $works->transform(function ($work) {
+            if ($work->is_all_day && $work->start_datetime) {
+                $work->formatted_datetime = Carbon::parse($work->start_datetime)->format('M d, Y') . ' (All Day)';
+            } elseif ($work->start_datetime) {
+                $start = Carbon::parse($work->start_datetime)->format('M d, Y h:i A');
+                $end = $work->end_datetime
+                    ? Carbon::parse($work->end_datetime)->format('h:i A')
+                    : '';
+                $work->formatted_datetime = $start . ($end ? " - $end" : '');
+            } else {
+                $work->formatted_datetime = 'No date set';
+            }
+
+            return $work;
+        });
 
         if ($works->isEmpty()) {
             return response()->json([
