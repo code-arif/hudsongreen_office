@@ -23,6 +23,7 @@ class WorkDetailsResource extends JsonResource
             'longitude' => $this->longitude,
             'is_completed'  => $this->is_completed,
             'description'   => $this->description,
+            'is_rescheduled' => $this->is_rescheduled,
             'time'          => $this->is_all_day
                 ? 'All Day'
                 : ($this->start_datetime ? Carbon::parse($this->start_datetime)->format('g:i A') : null),

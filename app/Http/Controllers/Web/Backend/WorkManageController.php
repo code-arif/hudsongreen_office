@@ -29,8 +29,6 @@ class WorkManageController extends Controller
     // List of all work
     public function index(Request $request)
     {
-        
-
         if ($request->ajax()) {
             $query = Work::with('category', 'team')
                 ->withCount(['rescheduleRequests' => function ($q) {
@@ -99,9 +97,9 @@ class WorkManageController extends Controller
                 })
 
                 // Location
-                ->addColumn('location', function ($item) {
-                    return strlen($item->location) > 20 ? substr($item->location, 0, 20) . '...' : $item->location;
-                })
+                // ->addColumn('location', function ($item) {
+                //     return strlen($item->location) > 20 ? substr($item->location, 0, 20) . '...' : $item->location;
+                // })
 
                 // Start Time (12-hour format)
                 ->addColumn('start_time', function ($item) {
@@ -162,8 +160,8 @@ class WorkManageController extends Controller
                     return $buttons;
                 })
 
-                ->rawColumns(['title', 'location', 'start_time', 'end_time', 'work_date', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
-                ->make();
+                ->rawColumns(['title', 'location', 'start_time', 'end_time', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
+                ->make(true);
         }
 
         // work reschedule request
