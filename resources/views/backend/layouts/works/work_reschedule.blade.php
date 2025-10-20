@@ -98,7 +98,7 @@
                                                 </div>
 
                                                 {{-- Category & Team --}}
-                                                <div class="col-md-6" id="current_category_wrapper" style="display: none;">
+                                                <div class="col-md-12" id="current_category_wrapper" style="display: none;">
                                                     <div class="d-flex align-items-center">
                                                         <strong class="me-3" style="min-width: 120px;">
                                                             <i class="fa fa-tag text-success"></i> Category:
@@ -107,7 +107,7 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="col-md-6" id="current_team_wrapper" style="display: none;">
+                                                <div class="col-md-12" id="current_team_wrapper" style="display: none;">
                                                     <div class="d-flex align-items-center">
                                                         <strong class="me-3" style="min-width: 120px;">
                                                             <i class="fa fa-users text-primary"></i> Team:
