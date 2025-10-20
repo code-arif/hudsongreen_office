@@ -133,8 +133,8 @@ class WorkScheduleRequest extends Controller
             // Validation
             $validator = Validator::make($request->all(), [
                 'work_date' => 'required|date',
-                'start_time' => $request->is_all_day ? 'nullable' : 'required|date_format:H:i',
-                'end_time' => $request->is_all_day ? 'nullable' : 'required|date_format:H:i|after:start_time',
+                'start_time' => $request->is_all_day ? 'nullable' : 'required|date_format:h:i A',
+                'end_time' => $request->is_all_day ? 'nullable' : 'required|date_format:h:i A|after:start_time',
                 'is_all_day' => 'nullable|boolean'
             ]);
 
