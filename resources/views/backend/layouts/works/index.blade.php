@@ -355,7 +355,6 @@
                     data: function(d) {
                         d.is_completed = $('#filter_completed').val();
                         d.is_rescheduled = $('#filter_rescheduled').val();
-                        d.has_reschedule_request = $('#rescheduleFilter').val();
                     }
                 },
                 columns: [{
@@ -399,7 +398,7 @@
             });
 
             // reload table on filter change
-            $('#filter_completed, #filter_rescheduled, #rescheduleFilter').change(function() {
+            $('#filter_completed, #filter_rescheduled').change(function() {
                 dTable.ajax.reload();
             });
 
