@@ -128,6 +128,11 @@ class WorkManageController extends Controller
 
                     return '
                     <div class="d-flex justify-content-start align-items-center gap-1">
+
+                        <button type="button" class="btn btn-sm btn-info viewBtn" data-id="' . $item->id . '" title="View Work">
+                            <i class="fa fa-eye"></i> View
+                        </button>
+
                         <button type="button" class="btn btn-primary btn-sm editwork" data-id="' . $item->id . '" title="Edit Work">
                             <i class="fa fa-pen-to-square"></i> Edit
                         </button>

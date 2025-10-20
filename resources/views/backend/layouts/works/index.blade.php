@@ -103,6 +103,9 @@
 
     {{-- Add/Edit work Modal --}}
     @include('backend.layouts.works.create_work')
+
+    {{-- View work details modal --}}
+    @include('backend.layouts.works.view')
 @endsection
 
 @push('styles')
@@ -600,7 +603,6 @@
                 });
             });
 
-
             // Initialize 12-hour time picker
             $('.timepicker').timepicker({
                 timeFormat: 'h:i A', // 12-hour format with AM/PM
@@ -621,6 +623,135 @@
                     $('#start_time, #end_time').prop('disabled', false);
                     $('#start_time_wrapper, #end_time_wrapper').show();
                 }
+            });
+
+            // show work details modal
+            $(document).on('click', '.viewBtn', function() {
+                var id = $(this).data('id');
+                var url = "{{ route('work.edit', ':id') }}".replace(':id', id);
+
+                // Show modal
+                $('#viewWorkModal').modal('show');
+
+                // Show loading, hide content
+                $('#workDetailsLoading').show();
+                $('#workDetailsData').hide();
+
+                // Reset all optional fields
+                $('#view_description_wrapper, #view_location_wrapper, #view_category_wrapper, #view_team_wrapper, #view_note_wrapper, #view_google_sync_wrapper')
+                    .hide();
+
+                // Fetch work data
+                $.get(url, function(response) {
+                    if (response.success) {
+                        let work = response.data;
+
+                        // Title
+                        $('#view_work_title').text(work.title || '---');
+
+                        // Description
+                        if (work.description) {
+                            $('#view_description_wrapper').show();
+                            $('#view_work_description').text(work.description);
+                        }
+
+                        // Date & Time
+                        let startDate = work.start_datetime ? new Date(work.start_datetime)
+                            .toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            }) : '---';
+
+                        let endDate = work.end_datetime ? new Date(work.end_datetime)
+                            .toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            }) : '---';
+
+                        $('#view_start_datetime').text(startDate);
+                        $('#view_end_datetime').text(endDate);
+
+                        // All Day
+                        if (work.is_all_day) {
+                            $('#view_is_all_day').html(
+                                '<span class="badge bg-info"> Yes</span>'
+                                );
+                        } else {
+                            $('#view_is_all_day').html(
+                                '<span class="badge bg-secondary"> No</span>'
+                                );
+                        }
+
+                        // Location
+                        if (work.location) {
+                            $('#view_location_wrapper').show();
+                            $('#view_work_location').text(work.location);
+
+                            let mapUrl;
+                            if (work.latitude && work.longitude) {
+                                mapUrl =
+                                    `https://www.google.com/maps/search/?api=1&query=${work.latitude},${work.longitude}`;
+                            } else {
+                                mapUrl =
+                                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(work.location)}`;
+                            }
+                            $('#view_location_link').attr('href', mapUrl).attr('target', '_blank');
+                        }
+
+                        // Category
+                        if (work.category) {
+                            $('#view_category_wrapper').show();
+                            $('#view_work_category').text(work.category.name || work.category);
+                        }
+
+                        // Team
+                        if (work.team) {
+                            $('#view_team_wrapper').show();
+                            $('#view_work_team').text(work.team.name || work.team);
+                        }
+
+                        // Status
+                        let statusHtml = '';
+                        if (work.is_completed) {
+                            statusHtml =
+                                '<span class="badge bg-success"><i class="fa fa-check"></i> Completed</span>';
+                        } else if (work.is_rescheduled) {
+                            statusHtml =
+                                '<span class="badge bg-warning"><i class="fa fa-clock"></i> Rescheduled</span>';
+                        } else {
+                            statusHtml =
+                                '<span class="badge bg-primary"><i class="fa fa-hourglass-half"></i> Pending</span>';
+                        }
+                        $('#view_work_status').html(statusHtml);
+
+                        // Note
+                        if (work.note) {
+                            $('#view_note_wrapper').show();
+                            $('#view_work_note').text(work.note);
+                        }
+
+                        // Google Calendar Sync
+                        if (work.google_event_id) {
+                            $('#view_google_sync_wrapper').show();
+                        }
+
+                        // Hide loading, show content
+                        $('#workDetailsLoading').hide();
+                        $('#workDetailsData').show();
+                    } else {
+                        toastr.error(response.message || 'Failed to load work details.');
+                        $('#viewWorkModal').modal('hide');
+                    }
+                }).fail(function() {
+                    toastr.error('Failed to load work details.');
+                    $('#viewWorkModal').modal('hide');
+                });
             });
         });
     </script>

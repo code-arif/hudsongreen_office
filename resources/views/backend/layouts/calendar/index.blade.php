@@ -1035,7 +1035,7 @@
     </script>
 @endpush
 
-@push('scripts')
+@push('styles')
     <!-- FullCalendar -->
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
 
