@@ -84,23 +84,6 @@ class WorkManageController extends Controller
                     return '<span class="badge ' . $badgeClass . '">' . e($teamName) . '</span>';
                 })
 
-                // Location
-                ->addColumn('location', function ($item) {
-                    if (!$item->location) {
-                        return '<span class="text-muted">---</span>';
-                    }
-
-                    $location = e($item->location); // Escape HTML entities
-
-                    if (strlen($location) > 25) {
-                        $truncated = substr($location, 0, 25) . '...';
-                        // Add tooltip for full location
-                        return '<span title="' . $location . '">' . $truncated . '</span>';
-                    }
-
-                    return $location;
-                })
-
                 // Start Time (12-hour format)
                 ->addColumn('start_time', function ($item) {
                     if ($item->is_all_day) {
@@ -160,7 +143,7 @@ class WorkManageController extends Controller
                     ';
                 })
 
-                ->rawColumns(['title', 'location', 'start_time', 'end_time', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
+                ->rawColumns(['title', 'start_time', 'end_time', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
                 ->make(true);
         }
 

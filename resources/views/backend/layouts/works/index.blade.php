@@ -80,7 +80,6 @@
                                                 <th>Title</th>
                                                 <th>Category</th>
                                                 <th>Team</th>
-                                                <th>Location</th>
                                                 <th>Start Time</th>
                                                 <th>End Time</th>
                                                 <th>Work Date</th>
@@ -370,9 +369,6 @@
                     },
                     {
                         data: 'team'
-                    },
-                    {
-                        data: 'location'
                     },
                     {
                         data: 'start_time'
