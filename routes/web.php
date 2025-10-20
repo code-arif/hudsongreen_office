@@ -107,7 +107,7 @@ Route::get('/verify-email/{token}', [AuthenticationController::class, 'verifyEma
 
 
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth','admin'])->group(function () {
     // Calendar Routes
     Route::get('/calendar', [GoogleCalendarController::class, 'index'])->name('calendar.index'); // working
     Route::get('/calendar/events', [GetEventFromGoogleController::class, 'getEvents'])->name('calendar.events'); // working

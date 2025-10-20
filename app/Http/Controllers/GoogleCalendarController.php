@@ -56,37 +56,91 @@ class GoogleCalendarController extends Controller
     {
         try {
             if ($request->has('error')) {
+                Log::warning('Google authentication cancelled by user', [
+                    'error' => $request->get('error')
+                ]);
+
                 return redirect()->route('calendar.index')
                     ->with('error', 'Google authentication cancelled');
             }
 
             if (!$request->has('code')) {
+                Log::error('No authorization code received from Google');
+
                 return redirect()->route('calendar.index')
                     ->with('error', 'No authorization code received');
             }
 
-            $token = $this->googleCalendar->authenticate($request->get('code'));
+            $code = $request->get('code');
 
-            $user = Auth::user();
-            $user->google_access_token = json_encode($token);
+            Log::info('Processing Google OAuth callback', [
+                'code_length' => strlen($code)
+            ]);
 
-            if (isset($token['refresh_token'])) {
-                $user->google_refresh_token = $token['refresh_token'];
+            // Get token from Google
+            $token = $this->googleCalendar->authenticate($code);
+
+            if (!isset($token['access_token'])) {
+                Log::error('No access token in response', [
+                    'token_keys' => array_keys($token)
+                ]);
+
+                return redirect()->route('calendar.index')
+                    ->with('error', 'Failed to receive access token');
             }
 
+            $user = Auth::user();
+
+            // CRITICAL: Preserve existing refresh token if new one not provided
+            $existingRefreshToken = $user->google_refresh_token;
+
+            // Save new access token (always as JSON)
+            $user->google_access_token = json_encode($token);
+
+            // Handle refresh token carefully
+            if (isset($token['refresh_token'])) {
+                // New refresh token provided (first time or re-authorized)
+                $user->google_refresh_token = $token['refresh_token'];
+                Log::info('New refresh token received and saved');
+            } elseif ($existingRefreshToken) {
+                // No new refresh token, keep the old one
+                Log::info('Preserving existing refresh token');
+                // No need to update, it's already there
+            } else {
+                // No refresh token at all - this is a problem
+                Log::error('No refresh token available', [
+                    'has_token_refresh' => isset($token['refresh_token']),
+                    'has_existing_refresh' => !empty($existingRefreshToken)
+                ]);
+
+                return redirect()->route('calendar.index')
+                    ->with('error', 'No refresh token received. Please try disconnecting and reconnecting.');
+            }
+
+            // Set token expiry time
             if (isset($token['expires_in'])) {
                 $user->google_token_expires_at = Carbon::now()->addSeconds($token['expires_in']);
+            } else {
+                // Default to 1 hour if not provided
+                $user->google_token_expires_at = Carbon::now()->addHour();
             }
 
             $user->save();
 
-            Log::info('Google Calendar connected', ['user_id' => $user->id]);
+            Log::info('Google Calendar connected successfully', [
+                'user_id' => $user->id,
+                'has_refresh_token' => !empty($user->google_refresh_token),
+                'token_expires_at' => $user->google_token_expires_at,
+                'expires_in_minutes' => Carbon::now()->diffInMinutes($user->google_token_expires_at)
+            ]);
 
             return redirect()->route('calendar.index')
                 ->with('success', 'Google Calendar connected successfully!');
         } catch (Exception $e) {
             Log::error('Google Callback Error', [
                 'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
 

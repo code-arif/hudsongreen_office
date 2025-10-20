@@ -34,32 +34,16 @@ class SyncEventFromGoogleController extends Controller
                 ], 400);
             }
 
-            Log::info('Starting Google sync', [
-                'user_id' => $user->id
-            ]);
+            // Check if token is expired BEFORE attempting sync
+            if ($user->google_token_expires_at && Carbon::now()->isAfter($user->google_token_expires_at)) {
+                Log::info('Token expired, will attempt refresh');
+            }
 
-            // Decode token
-            // $token = json_decode($user->google_access_token, true);
-
-            // if (json_last_error() !== JSON_ERROR_NONE) {
-            //     Log::error('Failed to decode token', [
-            //         'json_error' => json_last_error_msg(),
-            //         'token_preview' => substr($user->google_access_token, 0, 100)
-            //     ]);
-
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'Invalid token format. Please reconnect Google Calendar.'
-            //     ], 400);
-            // }
-
-            // Decode token
             $token = json_decode($user->google_access_token, true);
 
             if (json_last_error() !== JSON_ERROR_NONE || !is_array($token)) {
                 Log::error('Invalid token format', [
-                    'json_error' => json_last_error_msg(),
-                    'token_preview' => substr($user->google_access_token, 0, 100)
+                    'json_error' => json_last_error_msg()
                 ]);
                 return response()->json([
                     'success' => false,
@@ -67,17 +51,20 @@ class SyncEventFromGoogleController extends Controller
                 ], 400);
             }
 
-            // Add refresh token if stored separately
+            // CRITICAL: Ensure refresh token is in the token array
             if (!isset($token['refresh_token']) && $user->google_refresh_token) {
                 $token['refresh_token'] = $user->google_refresh_token;
-                Log::info('Added refresh token from database');
             }
 
-            Log::info('Token decoded successfully', [
-                'has_access_token' => isset($token['access_token']),
-                'has_refresh_token' => isset($token['refresh_token']),
-                'expires_in' => $token['expires_in'] ?? 'N/A'
-            ]);
+            if (!isset($token['refresh_token'])) {
+                Log::error('No refresh token available', [
+                    'user_id' => $user->id
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Refresh token missing. Please reconnect Google Calendar.'
+                ], 400);
+            }
 
             // Set access token and handle refresh
             $newToken = $this->googleCalendar->setAccessToken($token);
@@ -88,20 +75,23 @@ class SyncEventFromGoogleController extends Controller
 
                 $user->google_access_token = json_encode($newToken);
 
+                // IMPORTANT: Keep refresh token
                 if (isset($newToken['refresh_token'])) {
                     $user->google_refresh_token = $newToken['refresh_token'];
+                } elseif ($user->google_refresh_token) {
+                    // Preserve existing refresh token
+                    $newToken['refresh_token'] = $user->google_refresh_token;
                 }
 
+                // Set proper expiry time
                 if (isset($newToken['expires_in'])) {
                     $user->google_token_expires_at = Carbon::now()->addSeconds($newToken['expires_in']);
                 }
 
                 $user->save();
-
-                Log::info('Updated token saved to database');
             }
 
-            // Extended date range: 3 months back, 3 months forward
+            // Rest of your sync code...
             $startDate = $request->get('start')
                 ? Carbon::parse($request->get('start'))
                 : Carbon::now()->subMonths(3)->startOfMonth();
@@ -110,16 +100,7 @@ class SyncEventFromGoogleController extends Controller
                 ? Carbon::parse($request->get('end'))
                 : Carbon::now()->addMonths(3)->endOfMonth();
 
-            Log::info('Fetching events from Google', [
-                'start_date' => $startDate->toDateTimeString(),
-                'end_date' => $endDate->toDateTimeString()
-            ]);
-
             $events = $this->googleCalendar->listEvents($startDate, $endDate);
-
-            Log::info('Events fetched from Google', [
-                'count' => count($events)
-            ]);
 
             $syncedCount = 0;
             $updatedCount = 0;
@@ -129,26 +110,24 @@ class SyncEventFromGoogleController extends Controller
                 try {
                     $googleEventId = $event->getId();
 
-                    // Skip cancelled events
                     if ($event->getStatus() === 'cancelled') {
                         $skippedCount++;
                         continue;
                     }
 
-                    $existingWork = Work::where('google_event_id', $googleEventId)->first();
+                    $existingWork = Work::where('google_event_id', $googleEventId)
+                        ->where('user_id', $user->id) // Add user_id check
+                        ->first();
 
-                    // Handle all-day events
                     $isAllDay = false;
                     $startDateTime = null;
                     $endDateTime = null;
 
                     if ($event->getStart()->getDate()) {
-                        // All-day event
                         $isAllDay = true;
                         $startDateTime = Carbon::parse($event->getStart()->getDate())->startOfDay();
                         $endDateTime = Carbon::parse($event->getEnd()->getDate())->subDay()->endOfDay();
                     } elseif ($event->getStart()->getDateTime()) {
-                        // Timed event
                         $startDateTime = Carbon::parse($event->getStart()->getDateTime());
                         $endDateTime = Carbon::parse($event->getEnd()->getDateTime());
                     } else {
@@ -157,6 +136,7 @@ class SyncEventFromGoogleController extends Controller
                     }
 
                     $workData = [
+                        'user_id' => $user->id, // Add user_id
                         'title' => $event->getSummary() ?? 'Untitled Event',
                         'description' => $event->getDescription(),
                         'location' => $event->getLocation(),
@@ -183,21 +163,9 @@ class SyncEventFromGoogleController extends Controller
                 }
             }
 
-            $message = "Successfully synced from Google Calendar! ";
-            $message .= "New: {$syncedCount}, Updated: {$updatedCount}";
-            if ($skippedCount > 0) {
-                $message .= ", Skipped: {$skippedCount}";
-            }
-
-            Log::info('Sync completed successfully', [
-                'synced' => $syncedCount,
-                'updated' => $updatedCount,
-                'skipped' => $skippedCount
-            ]);
-
             return response()->json([
                 'success' => true,
-                'message' => $message,
+                'message' => "Successfully synced! New: {$syncedCount}, Updated: {$updatedCount}, Skipped: {$skippedCount}",
                 'synced' => $syncedCount,
                 'updated' => $updatedCount,
                 'skipped' => $skippedCount
@@ -205,8 +173,6 @@ class SyncEventFromGoogleController extends Controller
         } catch (Exception $e) {
             Log::error('Google Sync Error', [
                 'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
 

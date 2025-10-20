@@ -6,7 +6,6 @@ use Google\Client;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
 use Google\Service\Calendar\EventDateTime;
-use App\Models\Work;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Log;
