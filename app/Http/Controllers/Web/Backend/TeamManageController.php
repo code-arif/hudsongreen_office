@@ -234,8 +234,7 @@ class TeamManageController extends Controller
      */
     public function teamList()
     {
-        $teams = Team::select('id', 'name')->get();
-
+        $teams = Team::get();
         return response()->json([
             'status' => true,
             'data'   => $teams

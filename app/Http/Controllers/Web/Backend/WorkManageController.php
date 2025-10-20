@@ -31,9 +31,6 @@ class WorkManageController extends Controller
     {
         if ($request->ajax()) {
             $query = Work::with('category', 'team')
-                ->withCount(['rescheduleRequests' => function ($q) {
-                    $q->where('status', 1);
-                }])
                 ->latest('id');
 
             // Apply filters if present
@@ -43,15 +40,6 @@ class WorkManageController extends Controller
 
             if ($request->has('is_rescheduled') && $request->is_rescheduled !== null && $request->is_rescheduled !== '') {
                 $query->where('is_rescheduled', $request->is_rescheduled);
-            }
-
-            // Filter for reschedule requests
-            if ($request->filled('has_reschedule_request')) {
-                if ($request->has_reschedule_request == 1) {
-                    $query->has('rescheduleRequests');
-                } elseif ($request->has_reschedule_request == 0) {
-                    $query->doesntHave('rescheduleRequests');
-                }
             }
 
             $works = $query->get();
@@ -97,9 +85,21 @@ class WorkManageController extends Controller
                 })
 
                 // Location
-                // ->addColumn('location', function ($item) {
-                //     return strlen($item->location) > 20 ? substr($item->location, 0, 20) . '...' : $item->location;
-                // })
+                ->addColumn('location', function ($item) {
+                    if (!$item->location) {
+                        return '<span class="text-muted">---</span>';
+                    }
+
+                    $location = e($item->location); // Escape HTML entities
+
+                    if (strlen($location) > 25) {
+                        $truncated = substr($location, 0, 25) . '...';
+                        // Add tooltip for full location
+                        return '<span title="' . $location . '">' . $truncated . '</span>';
+                    }
+
+                    return $location;
+                })
 
                 // Start Time (12-hour format)
                 ->addColumn('start_time', function ($item) {
@@ -141,23 +141,23 @@ class WorkManageController extends Controller
 
                 // Actions
                 ->addColumn('action', function ($item) {
-                    $buttons = '<div class="d-flex justify-content-start align-items-center gap-1">
-                <button type="button" class="btn btn-primary btn-sm editwork" data-id="' . $item->id . '">
-                    <i class="fa fa-pen-to-square"></i> Edit
-                </button>
-                <button type="button" class="btn btn-sm btn-danger deleteBtn" onclick="showDeleteConfirm(' . $item->id . ')">
-                    <i class="fa fa-trash"></i> Delete
-                </button>';
+                    $rescheduleUrl = route('work.reschedule.show', $item->id);
 
-                    if ($item->reschedule_requests_count > 0) {
-                        $buttons .= '<button type="button" class="btn btn-warning btn-sm WorkRescheduleBtn"
-                         data-id="' . $item->id . '">
-                         <i class="fa fa-clock-rotate-left"></i> Reschedule
-                     </button>';
-                    }
+                    return '
+                    <div class="d-flex justify-content-start align-items-center gap-1">
+                        <button type="button" class="btn btn-primary btn-sm editwork" data-id="' . $item->id . '" title="Edit Work">
+                            <i class="fa fa-pen-to-square"></i> Edit
+                        </button>
 
-                    $buttons .= '</div>';
-                    return $buttons;
+                        <a href="' . $rescheduleUrl . '" class="btn btn-sm btn-warning" title="Reschedule Work">
+                            <i class="fas fa-clock-rotate-left"></i> Reschedule
+                        </a>
+
+                        <button type="button" class="btn btn-sm btn-danger deleteBtn" onclick="showDeleteConfirm(' . $item->id . ')" title="Delete Work">
+                            <i class="fa fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    ';
                 })
 
                 ->rawColumns(['title', 'location', 'start_time', 'end_time', 'is_completed', 'is_rescheduled', 'action', 'category', 'team'])
@@ -238,48 +238,60 @@ class WorkManageController extends Controller
 
             // Google Calendar Sync (if user has connected Google)
             $user = auth()->user();
-            if ($user && $user->google_access_token) {
+            if ($user && $user->google_access_token && $work->google_event_id) {
                 try {
-                    $googleService = new GoogleCalendarService();
+                    Log::info('Attempting Google Calendar update', [
+                        'work_id' => $work->id,
+                        'google_event_id' => $work->google_event_id
+                    ]);
 
-                    // Set access token
-                    $token = [
-                        'access_token' => $user->google_access_token,
-                        'refresh_token' => $user->google_refresh_token,
-                        'expires_in' => Carbon::parse($user->google_token_expires_at)->diffInSeconds(now()),
-                    ];
+                    $token = json_decode($user->google_access_token, true);
 
-                    $newToken = $googleService->setAccessToken($token);
-
-                    // If token was refreshed, update user
-                    if ($newToken) {
-                        $user->update([
-                            'google_access_token' => $newToken['access_token'],
-                            'google_token_expires_at' => now()->addSeconds($newToken['expires_in']),
-                        ]);
+                    if (!is_array($token)) {
+                        Log::warning('Token format invalid for update');
+                        goto skip_google_update;
                     }
 
-                    // Create event in Google Calendar
-                    $googleEventId = $googleService->createEvent($work);
+                    if (!isset($token['refresh_token']) && $user->google_refresh_token) {
+                        $token['refresh_token'] = $user->google_refresh_token;
+                    }
 
-                    // Update work with Google event ID
+                    $newToken = $this->googleCalendar->setAccessToken($token);
+
+                    if ($newToken) {
+                        $user->google_access_token = json_encode($newToken);
+
+                        if (isset($newToken['refresh_token'])) {
+                            $user->google_refresh_token = $newToken['refresh_token'];
+                        }
+
+                        if (isset($newToken['expires_in'])) {
+                            $user->google_token_expires_at = Carbon::now()->addSeconds($newToken['expires_in']);
+                        }
+
+                        $user->save();
+                    }
+
+                    // UPDATE EVENT IN GOOGLE CALENDAR
+                    $this->googleCalendar->updateEvent($work);
+
                     $work->update([
-                        'google_event_id' => $googleEventId,
-                        'google_synced_at' => now(),
+                        'google_synced_at' => Carbon::now(),
                     ]);
 
-                    Log::info('Work synced to Google Calendar', [
+                    Log::info('Work updated in Google Calendar successfully', [
                         'work_id' => $work->id,
-                        'google_event_id' => $googleEventId
+                        'google_event_id' => $work->google_event_id
                     ]);
                 } catch (Exception $e) {
-                    // Don't fail the whole operation if Google sync fails
-                    Log::error('Google Calendar sync failed during work creation', [
+                    Log::error('Google Calendar update failed', [
                         'work_id' => $work->id,
                         'error' => $e->getMessage()
                     ]);
                 }
             }
+
+            skip_google_update:
 
             DB::commit();
 
@@ -385,48 +397,62 @@ class WorkManageController extends Controller
             ]);
 
             // Google Calendar Sync (if work is already synced)
+            // Google Calendar Sync
             $user = auth()->user();
             if ($user && $user->google_access_token && $work->google_event_id) {
                 try {
-                    $googleService = new GoogleCalendarService();
+                    Log::info('Attempting Google Calendar update', [
+                        'work_id' => $work->id,
+                        'google_event_id' => $work->google_event_id
+                    ]);
 
-                    // Set access token
-                    $token = [
-                        'access_token' => $user->google_access_token,
-                        'refresh_token' => $user->google_refresh_token,
-                        'expires_in' => Carbon::parse($user->google_token_expires_at)->diffInSeconds(now()),
-                    ];
+                    $token = json_decode($user->google_access_token, true);
 
-                    $newToken = $googleService->setAccessToken($token);
-
-                    // If token was refreshed, update user
-                    if ($newToken) {
-                        $user->update([
-                            'google_access_token' => $newToken['access_token'],
-                            'google_token_expires_at' => now()->addSeconds($newToken['expires_in']),
-                        ]);
+                    if (!is_array($token)) {
+                        Log::warning('Token format invalid for update');
+                        goto skip_google_update;
                     }
 
-                    // Update event in Google Calendar
-                    $googleEventId = $googleService->updateEvent($work);
+                    if (!isset($token['refresh_token']) && $user->google_refresh_token) {
+                        $token['refresh_token'] = $user->google_refresh_token;
+                    }
 
-                    // Update sync timestamp
+                    $newToken = $this->googleCalendar->setAccessToken($token);
+
+                    if ($newToken) {
+                        $user->google_access_token = json_encode($newToken);
+
+                        if (isset($newToken['refresh_token'])) {
+                            $user->google_refresh_token = $newToken['refresh_token'];
+                        }
+
+                        if (isset($newToken['expires_in'])) {
+                            $user->google_token_expires_at = Carbon::now()->addSeconds($newToken['expires_in']);
+                        }
+
+                        $user->save();
+                    }
+
+                    // UPDATE EVENT IN GOOGLE CALENDAR
+                    $this->googleCalendar->updateEvent($work);
+
                     $work->update([
-                        'google_synced_at' => now(),
+                        'google_synced_at' => Carbon::now(),
                     ]);
 
-                    Log::info('Work synced to Google Calendar (update)', [
+                    Log::info('Work updated in Google Calendar successfully', [
                         'work_id' => $work->id,
-                        'google_event_id' => $googleEventId
+                        'google_event_id' => $work->google_event_id
                     ]);
                 } catch (Exception $e) {
-                    // Don't fail the whole operation if Google sync fails
-                    Log::error('Google Calendar sync failed during work update', [
+                    Log::error('Google Calendar update failed', [
                         'work_id' => $work->id,
                         'error' => $e->getMessage()
                     ]);
                 }
             }
+
+            skip_google_update:
 
             DB::commit();
 
@@ -531,28 +557,141 @@ class WorkManageController extends Controller
         ]);
     }
 
-    // edit reschedule work list
-    public function reschedultEdit($id)
+
+    // Show reschedule page
+    public function rescheduleShow($id)
+    {
+        $work = Work::with(['category', 'team'])->find($id);
+
+        if (!$work) {
+            return redirect()->route('work.list')
+                ->with('error', 'Work not found!');
+        }
+
+        return view('backend.layouts.works.work_reschedule', compact('work'));
+    }
+
+    // Edit/Show work for reschedule
+    public function rescheduleEdit($id)
     {
         try {
-            $reschedule = Work::with('request')->find($id);
-            if (!$reschedule) {
-                return response()->json(['success' => false, 'message' => 'Work not found.'], 404);
+            $work = Work::with(['category', 'team'])->find($id);
+
+            if (!$work) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Work not found.'
+                ], 404);
             }
 
-            return response()->json(['success' => true, 'data' => $reschedule]);
+            // Format data for frontend
+            $data = [
+                'id' => $work->id,
+                'title' => $work->title,
+                'description' => $work->description,
+                'location' => $work->location,
+                'latitude' => $work->latitude,
+                'longitude' => $work->longitude,
+                'category' => $work->category ? $work->category->name : null,
+                'team' => $work->team ? $work->team->name : null,
+                'is_all_day' => $work->is_all_day,
+                'work_date' => $work->start_datetime ? Carbon::parse($work->start_datetime)->format('Y-m-d') : null,
+                'start_time' => $work->is_all_day ? null : Carbon::parse($work->start_datetime)->format('h:i A'),
+                'end_time' => $work->is_all_day ? null : Carbon::parse($work->end_datetime)->format('h:i A'),
+                'formatted_date' => $work->start_datetime ? Carbon::parse($work->start_datetime)->format('d M Y') : '---',
+                'formatted_time' => $work->is_all_day ? 'All Day' : (
+                    $work->start_datetime && $work->end_datetime
+                    ? Carbon::parse($work->start_datetime)->format('h:i A') . ' - ' . Carbon::parse($work->end_datetime)->format('h:i A')
+                    : '---'
+                ),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
         } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Failed to fetch work. ' . $e->getMessage()]);
+            Log::error('Reschedule Edit Error', [
+                'work_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch work: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     // Update reschedule work
+    // public function rescheduleUpdate(Request $request, $id)
+    // {
+    //     DB::beginTransaction();
+
+    //     try {
+    //         $work = Work::find($id);
+    //         if (!$work) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Work not found!'
+    //             ], 404);
+    //         }
+
+    //         // Validation (match frontend fields!)
+    //         $validator = Validator::make($request->all(), [
+    //             'time' => 'nullable|date_format:H:i',
+    //             'suggested_date'  => 'nullable|date',
+    //         ]);
+
+    //         if ($validator->fails()) {
+    //             return response()->json([
+    //                 'status'  => false,
+    //                 'message' => 'Validation failed',
+    //                 'errors'  => $validator->errors(),
+    //             ], 422);
+    //         }
+
+    //         // Update Work
+    //         $work->update([
+    //             'time'     => $request->time,
+    //             'work_date'      => $request->suggested_date,
+    //             'is_rescheduled' => true,
+    //             'is_completed' => false,
+    //         ]);
+
+    //         // Update Reschedule request
+    //         $reschedule = RescheduleRequest::where('work_id', $work->id)->first();
+    //         if ($reschedule) {
+    //             $reschedule->update([
+    //                 'status' => false,
+    //             ]);
+    //         }
+
+    //         DB::commit();
+
+    //         return response()->json([
+    //             'status'  => true,
+    //             'message' => 'Work rescheduled!',
+    //             'data'    => $work,
+    //         ], 200);
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'Something went wrong: ' . $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+    // Update/Reschedule work
     public function rescheduleUpdate(Request $request, $id)
     {
         DB::beginTransaction();
 
         try {
             $work = Work::find($id);
+
             if (!$work) {
                 return response()->json([
                     'status' => false,
@@ -560,49 +699,105 @@ class WorkManageController extends Controller
                 ], 404);
             }
 
-            // Validation (match frontend fields!)
+            // Validation
             $validator = Validator::make($request->all(), [
-                'time' => 'nullable|date_format:H:i',
-                'suggested_date'  => 'nullable|date',
+                'work_date' => 'required|date',
+                'start_time' => 'required_if:is_all_day,false|nullable|date_format:h:i A',
+                'end_time' => 'required_if:is_all_day,false|nullable|date_format:h:i A',
+                'is_all_day' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
-                    'status'  => false,
+                    'status' => false,
                     'message' => 'Validation failed',
-                    'errors'  => $validator->errors(),
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
-            // Update Work
+            // Prepare new datetime
+            $isAllDay = $request->is_all_day ?? false;
+
+            if ($isAllDay) {
+                $startDatetime = Carbon::parse($request->work_date)->startOfDay();
+                $endDatetime = Carbon::parse($request->work_date)->endOfDay();
+            } else {
+                $startDatetime = Carbon::parse($request->work_date . ' ' . $request->start_time);
+                $endDatetime = Carbon::parse($request->work_date . ' ' . $request->end_time);
+            }
+
+            // Update work
             $work->update([
-                'time'     => $request->time,
-                'work_date'      => $request->suggested_date,
-                'is_rescheduled' => true,
-                'is_completed' => false,
+                'start_datetime' => $startDatetime,
+                'end_datetime' => $endDatetime,
+                'is_all_day' => $isAllDay,
+                'is_rescheduled' => true, // Mark as rescheduled
             ]);
 
-            // Update Reschedule request
-            $reschedule = RescheduleRequest::where('work_id', $work->id)->first();
-            if ($reschedule) {
-                $reschedule->update([
-                    'status' => false,
-                ]);
+            // Google Calendar sync (if connected)
+            $user = auth()->user();
+            if ($user && $user->google_access_token && $work->google_event_id) {
+                try {
+                    $token = json_decode($user->google_access_token, true);
+
+                    if (is_array($token)) {
+                        if (!isset($token['refresh_token']) && $user->google_refresh_token) {
+                            $token['refresh_token'] = $user->google_refresh_token;
+                        }
+
+                        $newToken = $this->googleCalendar->setAccessToken($token);
+
+                        if ($newToken) {
+                            $user->google_access_token = json_encode($newToken);
+
+                            if (isset($newToken['refresh_token'])) {
+                                $user->google_refresh_token = $newToken['refresh_token'];
+                            }
+
+                            if (isset($newToken['expires_in'])) {
+                                $user->google_token_expires_at = Carbon::now()->addSeconds($newToken['expires_in']);
+                            }
+
+                            $user->save();
+                        }
+
+                        // Update in Google Calendar
+                        $this->googleCalendar->updateEvent($work);
+
+                        $work->update([
+                            'google_synced_at' => Carbon::now(),
+                        ]);
+
+                        Log::info('Rescheduled work synced to Google Calendar', [
+                            'work_id' => $work->id
+                        ]);
+                    }
+                } catch (Exception $e) {
+                    Log::error('Google Calendar sync failed during reschedule', [
+                        'work_id' => $work->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
 
             DB::commit();
 
             return response()->json([
-                'status'  => true,
-                'message' => 'Work rescheduled!',
-                'data'    => $work,
+                'status' => true,
+                'message' => 'Work rescheduled successfully!',
+                'data' => $work,
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
 
+            Log::error('Reschedule Update Error', [
+                'work_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
             return response()->json([
-                'status'  => false,
-                'message' => 'Something went wrong: ' . $e->getMessage(),
+                'status' => false,
+                'message' => 'Failed to reschedule: ' . $e->getMessage(),
             ], 500);
         }
     }

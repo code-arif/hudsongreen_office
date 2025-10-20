@@ -58,7 +58,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/category', [WorkManageController::class, 'getCategory'])->name('categroy');
 
         // work reschedule request
-        Route::get('/reschedule-request/edit/{id}', [WorkManageController::class, 'reschedultEdit'])->name('reschedule.edit');
+        Route::get('/work/reschedule/{id}', [WorkManageController::class, 'rescheduleShow'])->name('reschedule.show');
+        Route::get('/reschedule-request/edit/{id}', [WorkManageController::class, 'rescheduleEdit'])->name('reschedule.edit');
         Route::post('/reschedule-request/update/{id}', [WorkManageController::class, 'rescheduleUpdate'])->name('reschedule.update');
     });
 

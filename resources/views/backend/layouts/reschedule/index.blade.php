@@ -317,7 +317,7 @@
     </script>
 @endpush
 
-{{-- script push --}}
+{{-- styles push --}}
 @push('styles')
     <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.13.18/jquery.timepicker.min.css">

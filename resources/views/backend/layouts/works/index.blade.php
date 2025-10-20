@@ -47,15 +47,6 @@
 
                                 <div class="card-header border-bottom mb-3">
                                     <div class="card-options ms-auto d-flex align-items-center gap-2">
-
-                                        {{-- re schedule request filtering --}}
-                                        <select id="rescheduleFilter" class="form-select form-select-sm"
-                                            style="width: 180px">
-                                            <option value="">All Works</option>
-                                            <option value="1">With Reschedule Request</option>
-                                            <option value="0">Without Reschedule Request</option>
-                                        </select>
-
                                         <!-- Completed Filter -->
                                         <select id="filter_completed" class="form-select form-select-sm"
                                             style="width: 180px;">
@@ -113,9 +104,6 @@
 
     {{-- Add/Edit work Modal --}}
     @include('backend.layouts.works.create_work')
-
-    {{-- Work reschedule modal --}}
-    @include('backend.layouts.works.work_reschedule')
 @endsection
 
 @push('styles')
@@ -342,7 +330,6 @@
 
         //document ready functionq
         $(document).ready(function() {
-
             $.ajaxSetup({
                 headers: {
                     "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
@@ -741,122 +728,5 @@
                 }
             });
         }
-    </script>
-
-
-    {{-- work reschedule request manage --}}
-    <script>
-        $(document).ready(function() {
-            $.ajaxSetup({
-                headers: {
-                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
-                }
-            });
-
-            // Handle form submission
-            $('#WorkRescheduleForm').on('submit', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                let formData = new FormData(this);
-                let workId = $('#workRescheduleID').val();
-
-                let url = "{{ route('work.reschedule.update', ':id') }}";
-                url = url.replace(':id', workId);
-
-                formData.append('work_id', workId);
-
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    beforeSend: function() {
-                        $('span.error-text').text('');
-                        $('#workRescheduleSubmitBtn')
-                            .prop('disabled', true)
-                            .html('Processing...');
-                    },
-                    success: function(response) {
-                        $('#workRescheduleSubmitBtn').prop('disabled', false).html(
-                            'Save changes');
-
-                        if (!response.status) {
-                            if (response.errors) {
-                                $.each(response.errors, function(prefix, val) {
-                                    $('span.' + prefix + '_error').text(val[0]);
-                                });
-                            } else {
-                                toastr.error(response.message || 'Something went wrong.');
-                            }
-                        } else {
-                            $('#WorkRescheduleModal').modal('hide');
-                            $('#WorkRescheduleForm')[0].reset();
-                            toastr.success(response.message ||
-                                'Reschedule updated successfully.');
-                            $('#datatable').DataTable().ajax.reload();
-                        }
-                    },
-                    error: function(xhr) {
-                        $('#workRescheduleSubmitBtn').prop('disabled', false).html(
-                            'Save changes');
-                        if (xhr.status === 422) {
-                            $.each(xhr.responseJSON.errors, function(prefix, val) {
-                                prefix = prefix.replace(/\./g, '_');
-                                $('span.' + prefix + '_error').text(val[0]);
-                            });
-                        } else {
-                            toastr.error(xhr.responseJSON?.message || 'Something went wrong.');
-                        }
-                    }
-                });
-            });
-
-
-            // Open modal and load work details
-            $(document).on('click', '.WorkRescheduleBtn', function() {
-                let id = $(this).data('id');
-                let url = "{{ route('work.reschedule.edit', ':id') }}".replace(':id', id);
-
-                $.get(url, function(response) {
-                    if (response.success) {
-                        let work = response.data; // Work main object
-                        let request = work.request || {}; // Nested reschedule request
-
-                        // Work ID for update
-                        $('#workRescheduleID').val(work.id);
-
-                        // Display Work Info
-                        $('#work_reschedule_title').text(work.title ?? '---');
-                        $('#work_reschedule_description').text(work.description ?? '---');
-                        $('#work_reschedule_location').text(work.location ?? '---');
-
-                        if (work.latitude && work.longitude) {
-                            let mapUrl =
-                                `https://www.google.com/maps/search/?api=1&query=${work.latitude},${work.longitude}`;
-                            $('#work_reschedule_location_link')
-                                .attr('href', mapUrl)
-                                .attr('target', '_blank')
-                                .attr('title', 'View on Google Maps');
-                        } else {
-                            $('#work_reschedule_location_link').removeAttr('href');
-                        }
-
-                        $('#work_reschedule_time').text(work.time ?? '---');
-                        $('#work_reschedule_date').text(work.work_date ?? '---');
-
-                        // Suggested fields (editable)
-                        $('#suggested_time').val(request.time ?? '');
-                        $('#suggested_work_date').val(request.suggested_date ?? '');
-
-                        $('#WorkRescheduleModalLabel').text('Reschedule Work');
-                        $('#WorkRescheduleModal').modal('show');
-                    } else {
-                        toastr.error(response.message || 'Failed to load work details.');
-                    }
-                });
-            });
-        });
     </script>
 @endpush
