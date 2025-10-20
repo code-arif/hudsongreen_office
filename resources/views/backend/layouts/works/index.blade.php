@@ -652,8 +652,9 @@
                         // Description
                         if (work.description) {
                             $('#view_description_wrapper').show();
-                            $('#view_work_description').text(work.description);
+                            $('#view_work_description').html(work.description); // ✅ render HTML
                         }
+
 
                         // Date & Time
                         let startDate = work.start_datetime ? new Date(work.start_datetime)
@@ -681,11 +682,11 @@
                         if (work.is_all_day) {
                             $('#view_is_all_day').html(
                                 '<span class="badge bg-info"> Yes</span>'
-                                );
+                            );
                         } else {
                             $('#view_is_all_day').html(
                                 '<span class="badge bg-secondary"> No</span>'
-                                );
+                            );
                         }
 
                         // Location
