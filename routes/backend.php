@@ -1,16 +1,17 @@
 <?php
 
-use App\Http\Controllers\Web\Backend\CalendarController;
-use App\Http\Controllers\Web\Backend\EmployeeAssignController;
-use App\Http\Controllers\Web\Backend\WorkManageController;
-use App\Http\Controllers\Web\Backend\WorkScheduleRequest;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Web\Backend\DashboardController;
-use App\Http\Controllers\Web\Backend\EmployeeManageController;
+use App\Http\Controllers\Web\TrackingController;
 use App\Http\Controllers\Web\Backend\MapController;
+use App\Http\Controllers\Web\Backend\CalendarController;
+use App\Http\Controllers\Web\Backend\DashboardController;
+use App\Http\Controllers\Web\Backend\WorkScheduleRequest;
+use App\Http\Controllers\Web\Backend\TeamManageController;
+use App\Http\Controllers\Web\Backend\WorkManageController;
+use App\Http\Controllers\Web\Backend\EmployeeAssignController;
+use App\Http\Controllers\Web\Backend\EmployeeManageController;
 use App\Http\Controllers\Web\Backend\Settings\ProfileController;
 use App\Http\Controllers\Web\Backend\Settings\SettingController;
-use App\Http\Controllers\Web\Backend\TeamManageController;
 
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -72,6 +73,20 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/global-map', [MapController::class, 'globalMap'])->name('map.global');
     Route::get('/filter-works/{teamId}', [MapController::class, 'filterWorksByTeam'])->name('works.filter');
     Route::get('/works/search-teams', [MapController::class, 'searchTeams'])->name('works.searchTeams');
+
+
+    // locaiton trackine
+    Route::prefix('admin')->group(function () {
+        Route::get('/tracking/locations', [TrackingController::class, 'getLocations']);
+        Route::get('/tracking/teams', [TrackingController::class, 'getTeams']);
+        Route::get('/tracking/history/{teamId}', [TrackingController::class, 'getHistory']);
+    });
+
+    // tracking page
+    Route::get('/admin/tracking', function () {
+        $teams = \App\Models\Team::all();
+        return view('backend.layouts.map.tracking', compact('teams'));
+    })->name('admin.tracking');
 });
 
 

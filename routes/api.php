@@ -1,9 +1,11 @@
 <?php
-use App\Http\Controllers\Api\WorkController;
-use App\Http\Controllers\Api\WorkScheduleRequest;
+
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\Auth\AuthenticationController;
+use App\Http\Controllers\Api\WorkController;
+use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\UserListController;
+use App\Http\Controllers\Api\WorkScheduleRequest;
+use App\Http\Controllers\Api\Auth\AuthenticationController;
 
 //health-check
 Route::get("/check", function () {
@@ -40,4 +42,8 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::post('/incomplete/{id}', [WorkController::class, 'inCompleteWork']); // work imcomplation
         Route::get('/details/{id}', [WorkController::class, 'show']);
     });
+
+    // Employee/Team Member Routes (Flutter App)
+    Route::post('/location/update', [LocationController::class, 'update']);
+    Route::get('/location/status', [LocationController::class, 'status']);
 });

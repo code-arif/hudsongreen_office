@@ -84,6 +84,15 @@
                     </a>
                 </li>
 
+                {{-- track team --}}
+                <li class="slide">
+                    <a class="side-menu__item {{ request()->routeIs('admin.tracking') ? 'has-link' : '' }}"
+                        href="{{ route('admin.tracking') }}">
+                        <i class="fa fa-map"></i>
+                        <span class="side-menu__label">Track Team</span>
+                    </a>
+                </li>
+
                 {{-- Settings --}}
                 <li class="slide">
                     <a class="side-menu__item" data-bs-toggle="slide" href="#">
