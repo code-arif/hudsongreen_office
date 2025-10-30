@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Team extends Model
 {
-    protected $fillable = ['name', 'unique_id', 'description'];
+    protected $fillable = ['name', 'description'];
 
     public function users()
     {
@@ -28,5 +28,18 @@ class Team extends Model
     public function works()
     {
         return $this->hasMany(Work::class, 'team_id');
+    }
+
+    public function locations()
+    {
+        return $this->hasMany(TeamLocation::class);
+    }
+
+    // Get team leader
+    public function leader()
+    {
+        return $this->belongsToMany(User::class, 'team_users')
+            ->wherePivot('is_leader', true)
+            ->first();
     }
 }

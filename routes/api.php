@@ -43,7 +43,8 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::get('/details/{id}', [WorkController::class, 'show']);
     });
 
-    // Employee/Team Member Routes (Flutter App)
+
     Route::post('/location/update', [LocationController::class, 'update']);
-    Route::get('/location/status', [LocationController::class, 'status']);
+    Route::get('/locations/current', [LocationController::class, 'getCurrentLocations']);
+    Route::get('/team/{teamId}/history', [LocationController::class, 'getTeamHistory']);
 });

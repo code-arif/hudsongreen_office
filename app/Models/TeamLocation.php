@@ -13,14 +13,21 @@ class TeamLocation extends Model
         'latitude',
         'longitude',
         'accuracy',
+        'speed',
+        'bearing',
+        'altitude',
+        'battery_level',
+        'is_mock_location',
+        'activity_type',
         'status',
         'tracked_at'
     ];
 
     protected $casts = [
         'tracked_at' => 'datetime',
+        'is_mock_location' => 'boolean',
         'latitude' => 'decimal:7',
-        'longitude' => 'decimal:7',
+        'longitude' => 'decimal:7'
     ];
 
     public function team()
@@ -31,5 +38,17 @@ class TeamLocation extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    // Scope for recent locations
+    public function scopeRecent($query, $minutes = 10)
+    {
+        return $query->where('tracked_at', '>=', now()->subMinutes($minutes));
+    }
+
+    // Scope for active status
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
     }
 }

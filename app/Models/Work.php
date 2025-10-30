@@ -17,6 +17,7 @@ class Work extends Model
         'location',
         'latitude',
         'longitude',
+        'geofence_radius',
         'start_datetime',
         'end_datetime',
         'is_all_day',
@@ -36,6 +37,7 @@ class Work extends Model
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
     ];
+
 
     // relation with team table
     public function team()
@@ -108,5 +110,17 @@ class Work extends Model
     public function scopeDateRange($query, $startDate, $endDate)
     {
         return $query->whereBetween('work_date', [$startDate, $endDate]);
+    }
+
+    // for work tracking in google map
+    public function tracking()
+    {
+        return $this->hasOne(WorkTracking::class);
+    }
+
+    // Check if work has location
+    public function hasLocation()
+    {
+        return !is_null($this->latitude) && !is_null($this->longitude);
     }
 }

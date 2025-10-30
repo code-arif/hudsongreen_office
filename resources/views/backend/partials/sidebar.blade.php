@@ -85,11 +85,19 @@
                 </li>
 
                 {{-- track team --}}
-                <li class="slide">
+                {{-- <li class="slide">
                     <a class="side-menu__item {{ request()->routeIs('admin.tracking') ? 'has-link' : '' }}"
                         href="{{ route('admin.tracking') }}">
                         <i class="fa fa-map"></i>
                         <span class="side-menu__label">Track Team</span>
+                    </a>
+                </li> --}}
+
+
+                <li class="slide">
+                    <a class="side-menu__item" href="{{ route('admin.tracking.index') }}">
+                        <i class="side-menu__icon fe fe-map-pin"></i>
+                        <span class="side-menu__label">Track Teams</span>
                     </a>
                 </li>
 

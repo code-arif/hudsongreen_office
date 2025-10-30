@@ -75,18 +75,14 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/works/search-teams', [MapController::class, 'searchTeams'])->name('works.searchTeams');
 
 
-    // locaiton trackine
-    Route::prefix('admin')->group(function () {
-        Route::get('/tracking/locations', [TrackingController::class, 'getLocations']);
-        Route::get('/tracking/teams', [TrackingController::class, 'getTeams']);
-        Route::get('/tracking/history/{teamId}', [TrackingController::class, 'getHistory']);
+    // Admin routes
+    Route::prefix('tracking')->name('admin.')->group(function () {
+        Route::get('/', [TrackingController::class, 'index'])->name('tracking.index');
+        Route::get('/locations', [TrackingController::class, 'getLocations'])->name('tracking.locations');
+        Route::get('/teams', [TrackingController::class, 'getActiveTeams'])->name('tracking.teams');
+        Route::get('/team/{teamId}/history', [TrackingController::class, 'getTeamHistory'])->name('tracking.team.history');
+        Route::get('/team/{teamId}/route', [TrackingController::class, 'getTeamRoute'])->name('tracking.team.route');
     });
-
-    // tracking page
-    Route::get('/admin/tracking', function () {
-        $teams = \App\Models\Team::all();
-        return view('backend.layouts.map.tracking', compact('teams'));
-    })->name('admin.tracking');
 });
 
 
