@@ -6,42 +6,56 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('team_locations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('team_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // je login koreche
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
+            // Location data
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
-            $table->decimal('accuracy', 8, 2)->nullable(); // GPS accuracy in meters
-            $table->string('status')->default('active'); // active, idle, offline
-            $table->timestamp('tracked_at'); // location er actual time
+            $table->decimal('accuracy', 8, 2)->nullable();
+            $table->decimal('speeds', 8, 2)->nullable(); // km/h
+            $table->decimal('bearing', 8, 2)->nullable();
+            $table->decimal('altitude', 10, 2)->nullable();
+
+            // Device info
+            $table->string('device_id')->nullable();
+            $table->string('network_type')->nullable();
+            $table->integer('signal_strength')->nullable();
+            $table->string('battery_level')->nullable();
+            $table->boolean('is_mock_location')->default(false);
+            $table->string('activity_type')->nullable();
+
+            // Status tracking
+            $table->enum('status', ['active', 'idle', 'offline'])->default('active');
+            $table->timestamp('tracked_at');
+
             $table->timestamps();
 
-            $table->index(['team_id', 'tracked_at']);
-            $table->index('user_id');
+            // Indexes for performance
+            $table->index(['team_id', 'status', 'tracked_at'], 'team_status_tracked_index');
+            $table->index(['user_id', 'tracked_at'], 'user_tracked_index');
         });
 
-        Schema::table('works', function (Blueprint $table) {
-            $table->decimal('geofence_radius', 8, 2)->default(100)->after('longitude'); // meters
-        });
+        // Optional: add geofence_radius to works table
+        if (Schema::hasTable('works') && !Schema::hasColumn('works', 'geofence_radius')) {
+            Schema::table('works', function (Blueprint $table) {
+                $table->decimal('geofence_radius', 8, 2)->default(100)->after('longitude');
+            });
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        // Drop the team_locations table
         Schema::dropIfExists('team_locations');
 
-        // Remove the added column from works table
-        Schema::table('works', function (Blueprint $table) {
-            $table->dropColumn('geofence_radius');
-        });
+        if (Schema::hasTable('works') && Schema::hasColumn('works', 'geofence_radius')) {
+            Schema::table('works', function (Blueprint $table) {
+                $table->dropColumn('geofence_radius');
+            });
+        }
     }
 };

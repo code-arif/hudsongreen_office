@@ -1,33 +1,94 @@
 <?php
 
-use Illuminate\Support\Facades\Broadcast;
 use App\Models\Room;
-
-/* Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
-}); */
-
-Broadcast::channel('test-notify.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
-});
-
-Broadcast::channel('notify.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
-});
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Broadcast;
 
 /*
-# chat
+|--------------------------------------------------------------------------
+| Broadcast Channels
+|--------------------------------------------------------------------------
+|
+| Here you may register all of the event broadcasting channels that your
+| application supports. The given channel authorization callbacks are
+| used to check if an authenticated user can listen to the channel.
+|
 */
 
-Broadcast::channel('chat-room.{room_id}', function ($user, $room_id) {
-    $room = Room::find($room_id);
-    return (int) $user->id === (int) $room?->user_one_id || (int) $user->id === (int) $room?->user_two_id;
+/**
+ * Location Tracking Channels
+ * Public channel - Anyone can listen to team locations
+ */
+Broadcast::channel('team-location.{teamId}', function ($user, $teamId) {
+    // Option 1: Public channel (anyone can listen)
+    // return true;
+
+    // Option 2: Only admin can listen (recommended for admin dashboard)
+    if ($user->role === 'admin') {
+        return true;
+    }
+
+    // Option 3: Team members can listen to their own team
+    $isMember = DB::table('team_users')
+        ->where('team_id', $teamId)
+        ->where('user_id', $user->id)
+        ->exists();
+
+    return $isMember;
 });
 
-Broadcast::channel('chat-receiver.{receiver_id}', function ($user, $receiver_id) {
-    return (int) $user->id === (int) $receiver_id;
+/**
+ * Private channel - User's personal notifications
+ */
+Broadcast::channel('user.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
 });
 
-Broadcast::channel('chat-sender.{sender_id}', function ($user, $sender_id) {
-    return (int) $user->id === (int) $sender_id;
+/**
+ * Presence channel - Who's online in a team
+ * (Optional - for future features)
+ */
+Broadcast::channel('team.{teamId}', function ($user, $teamId) {
+    $teamUser = DB::table('team_users')
+        ->where('team_id', $teamId)
+        ->where('user_id', $user->id)
+        ->first();
+
+    if ($teamUser) {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'avatar' => $user->avatar,
+            'is_leader' => $teamUser->is_leader
+        ];
+    }
+
+    return false;
+});
+
+/**
+ * Admin-only channel - All locations
+ */
+Broadcast::channel('admin-tracking', function ($user) {
+    return $user->role === 'admin' ? [
+        'id' => $user->id,
+        'name' => $user->name
+    ] : false;
+});
+
+/**
+ * Work status updates channel
+ */
+Broadcast::channel('work.{workId}', function ($user, $workId) {
+    // Check if user's team is assigned to this work
+    $work = \App\Models\Work::find($workId);
+
+    if (!$work) return false;
+
+    $isMember = DB::table('team_users')
+        ->where('team_id', $work->team_id)
+        ->where('user_id', $user->id)
+        ->exists();
+
+    return $isMember || $user->role === 'admin';
 });

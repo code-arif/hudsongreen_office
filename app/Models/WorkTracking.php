@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkTracking extends Model
 {
-    protected $table = 'work_tracking';
+    protected $table = 'work_trackings';
 
     protected $fillable = [
         'work_id',

@@ -13,14 +13,17 @@ class TeamLocation extends Model
         'latitude',
         'longitude',
         'accuracy',
-        'speed',
+        'speeds',
         'bearing',
         'altitude',
         'battery_level',
         'is_mock_location',
         'activity_type',
         'status',
-        'tracked_at'
+        'tracked_at',
+        'device_id',
+        'network_type',
+        'signal_strength'
     ];
 
     protected $casts = [
