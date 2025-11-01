@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use Exception;
 use App\Models\Team;
+use App\Models\Work;
 use App\Models\TeamLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -114,7 +115,7 @@ class TrackingController extends Controller
                     'total_points' => $locations->count()
                 ]
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch team route',
@@ -191,7 +192,7 @@ class TrackingController extends Controller
                 'data' => $history,
                 'analytics' => $analytics
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch team history',
