@@ -37,6 +37,8 @@ return new class extends Migration
             $table->string('google_event_id')->nullable()->unique();
             $table->timestamp('google_synced_at')->nullable();
 
+            $table->decimal('geofence_radius', 8, 2)->default(50);
+
             $table->timestamps();
         });
     }

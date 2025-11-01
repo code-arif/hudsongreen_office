@@ -24,7 +24,10 @@
                                 <button class="btn btn-outline-primary" id="fitBoundsBtn">
                                     <i class="fa fa-arrows-alt"></i> Fit All
                                 </button>
-                                <span class="badge bg-success fs-6 px-3 py-4" id="connectionStatus">
+                                <button class="btn btn-outline-secondary" id="clearMapBtn">
+                                    <i class="fa fa-eraser"></i> Clear
+                                </button>
+                                <span class="badge bg-success fs-6 px-3 py-2" id="connectionStatus">
                                     <i class="fa fa-circle pulse"></i> Connecting...
                                 </span>
                             </div>
@@ -37,27 +40,44 @@
                     <div class="col-xl-9 col-lg-8 col-12">
                         <div class="card shadow-sm">
                             <!-- Map Controls -->
-                            <div class="card-header bg-white border-bottom">
-                                <div
-                                    class="d-flex justify-content-between align-items-center flex-nowrap gap-3 flex-shrink-0">
-                                    <h3 class="card-title mb-0 text-nowrap">
-                                        <i class="fa fa-map text-primary me-2"></i>
-                                        Live Map View
-                                    </h3>
+                            <div class="card-header bg-white border-bottom py-4">
+                                <div class="row align-items-center gx-3">
+                                    <!-- Title -->
+                                    <div class="col-auto">
+                                        <h3 class="card-title mb-0 d-flex align-items-center">
+                                            <i class="fa fa-map text-primary me-2"></i>
+                                            Live Map View
+                                        </h3>
+                                    </div>
 
-                                    <div class="d-flex align-items-center gap-3">
-                                        <select class="form-select" id="teamFilter" style="min-width: 180px;">
+                                    <!-- Team Filter -->
+                                    <div class="col-auto" style="margin-right: 25px">
+                                        <select class="form-select form-select-sm" id="teamFilter"
+                                            style="min-width: 180px;">
                                             <option value="">All Teams</option>
                                             @foreach ($teams as $team)
                                                 <option value="{{ $team->id }}">{{ $team->name }}</option>
                                             @endforeach
                                         </select>
+                                    </div>
 
-                                        <!-- HTML -->
-                                        <div class="form-check form-switch mb-0" style="margin-left: 25px">
+                                    <!-- Show Routes Switch -->
+                                    <div class="col-auto" style="margin-right: 25px">
+                                        <div class="form-check form-switch m-0">
                                             <input class="form-check-input custom-switch" type="checkbox" id="showRoutes">
-                                            <label class="form-check-label ms-2 fw-semibold" for="showRoutes">
+                                            <label class="form-check-label ms-3 fw-semibold" for="showRoutes">
                                                 Show Routes
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Show Works Switch -->
+                                    <div class="col-auto" style="margin-right: 25px">
+                                        <div class="form-check form-switch m-0">
+                                            <input class="form-check-input custom-switch" type="checkbox"
+                                                id="showWorkMarkers" checked>
+                                            <label class="form-check-label ms-3 fw-semibold" for="showWorkMarkers">
+                                                Show Works
                                             </label>
                                         </div>
                                     </div>
@@ -205,17 +225,6 @@
             background: linear-gradient(135deg, #007bff 0%, #28a745 100%);
         }
 
-        .connection-pulse {
-            width: 12px;
-            height: 12px;
-            background: #28a745;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-            animation: connectionPulse 2s infinite;
-        }
-
-        /* Custom toggle design */
         .custom-switch {
             width: 2.8rem;
             height: 1.5rem;
@@ -223,31 +232,50 @@
             transition: all 0.3s ease;
         }
 
-        /* Red when active */
         .custom-switch:checked {
             background-color: #dc3545;
             border-color: #dc3545;
         }
 
-        /* Label style */
         .form-check-label {
             font-size: 0.9rem;
             font-weight: 500;
         }
+    </style>
 
-        @keyframes connectionPulse {
-
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
-            }
-
-            50% {
-                box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
-            }
+    <!-- Custom CSS -->
+    <style>
+        /* Make all items stay in one line with wrapping if screen small */
+        .card-header .row {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            white-space: nowrap;
         }
 
-        /* CSS */
+        /* Custom switch size */
+        .custom-switch {
+            width: 2.8em !important;
+            height: 1.5em !important;
+        }
+
+        .custom-switch:checked {
+            background-color: #13bfa6 !important;
+            /* Red when active */
+            border-color: #13bfa6 !important;
+        }
+
+        /* Make switch knob slightly bigger */
+        .custom-switch::before {
+            height: 1.1em !important;
+            width: 1.1em !important;
+            margin-top: 0.15em;
+        }
+
+        /* Optional: adjust label alignment */
+        .form-check-label {
+            user-select: none;
+            font-size: 0.95rem;
+        }
     </style>
 @endpush
 
@@ -261,7 +289,16 @@
         let workMarkers = {};
         let selectedTeamId = null;
         let allLocationsData = [];
+        let currentTeamRoute = null;
         let echo;
+
+        // Routes configuration
+        const routes = {
+            locations: '{{ route('admin.tracking.locations') }}',
+            teams: '{{ route('admin.tracking.teams') }}',
+            teamHistory: '{{ route('admin.tracking.team.history', ['teamId' => ':teamId']) }}',
+            teamRoute: '{{ route('admin.tracking.team.route', ['teamId' => ':teamId']) }}'
+        };
 
         // Initialize Laravel Echo with Reverb
         function initializeEcho() {
@@ -277,7 +314,6 @@
                 disableStats: true,
             });
 
-            // Subscribe to location updates
             const channel = echo.subscribe('location-tracking');
 
             channel.bind('pusher:subscription_succeeded', () => {
@@ -295,7 +331,6 @@
                 handleRealtimeLocation(data);
             });
 
-            // Connection state monitoring
             echo.connection.bind('connected', () => {
                 console.log('🟢 WebSocket Connected');
                 updateConnectionStatus('connected');
@@ -314,7 +349,6 @@
 
         // Handle real-time location updates
         function handleRealtimeLocation(data) {
-            // Apply team filter
             if (selectedTeamId && data.team_id != selectedTeamId) {
                 return;
             }
@@ -325,9 +359,7 @@
                 lng: parseFloat(data.longitude)
             };
 
-            // Update or create marker
             if (markers[key]) {
-                // Smooth marker animation
                 markers[key].setPosition(position);
                 if (markers[key].getAnimation() === null) {
                     markers[key].setAnimation(google.maps.Animation.BOUNCE);
@@ -337,16 +369,16 @@
                 createMarker(data, position, key);
             }
 
-            // Update info window
             if (infoWindows[key]) {
                 infoWindows[key].setContent(createInfoWindowContent(data));
             }
 
-            // Update team list
             updateTeamInList(data);
 
-            // Play notification sound (optional)
-            playNotificationSound();
+            // Update route if "Show Routes" is enabled
+            if ($('#showRoutes').is(':checked') && selectedTeamId) {
+                fetchTeamRoute(selectedTeamId);
+            }
         }
 
         // Create new marker
@@ -426,7 +458,7 @@
             console.log('📡 Fetching initial locations...');
 
             const teamId = $('#teamFilter').val();
-            const url = '{{ route('admin.tracking.locations') }}' + (teamId ? `?team_id=${teamId}` : '');
+            const url = routes.locations + (teamId ? `?team_id=${teamId}` : '');
 
             $.ajax({
                 url: url,
@@ -441,8 +473,165 @@
                 },
                 error: function(xhr) {
                     console.error('❌ Failed to fetch locations:', xhr);
+                    alert('Failed to fetch locations. Please try again.');
                 }
             });
+        }
+
+        // Fetch team route (NEW)
+        function fetchTeamRoute(teamId) {
+            const url = routes.teamRoute.replace(':teamId', teamId);
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                data: {
+                    hours: 24
+                },
+                success: function(response) {
+                    if (response.success) {
+                        console.log('✅ Team route fetched:', response.data);
+                        currentTeamRoute = response.data;
+                        drawTeamRoute(response.data);
+                        drawWorkMarkers(response.data.works);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('❌ Failed to fetch team route:', xhr);
+                }
+            });
+        }
+
+        // Draw team route polyline (NEW)
+        function drawTeamRoute(routeData) {
+            // Clear existing polylines
+            Object.values(polylines).forEach(polyline => polyline.setMap(null));
+            polylines = {};
+
+            if (!routeData.route || routeData.route.length < 2) {
+                console.log('No route data to draw');
+                return;
+            }
+
+            const path = routeData.route.map(loc => ({
+                lat: parseFloat(loc.latitude),
+                lng: parseFloat(loc.longitude)
+            }));
+
+            const polyline = new google.maps.Polyline({
+                path: path,
+                geodesic: true,
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 3,
+                map: map
+            });
+
+            polylines[`team_${routeData.team.id}`] = polyline;
+
+            // Fit bounds to route
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(point => bounds.extend(point));
+            map.fitBounds(bounds);
+        }
+
+        // Draw work markers (NEW)
+        function drawWorkMarkers(works) {
+            // Clear existing work markers
+            Object.values(workMarkers).forEach(marker => marker.setMap(null));
+            workMarkers = {};
+
+            if (!$('#showWorkMarkers').is(':checked')) {
+                return;
+            }
+
+            works.forEach(work => {
+                if (!work.latitude || !work.longitude) return;
+
+                const position = {
+                    lat: parseFloat(work.latitude),
+                    lng: parseFloat(work.longitude)
+                };
+
+                const status = work.tracking_status || 'pending';
+                const color = getWorkColor(status);
+
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: work.title,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: color,
+                        fillOpacity: 0.9,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 2
+                    }
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: createWorkInfoWindowContent(work)
+                });
+
+                marker.addListener('click', () => {
+                    closeAllInfoWindows();
+                    infoWindow.open(map, marker);
+                });
+
+                workMarkers[`work_${work.id}`] = marker;
+            });
+        }
+
+        // Get work marker color based on status (NEW)
+        function getWorkColor(status) {
+            const colors = {
+                'completed': '#28a745',
+                'in_progress': '#dc3545',
+                'pending': '#007bff',
+                'rescheduled': '#ffc107'
+            };
+            return colors[status] || '#6c757d';
+        }
+
+        // Create work info window content (NEW)
+        function createWorkInfoWindowContent(work) {
+            const status = work.tracking_status || 'pending';
+            const statusBadge = {
+                'completed': '<span class="badge bg-success">Completed</span>',
+                'in_progress': '<span class="badge bg-danger">In Progress</span>',
+                'pending': '<span class="badge bg-primary">Pending</span>',
+                'rescheduled': '<span class="badge bg-warning">Rescheduled</span>'
+            };
+
+            const startTime = work.start_datetime ? new Date(work.start_datetime).toLocaleString() : 'N/A';
+            const completedAt = work.completed_at ? new Date(work.completed_at).toLocaleString() : 'N/A';
+
+            return `<div style="padding: 15px; min-width: 250px;">
+                <h5 style="margin: 0 0 10px; color: #333; border-bottom: 2px solid ${getWorkColor(status)}; padding-bottom: 8px;">
+                    📋 ${work.title}
+                </h5>
+                <div style="font-size: 13px; line-height: 1.8;">
+                    <div><strong>Status:</strong> ${statusBadge[status]}</div>
+                    <div><strong>📍 Location:</strong> ${work.location || 'N/A'}</div>
+                    <div><strong>🕐 Scheduled:</strong> ${startTime}</div>
+                    ${status === 'completed' ? `<div><strong>✅ Completed:</strong> ${completedAt}</div>` : ''}
+                    ${work.description ? `<div class="mt-2"><strong>Description:</strong><br>${work.description}</div>` : ''}
+                </div>
+            </div>`;
+        }
+
+        // Clear map (NEW)
+        function clearMap() {
+            Object.values(markers).forEach(marker => marker.setMap(null));
+            Object.values(polylines).forEach(polyline => polyline.setMap(null));
+            Object.values(workMarkers).forEach(marker => marker.setMap(null));
+
+            markers = {};
+            polylines = {};
+            workMarkers = {};
+
+            console.log('✅ Map cleared');
         }
 
         // Update map with locations
@@ -563,7 +752,14 @@
                 const teamId = $(this).data('team-id');
                 selectedTeamId = teamId;
                 $('#teamFilter').val(teamId);
+
+                // Fetch locations and route
                 fetchLocations();
+
+                if ($('#showRoutes').is(':checked')) {
+                    fetchTeamRoute(teamId);
+                }
+
                 $('.team-item').removeClass('active');
                 $(this).addClass('active');
             });
@@ -605,13 +801,6 @@
             Object.values(infoWindows).forEach(iw => iw.close());
         }
 
-        // Play notification sound
-        function playNotificationSound() {
-            // Optional: Add notification sound
-            // const audio = new Audio('/sounds/notification.mp3');
-            // audio.play().catch(e => console.log('Audio play failed:', e));
-        }
-
         // Load Google Maps
         function loadGoogleMaps() {
             if (typeof google !== 'undefined') {
@@ -636,14 +825,21 @@
 
         // Document ready
         $(document).ready(function() {
-            // Event handlers
+            // Refresh locations button
             $('#refreshLocations').click(fetchLocations);
 
+            // Team filter change
             $('#teamFilter').change(function() {
                 selectedTeamId = $(this).val() || null;
+                clearMap();
                 fetchLocations();
+
+                if ($('#showRoutes').is(':checked') && selectedTeamId) {
+                    fetchTeamRoute(selectedTeamId);
+                }
             });
 
+            // Fit bounds button
             $('#fitBoundsBtn').click(function() {
                 if (allLocationsData.length > 0) {
                     const bounds = new google.maps.LatLngBounds();
@@ -657,6 +853,44 @@
                 }
             });
 
+            // Clear map button (NEW)
+            $('#clearMapBtn').click(function() {
+                clearMap();
+                selectedTeamId = null;
+                $('#teamFilter').val('');
+                $('.team-item').removeClass('active');
+                console.log('✅ Map and filters cleared');
+            });
+
+            // Show routes toggle (NEW)
+            $('#showRoutes').change(function() {
+                if ($(this).is(':checked')) {
+                    if (selectedTeamId) {
+                        fetchTeamRoute(selectedTeamId);
+                    } else {
+                        alert('Please select a team first to show routes');
+                        $(this).prop('checked', false);
+                    }
+                } else {
+                    // Clear polylines
+                    Object.values(polylines).forEach(polyline => polyline.setMap(null));
+                    polylines = {};
+                }
+            });
+
+            // Show work markers toggle (NEW)
+            $('#showWorkMarkers').change(function() {
+                if ($(this).is(':checked')) {
+                    if (currentTeamRoute && currentTeamRoute.works) {
+                        drawWorkMarkers(currentTeamRoute.works);
+                    }
+                } else {
+                    // Hide work markers
+                    Object.values(workMarkers).forEach(marker => marker.setMap(null));
+                }
+            });
+
+            // Team search
             $('#teamSearch').on('keyup', function() {
                 const search = $(this).val().toLowerCase();
                 $('.team-item').each(function() {

@@ -13,7 +13,7 @@ class TeamLocation extends Model
         'latitude',
         'longitude',
         'accuracy',
-        'speeds',
+        'speed',
         'bearing',
         'altitude',
         'battery_level',

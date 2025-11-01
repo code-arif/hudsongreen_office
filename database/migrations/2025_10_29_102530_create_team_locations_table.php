@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
             $table->decimal('accuracy', 8, 2)->nullable();
-            $table->decimal('speeds', 8, 2)->nullable(); // km/h
+            $table->decimal('speed', 8, 2)->nullable(); // km/h
             $table->decimal('bearing', 8, 2)->nullable();
             $table->decimal('altitude', 10, 2)->nullable();
 
@@ -39,23 +39,10 @@ return new class extends Migration
             $table->index(['team_id', 'status', 'tracked_at'], 'team_status_tracked_index');
             $table->index(['user_id', 'tracked_at'], 'user_tracked_index');
         });
-
-        // Optional: add geofence_radius to works table
-        if (Schema::hasTable('works') && !Schema::hasColumn('works', 'geofence_radius')) {
-            Schema::table('works', function (Blueprint $table) {
-                $table->decimal('geofence_radius', 8, 2)->default(100)->after('longitude');
-            });
-        }
     }
 
     public function down(): void
     {
         Schema::dropIfExists('team_locations');
-
-        if (Schema::hasTable('works') && Schema::hasColumn('works', 'geofence_radius')) {
-            Schema::table('works', function (Blueprint $table) {
-                $table->dropColumn('geofence_radius');
-            });
-        }
     }
 };

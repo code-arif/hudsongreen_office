@@ -22,11 +22,11 @@ class LocationController extends Controller
         $validator = Validator::make($request->all(), [
             'team_id' => 'required|exists:teams,id',
             'device_id' => 'nullable|string',
-            'locations' => 'required|array|min:1|max:50', // Limit batch size
+            'locations' => 'required|array|min:1|max:50',
             'locations.*.latitude' => 'required|numeric|between:-90,90',
             'locations.*.longitude' => 'required|numeric|between:-180,180',
             'locations.*.accuracy' => 'nullable|numeric|min:0|max:1000',
-            'locations.*.speeds' => 'nullable|numeric|min:0',
+            'locations.*.speed' => 'nullable|numeric|min:0',
             'locations.*.bearing' => 'nullable|numeric|between:0,360',
             'locations.*.altitude' => 'nullable|numeric',
             'locations.*.battery_level' => 'nullable|string',
@@ -44,7 +44,7 @@ class LocationController extends Controller
         }
 
         try {
-            // Verify team membership
+            // Verify team membership and tracking status
             $teamUser = DB::table('team_users')
                 ->where('team_id', $request->team_id)
                 ->where('user_id', auth()->id())
@@ -57,26 +57,30 @@ class LocationController extends Controller
                 ], 403);
             }
 
-            // Check if tracking is enabled
             if (!$teamUser->is_tracking_active) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Location tracking is disabled'
+                    'message' => 'Location tracking is disabled for your account'
                 ], 403);
             }
 
             $savedLocations = [];
             $broadcastCount = 0;
+            $geofenceAlerts = [];
 
             DB::beginTransaction();
 
             foreach ($request->locations as $index => $locationData) {
                 // Skip mock locations
                 if (isset($locationData['is_mock_location']) && $locationData['is_mock_location']) {
+                    Log::warning('Mock location detected', [
+                        'user_id' => auth()->id(),
+                        'team_id' => $request->team_id
+                    ]);
                     continue;
                 }
 
-                // Skip low accuracy readings
+                // Skip low accuracy readings (> 100m)
                 if (isset($locationData['accuracy']) && $locationData['accuracy'] > 100) {
                     continue;
                 }
@@ -89,7 +93,7 @@ class LocationController extends Controller
                     'latitude' => $locationData['latitude'],
                     'longitude' => $locationData['longitude'],
                     'accuracy' => $locationData['accuracy'] ?? null,
-                    'speeds' => $locationData['speeds'] ?? null,
+                    'speed' => $locationData['speed'] ?? null,
                     'bearing' => $locationData['bearing'] ?? null,
                     'altitude' => $locationData['altitude'] ?? null,
                     'battery_level' => $locationData['battery_level'] ?? null,
@@ -102,18 +106,29 @@ class LocationController extends Controller
 
                 $savedLocations[] = $location;
 
-                // Broadcast only the latest location to reduce load
-                if ($index === count($request->locations) - 1) {
-                    broadcast(new LocationUpdated($location))->toOthers();
-                    $broadcastCount++;
+                // Broadcast only the latest location (last one in batch)
+                if ($index === count($request->locations) - 1 && $teamUser->is_leader) {
+                    try {
+                        broadcast(new LocationUpdated($location))->toOthers();
+                        $broadcastCount++;
+                    } catch (\Exception $e) {
+                        Log::error('Broadcasting failed', [
+                            'error' => $e->getMessage(),
+                            'location_id' => $location->id
+                        ]);
+                    }
                 }
 
                 // Check geofence for work assignments
-                $this->checkWorkGeofence(
+                $geofenceResult = $this->checkWorkGeofence(
                     $request->team_id,
                     $locationData['latitude'],
                     $locationData['longitude']
                 );
+
+                if ($geofenceResult) {
+                    $geofenceAlerts[] = $geofenceResult;
+                }
             }
 
             DB::commit();
@@ -125,7 +140,8 @@ class LocationController extends Controller
                     'saved_count' => count($savedLocations),
                     'broadcast_count' => $broadcastCount,
                     'tracking_status' => 'active',
-                    'next_update_interval' => 10 // seconds
+                    'next_update_interval' => 10, // seconds
+                    'geofence_alerts' => $geofenceAlerts
                 ]
             ], 200);
         } catch (\Exception $e) {
@@ -151,50 +167,77 @@ class LocationController extends Controller
      */
     private function checkWorkGeofence($teamId, $latitude, $longitude)
     {
-        $activeWorks = Work::where('team_id', $teamId)
-            ->where('is_completed', false)
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->get();
+        try {
+            $activeWorks = Work::where('team_id', $teamId)
+                ->where('is_completed', false)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->get();
 
-        foreach ($activeWorks as $work) {
-            $distance = $this->calculateDistance(
-                $latitude,
-                $longitude,
-                $work->latitude,
-                $work->longitude
-            );
+            foreach ($activeWorks as $work) {
+                $distance = $this->calculateDistance(
+                    $latitude,
+                    $longitude,
+                    $work->latitude,
+                    $work->longitude
+                );
 
-            $isInside = $distance <= $work->geofence_radius;
+                $geofenceRadius = $work->geofence_radius ?? 50; // default 50m
+                $isInside = $distance <= $geofenceRadius;
 
-            $tracking = WorkTracking::firstOrCreate(
-                [
-                    'work_id' => $work->id,
-                    'team_id' => $teamId
-                ],
-                [
-                    'status' => 'pending'
-                ]
-            );
+                $tracking = WorkTracking::firstOrCreate(
+                    [
+                        'work_id' => $work->id,
+                        'team_id' => $teamId
+                    ],
+                    [
+                        'status' => 'pending'
+                    ]
+                );
 
-            // Geofence entry detection
-            if ($isInside && $tracking->status === 'pending') {
-                $tracking->update([
-                    'started_at' => now(),
-                    'status' => 'in_progress'
-                ]);
+                // Geofence entry detection
+                if ($isInside && $tracking->status === 'pending') {
+                    $tracking->update([
+                        'started_at' => now(),
+                        'status' => 'in_progress'
+                    ]);
 
-                Log::info("Team entered work geofence", [
-                    'team_id' => $teamId,
-                    'work_id' => $work->id,
-                    'distance' => $distance
-                ]);
+                    Log::info("Team entered work geofence", [
+                        'team_id' => $teamId,
+                        'work_id' => $work->id,
+                        'distance' => round($distance, 2) . 'm'
+                    ]);
+
+                    return [
+                        'type' => 'geofence_entry',
+                        'work_id' => $work->id,
+                        'work_title' => $work->title,
+                        'distance' => round($distance, 2),
+                        'status' => 'in_progress'
+                    ];
+                }
+
+                // Geofence exit detection (optional)
+                if (!$isInside && $tracking->status === 'in_progress') {
+                    Log::info("Team exited work geofence", [
+                        'team_id' => $teamId,
+                        'work_id' => $work->id,
+                        'distance' => round($distance, 2) . 'm'
+                    ]);
+                }
             }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Geofence check failed', [
+                'error' => $e->getMessage()
+            ]);
+            return null;
         }
     }
 
     /**
-     * Haversine distance calculation
+     * Haversine distance calculation (returns meters)
      */
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
     {
@@ -223,7 +266,17 @@ class LocationController extends Controller
     {
         try {
             $locations = TeamLocation::select(
-                'team_locations.*',
+                'team_locations.id',
+                'team_locations.team_id',
+                'team_locations.user_id',
+                'team_locations.latitude',
+                'team_locations.longitude',
+                'team_locations.accuracy',
+                'team_locations.speed',
+                'team_locations.bearing',
+                'team_locations.battery_level',
+                'team_locations.status',
+                'team_locations.tracked_at',
                 'teams.name as team_name',
                 'users.name as user_name',
                 'users.avatar as user_avatar',
@@ -253,10 +306,14 @@ class LocationController extends Controller
                 'timestamp' => now()->toIso8601String()
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Failed to fetch current locations', [
+                'error' => $e->getMessage()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch locations',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : 'Server error'
             ], 500);
         }
     }
@@ -278,7 +335,9 @@ class LocationController extends Controller
             $works = Work::where('team_id', $teamId)
                 ->whereNotNull('latitude')
                 ->whereNotNull('longitude')
-                ->with('tracking')
+                ->with(['tracking' => function ($query) use ($teamId) {
+                    $query->where('team_id', $teamId);
+                }])
                 ->get();
 
             return response()->json([
@@ -291,16 +350,21 @@ class LocationController extends Controller
                 ]
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Failed to fetch team history', [
+                'team_id' => $teamId,
+                'error' => $e->getMessage()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch team history',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : 'Server error'
             ], 500);
         }
     }
 
     /**
-     * Total deistance calculation
+     * Total distance calculation
      */
     private function calculateTotalDistance($locations)
     {
@@ -324,7 +388,7 @@ class LocationController extends Controller
     }
 
     /**
-     * Calculation duration
+     * Calculate duration
      */
     private function calculateDuration($locations)
     {
