@@ -49,17 +49,17 @@ class WorkController extends Controller
             $today = Carbon::today();
 
             switch ($filter) {
-                case 'previous':
+                case 'Previous Day Work':
                     $query->whereDate('start_datetime', '<', $today);
                     break;
-                case 'current':
+                case 'Current Day Work':
                     $query->whereDate('start_datetime', $today);
                     break;
-                case 'next_2':
-                case 'next_3':
-                case 'next_4':
-                case 'next_5':
-                case 'next_6':
+                case 'See Next Day Work':
+                case 'See Next 3 Days Work':
+                case 'See Next 4 Days Work':
+                case 'See Next 5 Days Work':
+                case 'See Next 6 Days Work':
                     $days = (int)str_replace('next_', '', $filter);
                     $query->whereDate('start_datetime', '>', $today)
                         ->whereDate('start_datetime', '<=', $today->copy()->addDays($days));
