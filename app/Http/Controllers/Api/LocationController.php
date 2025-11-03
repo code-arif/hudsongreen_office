@@ -295,9 +295,10 @@ class LocationController extends Controller
                         ->where('status', 'active')
                         ->groupBy('team_id', 'user_id');
                 })
-                ->where('team_users.is_leader', true)
+                // ->where('team_users.is_leader', true)
                 ->orderBy('team_locations.tracked_at', 'desc')
                 ->get();
+
 
             return response()->json([
                 'success' => true,
