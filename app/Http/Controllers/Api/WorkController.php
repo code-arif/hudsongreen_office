@@ -49,17 +49,17 @@ class WorkController extends Controller
             $today = Carbon::today();
 
             switch ($filter) {
-                case 'previous':
+                case 'previous_day_work':
                     $query->whereDate('start_datetime', '<', $today);
                     break;
-                case 'current':
+                case 'current_day_work':
                     $query->whereDate('start_datetime', $today);
                     break;
-                case 'next_2':
-                case 'next_3':
-                case 'next_4':
-                case 'next_5':
-                case 'next_6':
+                case 'see_next_2_day_work':
+                case 'see_next_3_day_work':
+                case 'see_next_4_day_work':
+                case 'see_next_5_day_work':
+                case 'see_next_6_day_work':
                     $days = (int)str_replace('next_', '', $filter);
                     $query->whereDate('start_datetime', '>', $today)
                         ->whereDate('start_datetime', '<=', $today->copy()->addDays($days));
@@ -127,17 +127,17 @@ class WorkController extends Controller
             $today = Carbon::today();
 
             switch ($filter) {
-                case 'previous':
+                case 'previous_day_work':
                     $query->whereDate('start_datetime', '<', $today);
                     break;
-                case 'current':
+                case 'current_day_work':
                     $query->whereDate('start_datetime', $today);
                     break;
-                case 'next_2':
-                case 'next_3':
-                case 'next_4':
-                case 'next_5':
-                case 'next_6':
+                case 'see_next_2_day_work':
+                case 'see_next_3_day_work':
+                case 'see_next_4_day_work':
+                case 'see_next_5_day_work':
+                case 'see_next_6_day_work':
                     $days = (int)str_replace('next_', '', $filter);
                     $query->whereDate('start_datetime', '>', $today)
                         ->whereDate('start_datetime', '<=', $today->copy()->addDays($days));
