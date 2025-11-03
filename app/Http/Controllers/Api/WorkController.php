@@ -74,7 +74,7 @@ class WorkController extends Controller
             $teamData = [
                 'id' => $team->id,
                 'name' => $team->name,
-                'member_count' => $team->users()->count(),
+                'member_count' => $team->users()->count(), // this is new line
             ];
 
             return response()->json([
@@ -151,7 +151,7 @@ class WorkController extends Controller
             $team = $user->team ? [
                 'id' => $team->id,
                 'name' => $team->name,
-                'member_count' => $team->users()->count(),
+                'member_count' => $team->users()->count(), // this is new line
             ] : null;
 
             return response()->json([
