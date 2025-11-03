@@ -6,10 +6,11 @@ use Exception;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthenticationController extends Controller
 {
@@ -47,6 +48,18 @@ class AuthenticationController extends Controller
                 return $this->error([], 'Invalid credentials', 401);
             }
 
+            // Get user's team information
+            $teamInfo = DB::table('team_users')
+                ->join('teams', 'team_users.team_id', '=', 'teams.id')
+                ->where('team_users.user_id', $user->id)
+                ->select(
+                    'team_users.team_id',
+                    'teams.name as team_name',
+                    'team_users.is_leader',
+                    'team_users.is_tracking_active'
+                )
+                ->first();
+
             // Generate JWT token for this user
             $token = JWTAuth::fromUser($user);
 
@@ -55,8 +68,15 @@ class AuthenticationController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'phone' => $user->phone,
                     'role' => $user->role,
                 ],
+                'team' => $teamInfo ? [
+                    'team_id' => $teamInfo->team_id,
+                    'team_name' => $teamInfo->team_name,
+                    'is_leader' => (bool) $teamInfo->is_leader,
+                    'is_tracking_active' => (bool) $teamInfo->is_tracking_active,
+                ] : null, // null if user is not in any team
                 'token' => $token,
             ];
 

@@ -9,6 +9,8 @@ class TeamUser extends Model
     protected $fillable = [
         'user_id',
         'team_id',
+        'is_leader',
+        'is_tracking_active',
     ];
 
     protected $table = 'team_users';

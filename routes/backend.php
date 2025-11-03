@@ -38,6 +38,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
         // team work view in map with polyline
         Route::get('/map/team/{id}/works', [TeamManageController::class, 'mapWorkList'])->name('work.map.list');
+
+        // NEW ROUTES FOR LEADER MANAGEMENT
+        Route::get('/leader/members/{id}', [TeamManageController::class, 'getTeamMembers'])->name('leader.members');
+        Route::post('/leader/update', [TeamManageController::class, 'updateLeader'])->name('leader.update');
     });
 
     // assing employee into team manage

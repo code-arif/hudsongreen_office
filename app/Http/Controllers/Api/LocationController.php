@@ -259,56 +259,65 @@ class LocationController extends Controller
         return $earthRadius * $c;
     }
 
+
     /**
-     * Get current locations (last 5 minutes)
+     * Get current locations
      */
     public function getCurrentLocations()
     {
         try {
-            $locations = TeamLocation::select(
-                'team_locations.id',
-                'team_locations.team_id',
-                'team_locations.user_id',
-                'team_locations.latitude',
-                'team_locations.longitude',
-                'team_locations.accuracy',
-                'team_locations.speed',
-                'team_locations.bearing',
-                'team_locations.battery_level',
-                'team_locations.status',
-                'team_locations.tracked_at',
-                'teams.name as team_name',
-                'users.name as user_name',
-                'users.avatar as user_avatar',
-                'team_users.is_leader'
-            )
-                ->join('teams', 'teams.id', '=', 'team_locations.team_id')
-                ->join('users', 'users.id', '=', 'team_locations.user_id')
-                ->join('team_users', function ($join) {
-                    $join->on('team_users.team_id', '=', 'team_locations.team_id')
-                        ->on('team_users.user_id', '=', 'team_locations.user_id');
-                })
-                ->whereIn('team_locations.id', function ($query) {
-                    $query->select(DB::raw('MAX(id)'))
-                        ->from('team_locations')
-                        ->where('tracked_at', '>=', now()->subMinutes(5))
-                        ->where('status', 'active')
-                        ->groupBy('team_id', 'user_id');
-                })
-                // ->where('team_users.is_leader', true)
-                ->orderBy('team_locations.tracked_at', 'desc')
+            // Step 1: Get latest location ID for each team-user combination
+            $latestIds = DB::table('team_locations')
+                ->select(DB::raw('MAX(id) as id'))
+                ->groupBy('team_id', 'user_id')
+                ->pluck('id');
+
+            Log::info('Latest location IDs: ' . $latestIds->count());
+
+            // Step 2: Get full data for those IDs
+            $locations = TeamLocation::whereIn('id', $latestIds)
+                ->with(['team:id,name', 'user:id,name,avatar'])
                 ->get();
 
+            Log::info('Locations found: ' . $locations->count());
+
+            // Step 3: Enrich with team_user data
+            $enrichedData = $locations->map(function ($loc) {
+                $teamUser = DB::table('team_users')
+                    ->where('team_id', $loc->team_id)
+                    ->where('user_id', $loc->user_id)
+                    ->first(['is_leader', 'is_tracking_active']);
+
+                return [
+                    'id' => $loc->id,
+                    'team_id' => $loc->team_id,
+                    'team_name' => optional($loc->team)->name,
+                    'user_id' => $loc->user_id,
+                    'user_name' => optional($loc->user)->name,
+                    'user_avatar' => optional($loc->user)->avatar,
+                    'latitude' => (float) $loc->latitude,
+                    'longitude' => (float) $loc->longitude,
+                    'accuracy' => (float) $loc->accuracy,
+                    'speed' => (float) $loc->speed,
+                    'bearing' => (float) $loc->bearing,
+                    'battery_level' => $loc->battery_level,
+                    'status' => $loc->status,
+                    'tracked_at' => $loc->tracked_at,
+                    'is_leader' => $teamUser ? (bool) $teamUser->is_leader : false,
+                    'is_tracking_active' => $teamUser ? (bool) $teamUser->is_tracking_active : true,
+                ];
+            })->sortByDesc('tracked_at')->values();
 
             return response()->json([
                 'success' => true,
-                'data' => $locations,
-                'count' => $locations->count(),
+                'data' => $enrichedData,
+                'count' => $enrichedData->count(),
                 'timestamp' => now()->toIso8601String()
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch current locations', [
-                'error' => $e->getMessage()
+            Log::error('Failed to fetch locations', [
+                'error' => $e->getMessage(),
+                'line' => $e->getLine()
             ]);
 
             return response()->json([

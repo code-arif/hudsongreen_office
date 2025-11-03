@@ -174,6 +174,50 @@
             </div>
         </div>
     </div>
+
+    <!-- Manage Leader Modal -->
+    <div class="modal fade" id="manageLeaderModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="manageLeaderForm">
+                    @csrf
+                    <input type="hidden" name="team_id" id="leader_team_id">
+
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-crown"></i> Manage Team Leader
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Select one employee to be the team leader
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Team: <span id="leader_team_name"
+                                    class="text-primary"></span></label>
+                        </div>
+
+                        <div id="leaderMembersList">
+                            <div class="text-center py-4">
+                                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                <p class="text-muted mt-2">Loading team members...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-crown"></i> Set as Leader
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('styles')
@@ -236,6 +280,64 @@
             font-size: 12px;
             color: #6c757d;
         }
+
+        /* Leader Selection Styles */
+        .leader-member-item {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .leader-member-item:hover {
+            border-color: #17a2b8;
+            background: #f0f9fa;
+            transform: translateX(5px);
+        }
+
+        .leader-member-item.active {
+            border-color: #ffc107;
+            background: #fff9e6;
+        }
+
+        .leader-member-item input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .leader-member-info {
+            flex: 1;
+        }
+
+        .leader-member-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .leader-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #ffc107;
+            color: #000;
+            margin-left: 8px;
+        }
+
+        .crown-icon {
+            color: #ffc107;
+            font-size: 18px;
+            margin-left: auto;
+        }
     </style>
 @endpush
 
@@ -259,7 +361,6 @@
                         [10, 25, 50, 100, "All"]
                     ],
                     processing: true,
-                    // responsive: true,
                     serverSide: true,
 
                     language: {
@@ -329,8 +430,7 @@
                     "{{ route('team.store') }}";
 
                 if (id) {
-                    formData.append('_method',
-                        'POST');
+                    formData.append('_method', 'POST');
                 }
 
                 $.ajax({
@@ -349,7 +449,6 @@
                                 $('span.' + prefix + '_error').text(val[0]);
                             });
                         } else {
-                            // Success
                             $('#teamModal').modal('hide');
                             $('#teamForm')[0].reset();
 
@@ -359,7 +458,7 @@
                         $('#teamSubmitBtn').prop('disabled', false).html('Save Team');
                     },
                     error: function(xhr) {
-                        $('#saveTeamBtn').prop('disabled', false).html('Save Tram');
+                        $('#saveTeamBtn').prop('disabled', false).html('Save Team');
                         if (xhr.status === 422) {
                             $.each(xhr.responseJSON.errors, function(prefix, val) {
                                 prefix = prefix.replace(/\./g, '_');
@@ -383,11 +482,9 @@
                         $('#teamModalLabel').text('Edit Team');
                         $('#teamID').val(response.data.id);
 
-                        // Fill form fields
                         $('#name').val(response.data.name);
                         $('#description').val(response.data.description);
 
-                        // Show modal
                         $('#teamModal').modal('show');
                     } else {
                         toastr.error('Failed to load user data!');
@@ -440,7 +537,7 @@
         }
     </script>
 
-    {{-- Assing imployee --}}
+    {{-- Assign Employee --}}
     <script>
         $(document).ready(function() {
             let selectedEmployees = [];
@@ -452,7 +549,6 @@
                 let teamId = $(this).data('id');
                 $('#assign_team_id').val(teamId);
 
-                // Reset
                 selectedEmployees = [];
                 allEmployees = [];
                 assignedEmployees = [];
@@ -461,13 +557,11 @@
                 );
                 $('#availableEmployees').html('');
 
-                // Fetch employees
                 $.get("{{ route('assing.employee.edit', '') }}/" + teamId, function(res) {
                     if (res.status) {
                         allEmployees = res.all_users;
                         assignedEmployees = res.assigned_users;
 
-                        // Pre-select already assigned employees
                         selectedEmployees = assignedEmployees.map(u => ({
                             id: u.id,
                             name: u.name,
@@ -484,16 +578,13 @@
                 });
             });
 
-            // Render available employees
             function renderEmployees(searchTerm = '') {
                 let html = '';
                 let availableCount = 0;
 
                 allEmployees.forEach(employee => {
-                    // Check if employee is already selected
                     let isSelected = selectedEmployees.some(e => e.id === employee.id);
 
-                    // Check if employee matches search term
                     let matchesSearch = searchTerm === '' ||
                         employee.name.toLowerCase().includes(searchTerm.toLowerCase())
 
@@ -516,7 +607,6 @@
                 $('#availableCount').text(availableCount);
             }
 
-            // Render selected employees
             function renderSelectedEmployees() {
                 let html = '';
 
@@ -547,41 +637,33 @@
                 $('#selectedCount').text(selectedEmployees.length);
             }
 
-            // Add employee to selection
             $(document).on('click', '.employee-item', function() {
                 let id = $(this).data('id');
                 let name = $(this).data('name');
 
-                // Add to selected
                 selectedEmployees.push({
                     id: id,
                     name: name,
                 });
 
-                // Re-render both lists
                 renderEmployees($('#searchEmployee').val());
                 renderSelectedEmployees();
             });
 
-            // Remove employee from selection
             $(document).on('click', '.remove-employee', function() {
                 let id = $(this).data('id');
 
-                // Remove from selected
                 selectedEmployees = selectedEmployees.filter(e => e.id !== id);
 
-                // Re-render both lists
                 renderEmployees($('#searchEmployee').val());
                 renderSelectedEmployees();
             });
 
-            // Search functionality
             $('#searchEmployee').on('keyup', function() {
                 let searchTerm = $(this).val();
                 renderEmployees(searchTerm);
             });
 
-            // Submit form
             $('#assignEmployeeForm').on('submit', function(e) {
                 e.preventDefault();
 
@@ -622,9 +704,136 @@
                 });
             });
 
-            // Reset search when modal closes
             $('#assignEmployeeModal').on('hidden.bs.modal', function() {
                 $('#searchEmployee').val('');
+            });
+        });
+    </script>
+
+    {{-- Manage Leader --}}
+    <script>
+        $(document).ready(function() {
+            let currentLeaderId = null;
+
+            // Open Manage Leader modal
+            $(document).on('click', '.manageLeaderBtn', function() {
+                let teamId = $(this).data('id');
+                $('#leader_team_id').val(teamId);
+
+                // Reset
+                currentLeaderId = null;
+                $('#leaderMembersList').html(`
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                        <p class="text-muted mt-2">Loading team members...</p>
+                    </div>
+                `);
+
+                // Fetch team members
+                $.get("{{ route('team.leader.members', '') }}/" + teamId, function(res) {
+                    if (res.status) {
+                        $('#leader_team_name').text(res.team_name);
+                        currentLeaderId = res.current_leader;
+                        renderLeaderMembers(res.members);
+                        $('#manageLeaderModal').modal('show');
+                    } else {
+                        toastr.error(res.message || 'Failed to load team members');
+                    }
+                }).fail(function(xhr) {
+                    toastr.error('Failed to load team members');
+                });
+            });
+
+            // Render leader members list
+            function renderLeaderMembers(members) {
+                let html = '';
+
+                members.forEach(member => {
+                    let isLeader = member.id === currentLeaderId;
+                    let activeClass = isLeader ? 'active' : '';
+                    let leaderBadge = isLeader ?
+                        '<span class="leader-badge"><i class="fas fa-crown"></i> Current Leader</span>' :
+                        '';
+                    let crownIcon = isLeader ? '<i class="fas fa-crown crown-icon"></i>' : '';
+
+                    html += `
+                        <label class="leader-member-item ${activeClass}">
+                            <input type="radio"
+                                   name="leader_user_id"
+                                   value="${member.id}"
+                                   ${isLeader ? 'checked' : ''}>
+                            <div class="leader-member-info">
+                                <div class="leader-member-name">
+                                    ${member.name}
+                                    ${leaderBadge}
+                                </div>
+                            </div>
+                            ${crownIcon}
+                        </label>
+                    `;
+                });
+
+                $('#leaderMembersList').html(html);
+            }
+
+            // Handle radio button change
+            $(document).on('change', 'input[name="leader_user_id"]', function() {
+                $('.leader-member-item').removeClass('active');
+                $(this).closest('.leader-member-item').addClass('active');
+            });
+
+            // Submit leader form
+            $('#manageLeaderForm').on('submit', function(e) {
+                e.preventDefault();
+
+                let teamId = $('#leader_team_id').val();
+                let userId = $('input[name="leader_user_id"]:checked').val();
+
+                if (!userId) {
+                    toastr.warning('Please select a team leader');
+                    return;
+                }
+
+                $.ajax({
+                    url: "{{ route('team.leader.update') }}",
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        team_id: teamId,
+                        user_id: userId
+                    },
+                    beforeSend: function() {
+                        $('#manageLeaderForm button[type="submit"]')
+                            .prop('disabled', true)
+                            .html('<i class="fas fa-spinner fa-spin"></i> Updating...');
+                    },
+                    success: function(res) {
+                        if (res.status) {
+                            toastr.success(res.message);
+                            $('#manageLeaderModal').modal('hide');
+                            $('#datatable').DataTable().ajax.reload();
+                        } else {
+                            toastr.error(res.message || 'Something went wrong');
+                        }
+                    },
+                    error: function(xhr) {
+                        let message = 'Something went wrong. Try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        toastr.error(message);
+                    },
+                    complete: function() {
+                        $('#manageLeaderForm button[type="submit"]')
+                            .prop('disabled', false)
+                            .html('<i class="fas fa-crown"></i> Set as Leader');
+                    }
+                });
+            });
+
+            // Reset form when modal closes
+            $('#manageLeaderModal').on('hidden.bs.modal', function() {
+                $('#manageLeaderForm')[0].reset();
             });
         });
     </script>

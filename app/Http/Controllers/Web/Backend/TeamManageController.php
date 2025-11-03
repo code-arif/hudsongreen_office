@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class TeamManageController extends Controller
 {
@@ -41,12 +42,22 @@ class TeamManageController extends Controller
                 // Users list (name)
                 ->addColumn('users', function ($item) {
                     if ($item->users->isEmpty()) {
-                        return '<span class="badge bg-secondary">No Empoyee</span>';
+                        return '<span class="badge bg-secondary">No Employee</span>';
                     }
 
+                    // Get the leader
+                    $leaderId = DB::table('team_users')
+                        ->where('team_id', $item->id)
+                        ->where('is_leader', true)
+                        ->value('user_id');
+
                     // Wrap badges in a div with flex-wrap
-                    $badges = $item->users->map(function ($user) {
-                        return '<span class="badge bg-primary me-1 mb-1">' . $user->name . '</span>';
+                    $badges = $item->users->map(function ($user) use ($leaderId) {
+                        $isLeader = $user->id === $leaderId;
+                        $badgeClass = $isLeader ? 'bg-warning text-dark' : 'bg-primary';
+                        $leaderIcon = $isLeader ? '<i class="fas fa-crown"></i> ' : '';
+
+                        return '<span class="badge ' . $badgeClass . ' me-1 mb-1">' . $leaderIcon . $user->name . '</span>';
                     })->implode(' ');
 
                     return '<div style="display: flex; flex-wrap: wrap;">' . $badges . '</div>';
@@ -65,11 +76,19 @@ class TeamManageController extends Controller
                             <i class="fa fa-pen-to-square"></i> Edit
                             </button>';
 
-                    // employee assing button
+                    // employee assign button
                     $actionButtons .= '<button type="button" class="btn btn-sm btn-success assignBtn"
                                 data-id="' . $item->id . '">
-                                <i class="fas fa-syringe"></i> Assign Employee
+                                <i class="fas fa-user-plus"></i> Assign Employee
                             </button>';
+
+                    // Manage Leader button (only if team has employees)
+                    if ($item->users->isNotEmpty()) {
+                        $actionButtons .= '<button type="button" class="btn btn-sm btn-info manageLeaderBtn"
+                                    data-id="' . $item->id . '">
+                                    <i class="fas fa-crown"></i> Manage Leader
+                                </button>';
+                    }
 
                     // Map View button (show only if user has a team)
                     if ($item->works_count > 0) {
@@ -289,5 +308,107 @@ class TeamManageController extends Controller
 
         // Return map view for team works
         return view('backend.layouts.teams.map', compact('works'));
+    }
+
+    /**
+     * Get team members for leader selection
+     */
+    public function getTeamMembers($id)
+    {
+        try {
+            $team = Team::with('users')->find($id);
+
+            if (!$team) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Team not found.'
+                ], 404);
+            }
+
+            if ($team->users->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No employees in this team.'
+                ], 404);
+            }
+
+            // Get current leader
+            $currentLeader = DB::table('team_users')
+                ->where('team_id', $id)
+                ->where('is_leader', true)
+                ->value('user_id');
+
+            return response()->json([
+                'status' => true,
+                'team_name' => $team->name,
+                'members' => $team->users,
+                'current_leader' => $currentLeader
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update team leader
+     */
+    public function updateLeader(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'team_id' => 'required|exists:teams,id',
+                'user_id' => 'required|exists:users,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            // Check if user is part of the team
+            $isTeamMember = DB::table('team_users')
+                ->where('team_id', $request->team_id)
+                ->where('user_id', $request->user_id)
+                ->exists();
+
+            if (!$isTeamMember) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Selected user is not a member of this team.'
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Remove existing leader
+            DB::table('team_users')
+                ->where('team_id', $request->team_id)
+                ->update(['is_leader' => false]);
+
+            // Set new leader
+            DB::table('team_users')
+                ->where('team_id', $request->team_id)
+                ->where('user_id', $request->user_id)
+                ->update(['is_leader' => true]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Team leader updated successfully.'
+            ]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

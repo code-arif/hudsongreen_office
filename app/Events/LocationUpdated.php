@@ -34,7 +34,6 @@ class LocationUpdated implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
-        dd($this->location);
         return [
             'id' => $this->location->id,
             'team_id' => $this->location->team_id,
