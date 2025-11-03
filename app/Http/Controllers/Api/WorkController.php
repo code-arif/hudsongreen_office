@@ -49,17 +49,17 @@ class WorkController extends Controller
             $today = Carbon::today();
 
             switch ($filter) {
-                case 'Previous Day Work':
+                case 'previous':
                     $query->whereDate('start_datetime', '<', $today);
                     break;
-                case 'Current Day Work':
+                case 'current':
                     $query->whereDate('start_datetime', $today);
                     break;
-                case 'See Next Day Work':
-                case 'See Next 3 Days Work':
-                case 'See Next 4 Days Work':
-                case 'See Next 5 Days Work':
-                case 'See Next 6 Days Work':
+                case 'next_2':
+                case 'next_3':
+                case 'next_4':
+                case 'next_5':
+                case 'next_6':
                     $days = (int)str_replace('next_', '', $filter);
                     $query->whereDate('start_datetime', '>', $today)
                         ->whereDate('start_datetime', '<=', $today->copy()->addDays($days));
@@ -74,6 +74,7 @@ class WorkController extends Controller
             $teamData = [
                 'id' => $team->id,
                 'name' => $team->name,
+                'member_count' => $team->users()->count(),
             ];
 
             return response()->json([
@@ -147,15 +148,16 @@ class WorkController extends Controller
             $works = $query->orderBy('start_datetime', 'asc')->paginate($perPage);
 
             // Fetch team details
-            $teamData = [
+            $team = $user->team ? [
                 'id' => $team->id,
                 'name' => $team->name,
-            ];
+                'member_count' => $team->users()->count(),
+            ] : null;
 
             return response()->json([
                 'status' => true,
                 'message' => 'Works fetched successfully',
-                'team' => $teamData,
+                'team' => $team,
                 'data' => MapWorkResource::collection($works),
                 'pagination' => [
                     'total' => $works->total(),
