@@ -40,7 +40,7 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::get('/map', [WorkController::class, 'mapView']);
         Route::post('/complete/{id}', [WorkController::class, 'completeWork']); // work complation
         Route::post('/incomplete/{id}', [WorkController::class, 'inCompleteWork']); // work imcomplation
-        Route::get('/details/{id}', [WorkController::class, 'show']);
+        Route::get('/details/{id}', [WorkController::class, 'show']); // working
     });
 
 
