@@ -699,6 +699,9 @@
                 <div style="font-size: 13px; line-height: 1.8;">
                     <div><strong>📋 Team:</strong> ${location.team_name}</div>
                     <div><strong>🕐 Time:</strong> ${timeStr}</div>
+                    <div><strong>⚡ Speed:</strong> ${speed}</div>
+                    <div><strong>🎯 Accuracy:</strong> ${accuracy}</div>
+                    <div><strong>🔋 Battery:</strong> ${battery}</div>
                 </div>
             </div>`;
         }
