@@ -15,12 +15,25 @@
                     <input type="hidden" name="longitude" id="longitude">
 
                     <div class="row">
+                        <!-- NEW: Calendar Selection -->
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-calendar"></i> Calendar *
+                            </label>
+                            <select class="form-select" name="calendar_id" id="calendar_id" required>
+                                <option value="">Select Calendar</option>
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                            <span class="text-danger error-text calendar_id_error"></span>
+                        </div>
+
                         <div class="col-md-12 mb-3">
                             <label class="form-label">
                                 <i class="fas fa-heading"></i> Title *
                             </label>
                             <input type="text" class="form-control form-control-sm" name="title" id="title"
                                 required>
+                            <span class="text-danger error-text title_error"></span>
                         </div>
 
                         <div class="col-md-12 mb-3">
@@ -32,8 +45,9 @@
 
                         {{-- Work Date --}}
                         <div class="col-md-3 mt-3">
-                            <label class="form-label">Work Date</label>
-                            <input type="date" class="form-control form-control-sm" name="work_date" id="work_date">
+                            <label class="form-label">Work Date *</label>
+                            <input type="date" class="form-control form-control-sm" name="work_date" id="work_date"
+                                required>
                             <span class="text-danger error-text work_date_error"></span>
                         </div>
 
@@ -99,6 +113,14 @@
                                     class="form-control mt-2" placeholder="Or create new category">
                             </div>
                         </div>
+
+                        <!-- Note Field -->
+                        <div class="col-md-12 mt-3">
+                            <label class="form-label">
+                                <i class="fas fa-sticky-note"></i> Note
+                            </label>
+                            <textarea class="form-control" name="note" id="note" rows="2" placeholder="Additional notes..."></textarea>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -111,6 +133,33 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Populate calendar dropdown when modal opens
+    $('#createWorkModal').on('show.bs.modal', function() {
+        const calendarSelect = document.getElementById('calendar_id');
+        calendarSelect.innerHTML = '<option value="">Select Calendar</option>';
+
+        // Get calendars from global variable
+        if (typeof userCalendars !== 'undefined' && userCalendars.length > 0) {
+            userCalendars.forEach(cal => {
+                const option = document.createElement('option');
+                option.value = cal.id;
+                option.textContent = cal.name;
+                option.style.color = cal.color;
+
+                // Select default calendar or first calendar
+                if (cal.is_default || (userCalendars.length === 1)) {
+                    option.selected = true;
+                }
+
+                calendarSelect.appendChild(option);
+            });
+        } else {
+            calendarSelect.innerHTML = '<option value="">No calendars available</option>';
+        }
+    });
+</script>
 
 {{-- checkbox style --}}
 <style>

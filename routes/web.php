@@ -1,12 +1,15 @@
 <?php
 
-use App\Http\Controllers\Calendar\EventManageGoogleController;
-use App\Http\Controllers\Calendar\GetEventFromGoogleController;
-use App\Http\Controllers\Calendar\SyncEventFromGoogleController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\GoogleCalendarController;
+use App\Http\Controllers\Calendar\CalendarCrudController;
 use App\Http\Controllers\Api\Auth\AuthenticationController;
+use App\Http\Controllers\Calendar\BiDirectionalSyncController;
+use App\Http\Controllers\Calendar\EventManageGoogleController;
+use App\Http\Controllers\Calendar\GetEventFromGoogleController;
+use App\Http\Controllers\Calendar\SyncEventFromGoogleController;
+use App\Http\Controllers\Calendar\SyncMultipleGoogleCalendarsController;
 
 
 Route::get('/', function () {
@@ -107,7 +110,7 @@ Route::get('/verify-email/{token}', [AuthenticationController::class, 'verifyEma
 
 
 
-Route::middleware(['auth','admin'])->group(function () {
+Route::middleware(['auth', 'admin'])->group(function () {
     // Calendar Routes
     Route::get('/calendar', [GoogleCalendarController::class, 'index'])->name('calendar.index'); // working
     Route::get('/calendar/events', [GetEventFromGoogleController::class, 'getEvents'])->name('calendar.events'); // working
@@ -123,6 +126,17 @@ Route::middleware(['auth','admin'])->group(function () {
     Route::get('/calendar/{work}', [EventManageGoogleController::class, 'show'])->name('calendar.show'); // working
     Route::post('/calendar/{work}', [EventManageGoogleController::class, 'update'])->name('calendar.update'); // working
     Route::delete('/calendar/{work}', [EventManageGoogleController::class, 'destroy'])->name('calendar.destroy'); // working
+
+
+    Route::get('/calendars/list', [CalendarCrudController::class, 'index'])->name('calendars.list');
+    Route::post('/calendars/create', [CalendarCrudController::class, 'store'])->name('calendars.create');
+    Route::put('/calendars/{calendar}', [CalendarCrudController::class, 'update'])->name('calendars.update');
+    Route::post('/calendars/{calendar}/toggle', [CalendarCrudController::class, 'toggleVisibility'])->name('calendars.toggle');
+    Route::delete('/calendars/{calendar}', [CalendarCrudController::class, 'destroy'])->name('calendars.destroy');
+
+    // Multi-calendar sync
+    Route::post('/google/sync-all', [SyncMultipleGoogleCalendarsController::class, 'syncAll'])->name('google.sync.all');
+    Route::post('/google/full-sync', [BiDirectionalSyncController::class, 'fullSync'])->name('google.full.sync');
 });
 
 

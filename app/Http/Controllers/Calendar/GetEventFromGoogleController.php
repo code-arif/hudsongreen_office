@@ -8,19 +8,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Services\GoogleCalendarService;
+use Illuminate\Support\Facades\Auth;
 
 class GetEventFromGoogleController extends Controller
 {
-    protected $googleCalendar;
-
-    // serivce injection
-    public function __construct(GoogleCalendarService $googleCalendar)
-    {
-        $this->googleCalendar = $googleCalendar;
-    }
-
-    // get events from google calendar
+    /**
+     * Get events with calendar filtering
+     */
     public function getEvents(Request $request)
     {
         try {
@@ -29,15 +23,25 @@ class GetEventFromGoogleController extends Controller
             $teamId = $request->get('team_id');
             $status = $request->get('status');
             $categoryId = $request->get('category_id');
+            $calendarIds = $request->get('calendar_ids'); // Array of calendar IDs
 
-            $query = Work::with(['team', 'category']);
+            $query = Work::with(['team', 'category', 'calendar'])
+                ->where('user_id', Auth::id());
 
-            // Date range filter - UPDATED for new schema
+            // Date range filter
             if ($start && $end) {
                 $query->whereBetween('start_datetime', [
                     Carbon::parse($start)->startOfDay(),
                     Carbon::parse($end)->endOfDay()
                 ]);
+            }
+
+            // Calendar filter (show only visible calendars by default)
+            if ($calendarIds && is_array($calendarIds) && count($calendarIds) > 0) {
+                $query->whereIn('calendar_id', $calendarIds);
+            } else {
+                // Show only visible calendars by default
+                $query->visibleCalendars(Auth::id());
             }
 
             // Team filter
@@ -63,53 +67,38 @@ class GetEventFromGoogleController extends Controller
 
             $events = $works->map(function ($work) {
                 try {
-                    // Handle both all-day and timed events
+                    $baseEvent = [
+                        'id' => $work->id,
+                        'title' => $work->title,
+                        'description' => $work->description,
+                        'location' => $work->location,
+                        'backgroundColor' => $work->calendar ? $work->calendar->color : $this->getEventColor($work),
+                        'borderColor' => $work->calendar ? $work->calendar->color : $this->getEventBorderColor($work),
+                        'extendedProps' => [
+                            'team' => $work->team ? $work->team->name : null,
+                            'category' => $work->category ? $work->category->name : null,
+                            'calendar_name' => $work->calendar ? $work->calendar->name : 'Default',
+                            'calendar_id' => $work->calendar_id,
+                            'completed' => $work->is_completed,
+                            'rescheduled' => $work->is_rescheduled,
+                            'latitude' => $work->latitude,
+                            'longitude' => $work->longitude,
+                            'note' => $work->note,
+                            'google_event_id' => $work->google_event_id,
+                            'is_all_day' => $work->is_all_day,
+                        ],
+                    ];
+
                     if ($work->is_all_day) {
-                        return [
-                            'id' => $work->id,
-                            'title' => $work->title,
-                            'start' => Carbon::parse($work->start_datetime)->toDateString(),
-                            'end' => Carbon::parse($work->end_datetime)->toDateString(),
-                            'allDay' => true,
-                            'description' => $work->description,
-                            'location' => $work->location,
-                            'backgroundColor' => $this->getEventColor($work),
-                            'borderColor' => $this->getEventBorderColor($work),
-                            'extendedProps' => [
-                                'team' => $work->team ? $work->team->name : null,
-                                'category' => $work->category ? $work->category->name : null,
-                                'completed' => $work->is_completed,
-                                'rescheduled' => $work->is_rescheduled,
-                                'latitude' => $work->latitude,
-                                'longitude' => $work->longitude,
-                                'note' => $work->note,
-                                'google_event_id' => $work->google_event_id,
-                                'is_all_day' => true,
-                            ],
-                        ];
+                        $baseEvent['start'] = Carbon::parse($work->start_datetime)->toDateString();
+                        $baseEvent['end'] = Carbon::parse($work->end_datetime)->toDateString();
+                        $baseEvent['allDay'] = true;
                     } else {
-                        return [
-                            'id' => $work->id,
-                            'title' => $work->title,
-                            'start' => Carbon::parse($work->start_datetime)->toIso8601String(),
-                            'end' => Carbon::parse($work->end_datetime)->toIso8601String(),
-                            'description' => $work->description,
-                            'location' => $work->location,
-                            'backgroundColor' => $this->getEventColor($work),
-                            'borderColor' => $this->getEventBorderColor($work),
-                            'extendedProps' => [
-                                'team' => $work->team ? $work->team->name : null,
-                                'category' => $work->category ? $work->category->name : null,
-                                'completed' => $work->is_completed,
-                                'rescheduled' => $work->is_rescheduled,
-                                'latitude' => $work->latitude,
-                                'longitude' => $work->longitude,
-                                'note' => $work->note,
-                                'google_event_id' => $work->google_event_id,
-                                'is_all_day' => false,
-                            ],
-                        ];
+                        $baseEvent['start'] = Carbon::parse($work->start_datetime)->toIso8601String();
+                        $baseEvent['end'] = Carbon::parse($work->end_datetime)->toIso8601String();
                     }
+
+                    return $baseEvent;
                 } catch (Exception $e) {
                     Log::error('Error processing work for calendar', [
                         'work_id' => $work->id,
@@ -133,26 +122,17 @@ class GetEventFromGoogleController extends Controller
         }
     }
 
-
-    // event color based on status
     private function getEventColor($work)
     {
-        if ($work->is_completed) {
-            return '#10b981';
-        } elseif ($work->is_rescheduled) {
-            return '#f59e0b';
-        }
+        if ($work->is_completed) return '#10b981';
+        if ($work->is_rescheduled) return '#f59e0b';
         return '#3b82f6';
     }
 
-    // event border color based on status
     private function getEventBorderColor($work)
     {
-        if ($work->is_completed) {
-            return '#059669';
-        } elseif ($work->is_rescheduled) {
-            return '#d97706';
-        }
+        if ($work->is_completed) return '#059669';
+        if ($work->is_rescheduled) return '#d97706';
         return '#2563eb';
     }
 }

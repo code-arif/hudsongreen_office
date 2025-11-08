@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Calendar;
 use Illuminate\Support\Carbon;
-use Spatie\GoogleCalendar\Event;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -12,12 +12,13 @@ class Work extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
+        'calendar_id',
         'title',
         'description',
         'location',
         'latitude',
         'longitude',
-        'geofence_radius',
         'start_datetime',
         'end_datetime',
         'is_all_day',
@@ -27,13 +28,16 @@ class Work extends Model
         'team_id',
         'category_id',
         'google_event_id',
-        'google_synced_at'
+        'google_synced_at',
     ];
 
     protected $casts = [
+        'start_datetime' => 'datetime',
+        'end_datetime' => 'datetime',
+        'is_all_day' => 'boolean',
         'is_completed' => 'boolean',
         'is_rescheduled' => 'boolean',
-        'work_date' => 'date',
+        'google_synced_at' => 'datetime',
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
     ];
@@ -122,5 +126,29 @@ class Work extends Model
     public function hasLocation()
     {
         return !is_null($this->latitude) && !is_null($this->longitude);
+    }
+
+    // calendar relation
+    public function calendar()
+    {
+        return $this->belongsTo(Calendar::class);
+    }
+
+    /**
+     * Scope for specific calendar
+     */
+    public function scopeForCalendar($query, $calendarId)
+    {
+        return $query->where('calendar_id', $calendarId);
+    }
+
+    /**
+     * Scope for visible calendars only
+     */
+    public function scopeVisibleCalendars($query, $userId)
+    {
+        return $query->whereHas('calendar', function ($q) use ($userId) {
+            $q->where('user_id', $userId)->where('is_visible', true);
+        });
     }
 }

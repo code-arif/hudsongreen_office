@@ -8,7 +8,6 @@ use App\Models\Team;
 use App\Models\Work;
 use App\Models\Category;
 use Illuminate\Http\Request;
-use Spatie\GoogleCalendar\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Services\GoogleCalendarService;

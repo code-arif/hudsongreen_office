@@ -14,7 +14,6 @@ class GoogleCalendarService
 {
     protected $client;
     protected $service;
-    protected $calendar;
 
     public function __construct()
     {
@@ -33,7 +32,6 @@ class GoogleCalendarService
         return $this->client->createAuthUrl();
     }
 
-    // exchange auth code for access token
     public function authenticate($code)
     {
         $token = $this->client->fetchAccessTokenWithAuthCode($code);
@@ -45,101 +43,130 @@ class GoogleCalendarService
         return $token;
     }
 
-    // set access token and refresh if needed
     public function setAccessToken($token)
     {
         try {
-            // Validate token structure
             if (!is_array($token)) {
-                Log::error('Invalid token format - not an array', [
-                    'token_type' => gettype($token),
-                    'token_value' => is_string($token) ? substr($token, 0, 50) . '...' : $token
-                ]);
-                throw new Exception('Invalid token format: Expected array, got ' . gettype($token));
+                throw new Exception('Invalid token format');
             }
 
             if (!isset($token['access_token'])) {
-                Log::error('Token missing access_token', [
-                    'token_keys' => array_keys($token)
-                ]);
                 throw new Exception('Token missing access_token');
             }
 
-            Log::info('Setting access token', [
-                'has_access_token' => isset($token['access_token']),
-                'has_refresh_token' => isset($token['refresh_token']),
-                'expires_in' => $token['expires_in'] ?? 'N/A',
-                'token_type' => $token['token_type'] ?? 'N/A'
-            ]);
-
             $this->client->setAccessToken($token);
 
-            // Check if token is expired and refresh if needed
             if ($this->client->isAccessTokenExpired()) {
-                Log::info('Token is expired, attempting refresh');
-
                 $refreshToken = $this->client->getRefreshToken() ?? $token['refresh_token'] ?? null;
 
                 if (!$refreshToken) {
-                    Log::error('No refresh token available', [
-                        'client_refresh_token' => $this->client->getRefreshToken(),
-                        'token_has_refresh' => isset($token['refresh_token'])
-                    ]);
-                    throw new Exception('Token expired and no refresh token available. Please reconnect Google Calendar.');
+                    throw new Exception('Token expired and no refresh token available');
                 }
-
-                Log::info('Refreshing token with refresh_token');
 
                 $newToken = $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
 
                 if (isset($newToken['error'])) {
-                    Log::error('Token refresh failed', [
-                        'error' => $newToken['error'],
-                        'error_description' => $newToken['error_description'] ?? 'N/A'
-                    ]);
                     throw new Exception('Error refreshing token: ' . $newToken['error']);
                 }
 
-                // Preserve refresh token if not in new response
                 if (!isset($newToken['refresh_token']) && $refreshToken) {
                     $newToken['refresh_token'] = $refreshToken;
                 }
 
-                Log::info('Token refreshed successfully', [
-                    'new_expires_in' => $newToken['expires_in'] ?? 'N/A'
-                ]);
-
-                // Initialize calendar service after refresh
-                $this->service = new \Google_Service_Calendar($this->client);
-
+                $this->service = new Calendar($this->client);
                 return $newToken;
             }
 
-            // Initialize calendar service for non-expired token
-            $this->service = new \Google_Service_Calendar($this->client);
-
-            Log::info('Calendar service initialized successfully');
-
+            $this->service = new Calendar($this->client);
             return null;
         } catch (Exception $e) {
             Log::error('Google Set Token Error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
             throw $e;
         }
     }
 
-    // create event in google calendar from this internal project
+    /**
+     * List all Google Calendars for the authenticated user
+     */
+    public function listAllCalendars()
+    {
+        try {
+            if (!$this->service) {
+                throw new Exception('Calendar service not initialized');
+            }
+
+            $calendarList = $this->service->calendarList->listCalendarList();
+
+            Log::info('Fetched Google Calendars', [
+                'count' => count($calendarList->getItems())
+            ]);
+
+            return $calendarList->getItems();
+        } catch (Exception $e) {
+            Log::error('Error listing calendars', [
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * List events for a specific calendar
+     */
+    public function listEventsForCalendar($calendarId, $startDate = null, $endDate = null, $maxResults = 2500)
+    {
+        try {
+            if (!$this->service) {
+                throw new Exception('Calendar service not initialized');
+            }
+
+            $optParams = [
+                'maxResults' => $maxResults,
+                'orderBy' => 'startTime',
+                'singleEvents' => true,
+                'timeMin' => $startDate
+                    ? Carbon::parse($startDate)->toRfc3339String()
+                    : Carbon::now()->subYear()->startOfDay()->toRfc3339String(),
+                'timeMax' => $endDate
+                    ? Carbon::parse($endDate)->toRfc3339String()
+                    : Carbon::now()->addMonths(3)->endOfDay()->toRfc3339String(),
+            ];
+
+            $results = $this->service->events->listEvents($calendarId, $optParams);
+
+            Log::info('Fetched events for calendar', [
+                'calendar_id' => $calendarId,
+                'count' => count($results->getItems())
+            ]);
+
+            return $results->getItems();
+        } catch (Exception $e) {
+            Log::error('Error listing events for calendar', [
+                'calendar_id' => $calendarId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Create event in a specific Google Calendar
+     */
     public function createEvent($work, $calendarId = 'primary')
     {
         try {
             if (!$this->service) {
-                throw new Exception('Calendar service not initialized. Call setAccessToken first.');
+                throw new Exception('Calendar service not initialized');
+            }
+
+            // If work has a calendar with google_calendar_id, use that
+            if ($work->calendar && $work->calendar->google_calendar_id) {
+                $calendarId = $work->calendar->google_calendar_id;
             }
 
             if ($work->is_all_day) {
-                // All day event
                 $event = new Event([
                     'summary' => $work->title,
                     'description' => $work->description,
@@ -154,7 +181,6 @@ class GoogleCalendarService
                     ],
                 ]);
             } else {
-                // Specific time event
                 $event = new Event([
                     'summary' => $work->title,
                     'description' => $work->description,
@@ -174,7 +200,8 @@ class GoogleCalendarService
 
             Log::info('Google Calendar event created', [
                 'event_id' => $createdEvent->getId(),
-                'work_id' => $work->id
+                'work_id' => $work->id,
+                'calendar_id' => $calendarId
             ]);
 
             return $createdEvent->getId();
@@ -187,29 +214,31 @@ class GoogleCalendarService
         }
     }
 
-
-    // update existing google calendar event from this internal project
+    /**
+     * Update event in Google Calendar
+     */
     public function updateEvent($work, $calendarId = 'primary')
     {
         try {
             if (!$this->service) {
-                throw new Exception('Calendar service not initialized. Call setAccessToken first.');
+                throw new Exception('Calendar service not initialized');
             }
 
             if (!$work->google_event_id) {
-                throw new Exception('No Google event ID found for this work');
+                throw new Exception('No Google event ID found');
             }
 
-            // Get existing event
+            if ($work->calendar && $work->calendar->google_calendar_id) {
+                $calendarId = $work->calendar->google_calendar_id;
+            }
+
             $event = $this->service->events->get($calendarId, $work->google_event_id);
 
-            // Update event properties
             $event->setSummary($work->title);
             $event->setDescription($work->description);
             $event->setLocation($work->location);
 
             if ($work->is_all_day) {
-                // All day event
                 $event->setStart(new EventDateTime([
                     'date' => Carbon::parse($work->start_datetime)->toDateString(),
                     'timeZone' => config('app.timezone', 'Asia/Dhaka'),
@@ -220,7 +249,6 @@ class GoogleCalendarService
                     'timeZone' => config('app.timezone', 'Asia/Dhaka'),
                 ]));
             } else {
-                // Specific time event
                 $event->setStart(new EventDateTime([
                     'dateTime' => Carbon::parse($work->start_datetime)->toRfc3339String(),
                     'timeZone' => config('app.timezone', 'Asia/Dhaka'),
@@ -243,126 +271,184 @@ class GoogleCalendarService
         } catch (Exception $e) {
             Log::error('Google Calendar Update Error', [
                 'error' => $e->getMessage(),
-                'work_id' => $work->id,
-                'google_event_id' => $work->google_event_id
+                'work_id' => $work->id
             ]);
             throw $e;
         }
     }
 
-
-    // Fixed delete event method
+    /**
+     * Delete event from Google Calendar
+     */
     public function deleteEvent($eventId, $calendarId = 'primary')
     {
         try {
             if (!$this->service) {
-                throw new Exception('Calendar service not initialized. Call setAccessToken first.');
-            }
-
-            if (empty($eventId)) {
-                throw new Exception('Event ID is required');
+                throw new Exception('Calendar service not initialized');
             }
 
             $this->service->events->delete($calendarId, $eventId);
 
             Log::info('Google Calendar event deleted', [
-                'event_id' => $eventId,
-                'calendar_id' => $calendarId
+                'event_id' => $eventId
             ]);
 
             return true;
         } catch (\Google_Service_Exception $e) {
-            // Handle Google API specific errors
-            $errors = json_decode($e->getMessage(), true);
-            Log::error('Google Calendar Delete Error (API)', [
-                'error' => $e->getMessage(),
-                'event_id' => $eventId,
-                'status_code' => $e->getCode(),
-                'errors' => $errors
-            ]);
-
-            // If event doesn't exist (404), consider it successful
             if ($e->getCode() === 404 || $e->getCode() === 410) {
-                Log::info('Google Calendar event already deleted or not found', [
-                    'event_id' => $eventId
-                ]);
                 return true;
             }
+            throw $e;
+        }
+    }
 
-            throw new Exception('Google Calendar API Error: ' . $e->getMessage());
+    /**
+     * Legacy method for backward compatibility
+     */
+    public function listEvents($startDate = null, $endDate = null)
+    {
+        return $this->listEventsForCalendar('primary', $startDate, $endDate);
+    }
+
+
+    /**
+     * Create a new Google Calendar
+     */
+    public function createGoogleCalendar($name, $description = null, $color = null)
+    {
+        try {
+            if (!$this->service) {
+                throw new Exception('Calendar service not initialized');
+            }
+
+            $calendar = new \Google\Service\Calendar\Calendar();
+            $calendar->setSummary($name);
+
+            if ($description) {
+                $calendar->setDescription($description);
+            }
+
+            $calendar->setTimeZone(config('app.timezone', 'Asia/Dhaka'));
+
+            $createdCalendar = $this->service->calendars->insert($calendar);
+
+            // Set color if provided
+            if ($color && $createdCalendar->getId()) {
+                $colorId = $this->getGoogleColorId($color);
+                if ($colorId) {
+                    $calendarListEntry = new \Google\Service\Calendar\CalendarListEntry();
+                    $calendarListEntry->setColorId($colorId);
+
+                    $this->service->calendarList->patch(
+                        $createdCalendar->getId(),
+                        $calendarListEntry
+                    );
+                }
+            }
+
+            Log::info('Google Calendar created', [
+                'calendar_id' => $createdCalendar->getId(),
+                'name' => $name
+            ]);
+
+            return $createdCalendar;
         } catch (Exception $e) {
-            Log::error('Google Calendar Delete Error', [
-                'error' => $e->getMessage(),
-                'event_id' => $eventId,
-                'trace' => $e->getTraceAsString()
+            Log::error('Google Calendar Create Error', [
+                'error' => $e->getMessage()
             ]);
             throw $e;
         }
     }
 
-    // list events from google calendar
-    public function listEvents($startDate = null, $endDate = null, $retries = 3)
+    /**
+     * Update Google Calendar
+     */
+    public function updateGoogleCalendar($calendarId, $name, $description = null, $color = null)
     {
-        if (!$this->service) {
-            throw new Exception('Calendar service not initialized');
-        }
+        try {
+            if (!$this->service) {
+                throw new Exception('Calendar service not initialized');
+            }
 
-        $attempt = 0;
-        $lastError = null;
+            $calendar = $this->service->calendars->get($calendarId);
+            $calendar->setSummary($name);
 
-        while ($attempt < $retries) {
-            try {
-                $optParams = [
-                    'maxResults' => 2500,
-                    'orderBy' => 'startTime',
-                    'singleEvents' => true,
-                    'timeMin' => $startDate
-                        ? Carbon::parse($startDate)->toRfc3339String()
-                        : Carbon::now()->subMonths(3)->startOfMonth()->toRfc3339String(), // 3 months ago
-                    'timeMax' => $endDate
-                        ? Carbon::parse($endDate)->toRfc3339String()
-                        : Carbon::now()->addMonths(3)->endOfMonth()->toRfc3339String(), // 3 months ahead
-                ];
+            if ($description !== null) {
+                $calendar->setDescription($description);
+            }
 
-                $calendarId = config('services.google.calendar_id', 'primary');
+            $updatedCalendar = $this->service->calendars->update($calendarId, $calendar);
 
-                Log::info('Fetching Google Calendar events', [
-                    'attempt' => $attempt + 1,
-                    'timeMin' => $optParams['timeMin'],
-                    'timeMax' => $optParams['timeMax']
-                ]);
+            // Update color if provided
+            if ($color) {
+                $colorId = $this->getGoogleColorId($color);
+                if ($colorId) {
+                    $calendarListEntry = new \Google\Service\Calendar\CalendarListEntry();
+                    $calendarListEntry->setColorId($colorId);
 
-                $results = $this->service->events->listEvents($calendarId, $optParams);
-
-                Log::info('Google Calendar events fetched successfully', [
-                    'count' => count($results->getItems()),
-                    'attempt' => $attempt + 1
-                ]);
-
-                return $results->getItems();
-            } catch (Exception $e) {
-                $lastError = $e;
-                $attempt++;
-
-                Log::warning('Google Calendar fetch attempt failed', [
-                    'attempt' => $attempt,
-                    'error' => $e->getMessage(),
-                    'retrying' => $attempt < $retries
-                ]);
-
-                if ($attempt < $retries) {
-                    // Wait before retry: 1s, 2s, 3s
-                    sleep($attempt);
+                    $this->service->calendarList->patch($calendarId, $calendarListEntry);
                 }
             }
+
+            Log::info('Google Calendar updated', [
+                'calendar_id' => $calendarId,
+                'name' => $name
+            ]);
+
+            return $updatedCalendar;
+        } catch (Exception $e) {
+            Log::error('Google Calendar Update Error', [
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
         }
+    }
 
-        // All attempts failed
-        Log::error('Google Calendar List Error - All retries exhausted', [
-            'error' => $lastError->getMessage(),
-            'attempts' => $retries
-        ]);
+    /**
+     * Delete Google Calendar
+     */
+    public function deleteGoogleCalendar($calendarId)
+    {
+        try {
+            if (!$this->service) {
+                throw new Exception('Calendar service not initialized');
+            }
 
-        throw $lastError;
+            $this->service->calendars->delete($calendarId);
+
+            Log::info('Google Calendar deleted', [
+                'calendar_id' => $calendarId
+            ]);
+
+            return true;
+        } catch (\Google_Service_Exception $e) {
+            if ($e->getCode() === 404 || $e->getCode() === 410) {
+                return true; // Already deleted
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Convert hex color to Google Calendar color ID
+     */
+    private function getGoogleColorId($hexColor)
+    {
+        $colorMap = [
+            '#7986cb' => '1',
+            '#33b679' => '2',
+            '#8e24aa' => '3',
+            '#e67c73' => '4',
+            '#f6bf26' => '5',
+            '#f4511e' => '6',
+            '#039be5' => '7',
+            '#616161' => '8',
+            '#3f51b5' => '9',
+            '#0b8043' => '10',
+            '#d50000' => '11',
+            '#13bfa6' => '7', // Map to closest Google color
+        ];
+
+        return $colorMap[$hexColor] ?? '1';
     }
 }
