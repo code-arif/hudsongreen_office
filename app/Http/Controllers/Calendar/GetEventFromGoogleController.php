@@ -17,6 +17,7 @@ class GetEventFromGoogleController extends Controller
      */
     public function getEvents(Request $request)
     {
+        dd($request->all());
         try {
             $start = $request->get('start');
             $end = $request->get('end');

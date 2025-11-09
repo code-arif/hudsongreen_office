@@ -58,7 +58,7 @@
                                 <a href="#" data-bs-toggle="dropdown"
                                     class="nav-link pe-2 leading-none d-flex animate">
                                     <span>
-                                        <img src="{{ asset(Auth::user()->avatar ?? 'default/profile.jpg') }}"
+                                        <img src="{{ asset(Auth::user()->avatar ?? 'default/profile.png') }}"
                                             alt="profile-user" class="avatar  profile-user brround cover-image">
                                     </span>
 
@@ -100,7 +100,7 @@
                         </div>
                     </div>
                 </div>
-              
+
             </div>
         </div>
     </div>

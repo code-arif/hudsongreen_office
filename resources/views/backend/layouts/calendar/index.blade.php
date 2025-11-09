@@ -282,6 +282,33 @@
             let visibleCalendarIds = [];
             let selectedCalendarForNewEvent = null;
 
+            // populateCalendarDropdown function - inside DOMContentLoaded
+            function populateCalendarDropdown() {
+                const calendarSelect = document.getElementById('calendar_id');
+                if (!calendarSelect) return;
+
+                calendarSelect.innerHTML = '<option value="">Select Calendar</option>';
+
+                if (userCalendars && userCalendars.length > 0) {
+                    userCalendars.forEach(cal => {
+                        const option = document.createElement('option');
+                        option.value = cal.id;
+                        option.textContent = cal.name;
+                        option.style.color = cal.color;
+
+                        if (cal.is_default || (cal.is_visible && !calendarSelect.querySelector(
+                                'option[selected]'))) {
+                            option.selected = true;
+                        }
+
+                        calendarSelect.appendChild(option);
+                    });
+                } else {
+                    calendarSelect.innerHTML =
+                        '<option value="">No calendars available - Create one first</option>';
+                }
+            }
+
             // Load user calendars on page load
             loadUserCalendars();
 
@@ -323,6 +350,10 @@
                 initAutocomplete();
             });
 
+            $('#createWorkModal').on('show.bs.modal', function() {
+                populateCalendarDropdown();
+            });
+
             $('#createWorkModal').on('shown.bs.modal', function() {
                 setTimeout(function() {
                     waitForGoogleMaps(function() {
@@ -333,7 +364,7 @@
 
             // Initialize FullCalendar
             const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridDay', // Changed from 'dayGridDay'
+                initialView: 'timeGridDay',
                 headerToolbar: false,
                 editable: true,
                 selectable: true,
@@ -341,13 +372,13 @@
                 dayMaxEvents: true,
                 weekends: true,
                 height: '100%',
-                allDaySlot: true, // Show all-day slot at top
+                allDaySlot: true,
                 slotMinTime: '00:00:00',
                 slotMaxTime: '24:00:00',
-                slotDuration: '00:30:00', // 30-minute slots
-                slotLabelInterval: '01:00', // Label every hour
-                scrollTime: '09:00:00', // Scroll to 9 AM initially
-                nowIndicator: true, // Show current time indicator
+                slotDuration: '00:30:00',
+                slotLabelInterval: '01:00',
+                scrollTime: '09:00:00',
+                nowIndicator: true,
                 slotLabelFormat: {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -359,7 +390,9 @@
                     minute: '2-digit',
                     meridiem: 'short'
                 },
-                displayEventTime: true, // Changed to true to show times
+                displayEventTime: true,
+
+                // calendar_ids filter added
                 events: {
                     url: '{{ route('calendar.events') }}',
                     method: 'GET',
@@ -375,6 +408,7 @@
                         showToast('Failed to load events', 'error');
                     }
                 },
+
                 eventClick: function(info) {
                     info.jsEvent.preventDefault();
                     showEventDetails(info.event);
@@ -414,6 +448,7 @@
                     userCalendars = calendars;
                     visibleCalendarIds = calendars.filter(c => c.is_visible).map(c => c.id);
                     renderCalendarList();
+                    populateCalendarDropdown();
                     calendar.refetchEvents();
                 } catch (error) {
                     console.error('Error loading calendars:', error);
@@ -490,10 +525,10 @@
                                 <i class="fas fa-edit"></i> Edit Calendar
                             </button>
                             ${!cal.is_default ? `
-                                                                                    <button class="menu-option btn text-danger" onclick="deleteCalendar(${calendarId})">
-                                                                                        <i class="fas fa-trash"></i> Delete Calendar
-                                                                                    </button>
-                                                                                ` : ''}
+                                                                                                                                        <button class="menu-option btn text-danger" onclick="deleteCalendar(${calendarId})">
+                                                                                                                                            <i class="fas fa-trash"></i> Delete Calendar
+                                                                                                                                        </button>
+                                                                                                                                    ` : ''}
                         </div>
                     `,
                     showConfirmButton: false,

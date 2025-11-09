@@ -134,33 +134,6 @@
     </div>
 </div>
 
-<script>
-    // Populate calendar dropdown when modal opens
-    $('#createWorkModal').on('show.bs.modal', function() {
-        const calendarSelect = document.getElementById('calendar_id');
-        calendarSelect.innerHTML = '<option value="">Select Calendar</option>';
-
-        // Get calendars from global variable
-        if (typeof userCalendars !== 'undefined' && userCalendars.length > 0) {
-            userCalendars.forEach(cal => {
-                const option = document.createElement('option');
-                option.value = cal.id;
-                option.textContent = cal.name;
-                option.style.color = cal.color;
-
-                // Select default calendar or first calendar
-                if (cal.is_default || (userCalendars.length === 1)) {
-                    option.selected = true;
-                }
-
-                calendarSelect.appendChild(option);
-            });
-        } else {
-            calendarSelect.innerHTML = '<option value="">No calendars available</option>';
-        }
-    });
-</script>
-
 {{-- checkbox style --}}
 <style>
     /* Make checkbox bigger */
