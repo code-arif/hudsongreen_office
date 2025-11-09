@@ -290,7 +290,8 @@ class GoogleCalendarService
             $this->service->events->delete($calendarId, $eventId);
 
             Log::info('Google Calendar event deleted', [
-                'event_id' => $eventId
+                'event_id' => $eventId,
+                'calendar_id' => $calendarId
             ]);
 
             return true;

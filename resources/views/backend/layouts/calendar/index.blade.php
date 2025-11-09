@@ -271,23 +271,29 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // const calendarEl = document.getElementById('calendar');
+            // let currentEventId = null;
+            // let selectedDates = [];
+            // let miniCalendarDate = new Date();
+            // let autocomplete;
+            // let userCalendars = [];
+            // let visibleCalendarIds = [];
+            // let selectedCalendarForNewEvent = null;
+
             const calendarEl = document.getElementById('calendar');
             let currentEventId = null;
             let selectedDates = [];
             let miniCalendarDate = new Date();
             let autocomplete;
-
-            // NEW: Calendar management variables
             let userCalendars = [];
             let visibleCalendarIds = [];
-            let selectedCalendarForNewEvent = null;
 
-            // populateCalendarDropdown function - inside DOMContentLoaded
+            // Populate Calendar Dropdown
             function populateCalendarDropdown() {
                 const calendarSelect = document.getElementById('calendar_id');
                 if (!calendarSelect) return;
 
-                calendarSelect.innerHTML = '<option value="">Select Calendar</option>';
+                calendarSelect.innerHTML = '<option value="">Select Calendar *</option>';
 
                 if (userCalendars && userCalendars.length > 0) {
                     userCalendars.forEach(cal => {
@@ -296,16 +302,14 @@
                         option.textContent = cal.name;
                         option.style.color = cal.color;
 
-                        if (cal.is_default || (cal.is_visible && !calendarSelect.querySelector(
-                                'option[selected]'))) {
+                        if (cal.is_default) {
                             option.selected = true;
                         }
 
                         calendarSelect.appendChild(option);
                     });
                 } else {
-                    calendarSelect.innerHTML =
-                        '<option value="">No calendars available - Create one first</option>';
+                    calendarSelect.innerHTML = '<option value="">No calendars - Create one first</option>';
                 }
             }
 
@@ -449,11 +453,10 @@
                     visibleCalendarIds = calendars.filter(c => c.is_visible).map(c => c.id);
                     renderCalendarList();
                     populateCalendarDropdown();
-                    calendar.refetchEvents();
+                    calendar.refetchEvents(); // Refresh events after loading calendars
                 } catch (error) {
                     console.error('Error loading calendars:', error);
-                    document.getElementById('calendarListContainer').innerHTML =
-                        '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> Failed to load calendars</div>';
+                    showToast('Failed to load calendars', 'error');
                 }
             }
 
@@ -467,26 +470,26 @@
                 }
 
                 container.innerHTML = userCalendars.map(cal => `
-                    <div class="calendar-item" data-calendar-id="${cal.id}">
-                        <div class="calendar-checkbox ${cal.is_visible ? 'checked' : ''}"
-                             onclick="toggleCalendarVisibility(${cal.id})"
-                             style="--cal-color: ${cal.color};">
-                            ${cal.is_visible ? '<i class="fas fa-check"></i>' : ''}
-                        </div>
-                        <div class="calendar-info" onclick="selectCalendar(${cal.id})">
-                            <div class="calendar-name" style="color: ${cal.color};">${cal.name}</div>
-                            <div class="calendar-count">${cal.event_count || 0} events</div>
-                        </div>
-                        <div class="calendar-actions">
-                            <button class="calendar-menu-btn" onclick="showCalendarMenu(event, ${cal.id})">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                        </div>
+                <div class="calendar-item" data-calendar-id="${cal.id}">
+                    <div class="calendar-checkbox ${cal.is_visible ? 'checked' : ''}"
+                        onclick="toggleCalendarVisibility(${cal.id})"
+                        style="--cal-color: ${cal.color};">
+                        ${cal.is_visible ? '<i class="fas fa-check"></i>' : ''}
                     </div>
-                `).join('');
+                    <div class="calendar-info" onclick="selectCalendar(${cal.id})">
+                        <div class="calendar-name" style="color: ${cal.color};">${cal.name}</div>
+                        <div class="calendar-count">${cal.event_count || 0} events</div>
+                    </div>
+                    <div class="calendar-actions">
+                        <button class="calendar-menu-btn" onclick="showCalendarMenu(event, ${cal.id})">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
             }
 
-            // NEW: Toggle Calendar Visibility
+            // Toggle Calendar Visibility
             window.toggleCalendarVisibility = async function(calendarId) {
                 try {
                     const response = await fetch(`/calendars/${calendarId}/toggle`, {
@@ -503,7 +506,7 @@
                             userCalendars[calIndex].is_visible = data.is_visible;
                             visibleCalendarIds = userCalendars.filter(c => c.is_visible).map(c => c.id);
                             renderCalendarList();
-                            calendar.refetchEvents();
+                            calendar.refetchEvents(); // FIXED: Refresh events immediately
                         }
                     }
                 } catch (error) {
@@ -525,10 +528,10 @@
                                 <i class="fas fa-edit"></i> Edit Calendar
                             </button>
                             ${!cal.is_default ? `
-                                                                                                                                        <button class="menu-option btn text-danger" onclick="deleteCalendar(${calendarId})">
-                                                                                                                                            <i class="fas fa-trash"></i> Delete Calendar
-                                                                                                                                        </button>
-                                                                                                                                    ` : ''}
+                                                                                                                                                                                                <button class="menu-option btn text-danger" onclick="deleteCalendar(${calendarId})">
+                                                                                                                                                                                                    <i class="fas fa-trash"></i> Delete Calendar
+                                                                                                                                                                                                </button>
+                                                                                                                                                                                            ` : ''}
                         </div>
                     `,
                     showConfirmButton: false,
@@ -563,8 +566,10 @@
                 $('#addCalendarModal').modal('show');
             };
 
-            // NEW: Save Calendar
+
+            // Save Calendar Button with Loader
             document.getElementById('saveCalendarBtn').addEventListener('click', async function() {
+                const btn = this;
                 const calendarId = document.getElementById('calendarId').value;
                 const name = document.getElementById('calendarName').value;
                 const color = document.querySelector('input[name="calendar_color"]:checked').value;
@@ -577,6 +582,10 @@
 
                 const url = calendarId ? `/calendars/${calendarId}` : '/calendars/create';
                 const method = calendarId ? 'PUT' : 'POST';
+
+                // Show Loader
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
 
                 try {
                     const response = await fetch(url, {
@@ -603,6 +612,9 @@
                     }
                 } catch (error) {
                     showToast('Failed to save calendar', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save me-2"></i>Save';
                 }
             });
 
@@ -1194,13 +1206,13 @@
                 });
             }
 
-            // NEW: Updated Sync Button - Sync ALL Calendars
+            // Sync Button - Use Full Sync
             $('#syncGoogleBtn').on('click', function() {
                 const btn = $(this);
                 btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Syncing...');
 
                 $.ajax({
-                    url: '{{ route('google.sync.all') }}',
+                    url: '{{ route('google.full.sync') }}', // CHANGED: Use full sync
                     method: 'POST',
                     data: {
                         _token: '{{ csrf_token() }}'
@@ -1208,19 +1220,18 @@
                     success: function(response) {
                         if (response.success) {
                             showToast(response.message, 'success');
-                            loadUserCalendars(); // Reload calendars
+                            loadUserCalendars();
                             calendar.refetchEvents();
                         } else {
                             showToast(response.message, 'error');
                         }
                     },
                     error: function(xhr) {
-                        const message = xhr.responseJSON?.message || 'Failed to sync';
-                        showToast(message, 'error');
+                        showToast(xhr.responseJSON?.message || 'Sync failed', 'error');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(
-                            '<i class="fas fa-sync"></i> Sync All');
+                        '<i class="fas fa-sync"></i> Sync All');
                     }
                 });
             });

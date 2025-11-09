@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\Calendar\TrashController;
 use App\Http\Controllers\GoogleCalendarController;
 use App\Http\Controllers\Calendar\CalendarCrudController;
 use App\Http\Controllers\Api\Auth\AuthenticationController;
@@ -137,6 +138,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Multi-calendar sync
     Route::post('/google/sync-all', [SyncMultipleGoogleCalendarsController::class, 'syncAll'])->name('google.sync.all');
     Route::post('/google/full-sync', [BiDirectionalSyncController::class, 'fullSync'])->name('google.full.sync');
+
+    Route::get('/trash', [TrashController::class, 'index'])->name('trash.index');
+    Route::post('/trash/{id}/restore', [TrashController::class, 'restore'])->name('trash.restore');
+    Route::delete('/trash/{id}/force-delete', [TrashController::class, 'forceDelete'])->name('trash.forceDelete');
+    Route::delete('/trash/empty', [TrashController::class, 'emptyTrash'])->name('trash.empty');
 });
 
 

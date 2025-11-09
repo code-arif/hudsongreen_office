@@ -23,7 +23,7 @@ class BiDirectionalSyncController extends Controller
     }
 
     /**
-     * Full bi-directional sync with deletion detection
+     * Full bi-directional sync with deletion detection - NO DUPLICATES
      */
     public function fullSync(Request $request)
     {
@@ -51,13 +51,12 @@ class BiDirectionalSyncController extends Controller
                 $this->updateUserToken($user, $newToken);
             }
 
-            // Fetch all Google Calendars
             $googleCalendarsList = $this->googleCalendar->listAllCalendars();
 
             $startDate = Carbon::now()->subYear()->startOfDay();
             $endDate = Carbon::now()->addMonths(3)->endOfDay();
 
-            $googleEventIds = []; // Track all Google event IDs
+            $googleEventIds = [];
             $syncedCount = 0;
             $updatedCount = 0;
             $deletedCount = 0;
@@ -82,7 +81,6 @@ class BiDirectionalSyncController extends Controller
                         ]
                     );
 
-                    // Fetch events for this calendar
                     $events = $this->googleCalendar->listEventsForCalendar(
                         $calendarId,
                         $startDate,
@@ -91,24 +89,22 @@ class BiDirectionalSyncController extends Controller
 
                     foreach ($events as $event) {
                         try {
+                            $googleEventId = $event->getId();
+
+                            // Handle cancelled events
                             if ($event->getStatus() === 'cancelled') {
-                                // Event is cancelled in Google, delete from local DB
-                                $deletedWork = Work::where('google_event_id', $event->getId())
+                                $deletedWork = Work::where('google_event_id', $googleEventId)
                                     ->where('user_id', $user->id)
                                     ->first();
 
                                 if ($deletedWork) {
-                                    $deletedWork->delete();
+                                    $deletedWork->forceDelete(); // Permanently delete
                                     $deletedCount++;
-                                    Log::info('Deleted cancelled event from local DB', [
-                                        'event_id' => $event->getId()
-                                    ]);
                                 }
                                 continue;
                             }
 
-                            $googleEventId = $event->getId();
-                            $googleEventIds[] = $googleEventId; // Track this event
+                            $googleEventIds[] = $googleEventId;
 
                             $isAllDay = false;
                             $startDateTime = null;
@@ -138,11 +134,17 @@ class BiDirectionalSyncController extends Controller
                                 'google_synced_at' => Carbon::now(),
                             ];
 
-                            $existingWork = Work::where('google_event_id', $googleEventId)
+                            // FIXED: Check by google_event_id AND user_id to prevent duplicates
+                            $existingWork = Work::withTrashed()
+                                ->where('google_event_id', $googleEventId)
                                 ->where('user_id', $user->id)
                                 ->first();
 
                             if ($existingWork) {
+                                // Restore if soft deleted
+                                if ($existingWork->trashed()) {
+                                    $existingWork->restore();
+                                }
                                 $existingWork->update($workData);
                                 $updatedCount++;
                             } else {
@@ -164,7 +166,7 @@ class BiDirectionalSyncController extends Controller
                 }
             }
 
-            // Delete local events that no longer exist in Google
+            // Delete orphaned events (events that don't exist in Google anymore)
             $orphanedWorks = Work::where('user_id', $user->id)
                 ->whereNotNull('google_event_id')
                 ->whereNotIn('google_event_id', $googleEventIds)
@@ -172,12 +174,8 @@ class BiDirectionalSyncController extends Controller
                 ->get();
 
             foreach ($orphanedWorks as $work) {
-                $work->delete();
+                $work->forceDelete(); // Permanently delete
                 $deletedCount++;
-                Log::info('Deleted orphaned event from local DB', [
-                    'work_id' => $work->id,
-                    'google_event_id' => $work->google_event_id
-                ]);
             }
 
             DB::commit();

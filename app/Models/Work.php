@@ -5,11 +5,12 @@ namespace App\Models;
 use App\Models\Calendar;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Work extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -31,6 +32,7 @@ class Work extends Model
         'google_synced_at',
     ];
 
+
     protected $casts = [
         'start_datetime' => 'datetime',
         'end_datetime' => 'datetime',
@@ -41,6 +43,8 @@ class Work extends Model
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
     ];
+
+    protected $dates = ['deleted_at'];
 
 
     // relation with team table
@@ -150,5 +154,15 @@ class Work extends Model
         return $query->whereHas('calendar', function ($q) use ($userId) {
             $q->where('user_id', $userId)->where('is_visible', true);
         });
+    }
+
+    public function scopeForUser($query, $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    public function scopeTrashed($query)
+    {
+        return $query->onlyTrashed();
     }
 }

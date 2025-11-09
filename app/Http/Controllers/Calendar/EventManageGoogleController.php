@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Calendar;
 
 use Exception;
 use App\Models\Work;
+use App\Models\Calendar;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -18,13 +19,11 @@ class EventManageGoogleController extends Controller
 {
     protected $googleCalendar;
 
-    // serivce injection
     public function __construct(GoogleCalendarService $googleCalendar)
     {
         $this->googleCalendar = $googleCalendar;
     }
 
-    //work store and sync with google calendar
     public function store(Request $request)
     {
         DB::beginTransaction();
@@ -43,6 +42,7 @@ class EventManageGoogleController extends Controller
                 'team_id'       => 'nullable|exists:teams,id',
                 'category_id'   => 'nullable|exists:categories,id',
                 'category_name' => 'nullable|string|max:255',
+                'calendar_id'   => 'required|exists:calendars,id', // REQUIRED NOW
             ]);
 
             if ($validator->fails()) {
@@ -66,18 +66,17 @@ class EventManageGoogleController extends Controller
             $isAllDay = $request->is_all_day ?? false;
 
             if ($isAllDay) {
-                // All day event
                 $startDatetime = Carbon::parse($request->work_date)->startOfDay();
                 $endDatetime = Carbon::parse($request->work_date)->endOfDay();
             } else {
-                // Specific time event - Convert 12-hour to datetime
                 $startDatetime = Carbon::parse($request->work_date . ' ' . $request->start_time);
                 $endDatetime = Carbon::parse($request->work_date . ' ' . $request->end_time);
             }
 
-            // Save Work
+            // Save Work with calendar_id
             $work = Work::create([
-                'user_id'         => auth()->id(), // Add user_id
+                'user_id'         => auth()->id(),
+                'calendar_id'     => $request->calendar_id, // FIXED: Now properly saving
                 'title'           => $request->title,
                 'description'     => $request->description,
                 'location'        => $request->location,
@@ -94,68 +93,45 @@ class EventManageGoogleController extends Controller
             $user = auth()->user();
             if ($user && $user->google_access_token) {
                 try {
-                    Log::info('Attempting Google Calendar sync for new work', [
-                        'work_id' => $work->id,
-                        'user_id' => $user->id
-                    ]);
-
-                    // Decode token properly
                     $token = json_decode($user->google_access_token, true);
 
-                    // If it's not an array, means it's corrupted or just string
                     if (!is_array($token)) {
-                        Log::warning('Token is not in proper format, skipping Google sync', [
-                            'token_preview' => substr($user->google_access_token, 0, 50)
-                        ]);
+                        Log::warning('Token format invalid');
                         goto skip_google_sync;
                     }
 
-                    // Add refresh token from database if missing
                     if (!isset($token['refresh_token']) && $user->google_refresh_token) {
                         $token['refresh_token'] = $user->google_refresh_token;
-                        Log::info('Added refresh token from database');
                     }
 
-                    // Set access token
                     $newToken = $this->googleCalendar->setAccessToken($token);
 
-                    // Update token if refreshed
                     if ($newToken) {
-                        Log::info('Token was refreshed during work creation');
-
-                        $user->google_access_token = json_encode($newToken);
-
-                        if (isset($newToken['refresh_token'])) {
-                            $user->google_refresh_token = $newToken['refresh_token'];
-                        }
-
-                        if (isset($newToken['expires_in'])) {
-                            $user->google_token_expires_at = Carbon::now()->addSeconds($newToken['expires_in']);
-                        }
-
-                        $user->save();
+                        $this->updateUserToken($user, $newToken);
                     }
 
-                    // CREATE EVENT IN GOOGLE CALENDAR
-                    $googleEventId = $this->googleCalendar->createEvent($work);
+                    // Get the calendar's google_calendar_id
+                    $calendar = Calendar::find($request->calendar_id);
+                    $googleCalendarId = $calendar->google_calendar_id ?? 'primary';
 
-                    // Update work with Google event ID
+                    // CREATE EVENT IN GOOGLE CALENDAR
+                    $googleEventId = $this->googleCalendar->createEvent($work, $googleCalendarId);
+
                     $work->update([
                         'google_event_id' => $googleEventId,
                         'google_synced_at' => Carbon::now(),
                     ]);
 
-                    Log::info('Work synced to Google Calendar successfully', [
+                    Log::info('Work synced to Google Calendar', [
                         'work_id' => $work->id,
-                        'google_event_id' => $googleEventId
+                        'google_event_id' => $googleEventId,
+                        'calendar_id' => $googleCalendarId
                     ]);
                 } catch (Exception $e) {
-                    Log::error('Google Calendar sync failed during work creation', [
+                    Log::error('Google Calendar sync failed', [
                         'work_id' => $work->id,
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
+                        'error' => $e->getMessage()
                     ]);
-                    // Don't fail the whole operation
                 }
             }
 
@@ -163,8 +139,7 @@ class EventManageGoogleController extends Controller
 
             DB::commit();
 
-            // Reload work with relationships
-            $work->load(['team', 'category']);
+            $work->load(['team', 'category', 'calendar']);
 
             return response()->json([
                 'status'  => true,
@@ -186,15 +161,12 @@ class EventManageGoogleController extends Controller
         }
     }
 
-
-    // show work details
     public function show(Work $work)
     {
-        $work->load(['team', 'category']);
+        $work->load(['team', 'category', 'calendar']);
         return response()->json($work);
     }
 
-    // work update and sync with google calendar
     public function update(Request $request, Work $work)
     {
         DB::beginTransaction();
@@ -214,6 +186,7 @@ class EventManageGoogleController extends Controller
                 'category_id'   => 'nullable|exists:categories,id',
                 'category_name' => 'nullable|string|max:255',
                 'note'          => 'nullable|string',
+                'calendar_id'   => 'nullable|exists:calendars,id',
             ]);
 
             if ($validator->fails()) {
@@ -224,31 +197,24 @@ class EventManageGoogleController extends Controller
                 ], 422);
             }
 
-            // Handle Category
             $categoryId = $request->category_id;
             if (!$categoryId && $request->category_name) {
                 $category = Category::firstOrCreate(
-                    ['name' => $request->category_name],
                     ['name' => $request->category_name]
                 );
                 $categoryId = $category->id;
             }
 
-            // Prepare DateTime fields
             $isAllDay = $request->is_all_day ?? false;
 
             if ($isAllDay) {
-                // All day event
                 $startDatetime = Carbon::parse($request->work_date)->startOfDay();
                 $endDatetime = Carbon::parse($request->work_date)->endOfDay();
             } else {
-                // Specific time event - Convert 12-hour to datetime
                 $startDatetime = Carbon::parse($request->work_date . ' ' . $request->start_time);
                 $endDatetime = Carbon::parse($request->work_date . ' ' . $request->end_time);
             }
 
-
-            // Update Work
             $work->update([
                 'title'           => $request->title,
                 'description'     => $request->description,
@@ -261,21 +227,16 @@ class EventManageGoogleController extends Controller
                 'team_id'         => $request->team_id,
                 'category_id'     => $categoryId,
                 'note'            => $request->note,
+                'calendar_id'     => $request->calendar_id ?? $work->calendar_id,
             ]);
 
             // Google Calendar Sync
             $user = auth()->user();
             if ($user && $user->google_access_token && $work->google_event_id) {
                 try {
-                    Log::info('Attempting Google Calendar update', [
-                        'work_id' => $work->id,
-                        'google_event_id' => $work->google_event_id
-                    ]);
-
                     $token = json_decode($user->google_access_token, true);
 
                     if (!is_array($token)) {
-                        Log::warning('Token format invalid for update');
                         goto skip_google_update;
                     }
 
@@ -286,27 +247,19 @@ class EventManageGoogleController extends Controller
                     $newToken = $this->googleCalendar->setAccessToken($token);
 
                     if ($newToken) {
-                        $user->google_access_token = json_encode($newToken);
-
-                        if (isset($newToken['refresh_token'])) {
-                            $user->google_refresh_token = $newToken['refresh_token'];
-                        }
-
-                        if (isset($newToken['expires_in'])) {
-                            $user->google_token_expires_at = Carbon::now()->addSeconds($newToken['expires_in']);
-                        }
-
-                        $user->save();
+                        $this->updateUserToken($user, $newToken);
                     }
 
-                    // UPDATE EVENT IN GOOGLE CALENDAR
-                    $this->googleCalendar->updateEvent($work);
+                    $calendar = Calendar::find($work->calendar_id);
+                    $googleCalendarId = $calendar->google_calendar_id ?? 'primary';
+
+                    $this->googleCalendar->updateEvent($work, $googleCalendarId);
 
                     $work->update([
                         'google_synced_at' => Carbon::now(),
                     ]);
 
-                    Log::info('Work updated in Google Calendar successfully', [
+                    Log::info('Work updated in Google Calendar', [
                         'work_id' => $work->id,
                         'google_event_id' => $work->google_event_id
                     ]);
@@ -325,7 +278,7 @@ class EventManageGoogleController extends Controller
             return response()->json([
                 'status'  => true,
                 'message' => 'Work updated successfully!',
-                'data'    => $work->load(['team', 'category']),
+                'data'    => $work->load(['team', 'category', 'calendar']),
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
@@ -342,7 +295,6 @@ class EventManageGoogleController extends Controller
         }
     }
 
-
     public function destroy(Work $work)
     {
         DB::beginTransaction();
@@ -358,80 +310,64 @@ class EventManageGoogleController extends Controller
                         'google_event_id' => $work->google_event_id
                     ]);
 
-                    // Decode token properly
                     $token = json_decode($user->google_access_token, true);
 
                     if (!is_array($token)) {
-                        Log::warning('Token format invalid, attempting string format', [
-                            'token_preview' => substr($user->google_access_token, 0, 50)
-                        ]);
-
-                        // If token is just a string (corrupted), try to reconstruct
                         $token = [
                             'access_token' => $user->google_access_token,
                             'refresh_token' => $user->google_refresh_token,
                         ];
                     }
 
-                    // Add refresh token from database if missing
                     if (!isset($token['refresh_token']) && $user->google_refresh_token) {
                         $token['refresh_token'] = $user->google_refresh_token;
                     }
 
-                    // Set token and handle refresh
                     $newToken = $this->googleCalendar->setAccessToken($token);
 
-                    // Update token if refreshed
                     if ($newToken) {
-                        $user->google_access_token = json_encode($newToken);
-
-                        if (isset($newToken['refresh_token'])) {
-                            $user->google_refresh_token = $newToken['refresh_token'];
-                        }
-
-                        if (isset($newToken['expires_in'])) {
-                            $user->google_token_expires_at = Carbon::now()->addSeconds($newToken['expires_in']);
-                        }
-
-                        $user->save();
+                        $this->updateUserToken($user, $newToken);
                     }
 
-                    // Delete the event from Google Calendar
-                    $this->googleCalendar->deleteEvent($work->google_event_id);
+                    // FIXED: Get calendar's google_calendar_id
+                    $calendar = $work->calendar;
+                    $googleCalendarId = $calendar && $calendar->google_calendar_id
+                        ? $calendar->google_calendar_id
+                        : 'primary';
+
+                    // Delete from Google Calendar with proper calendar ID
+                    $this->googleCalendar->deleteEvent($work->google_event_id, $googleCalendarId);
 
                     Log::info('Google Calendar event deleted successfully', [
                         'work_id' => $work->id,
-                        'google_event_id' => $work->google_event_id
+                        'google_event_id' => $work->google_event_id,
+                        'calendar_id' => $googleCalendarId
                     ]);
                 } catch (Exception $e) {
                     Log::error('Failed to delete from Google Calendar', [
                         'work_id' => $work->id,
-                        'google_event_id' => $work->google_event_id,
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString()
                     ]);
-
-                    // Don't fail the whole operation
-                    // Continue to delete from local database
+                    // Continue with local deletion even if Google delete fails
                 }
             }
 
-            // Delete from local database
+            // Soft delete from local database
             $work->delete();
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Work schedule deleted successfully!'
+                'message' => 'Work moved to trash!'
             ]);
         } catch (Exception $e) {
             DB::rollBack();
 
             Log::error('Error deleting work', [
                 'work_id' => $work->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
 
             return response()->json([
@@ -439,5 +375,20 @@ class EventManageGoogleController extends Controller
                 'message' => 'Failed to delete work: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function updateUserToken($user, $newToken)
+    {
+        $user->google_access_token = json_encode($newToken);
+
+        if (isset($newToken['refresh_token'])) {
+            $user->google_refresh_token = $newToken['refresh_token'];
+        }
+
+        if (isset($newToken['expires_in'])) {
+            $user->google_token_expires_at = Carbon::now()->addSeconds($newToken['expires_in']);
+        }
+
+        $user->save();
     }
 }

@@ -17,17 +17,22 @@ class GetEventFromGoogleController extends Controller
      */
     public function getEvents(Request $request)
     {
-        dd($request->all());
         try {
             $start = $request->get('start');
             $end = $request->get('end');
             $teamId = $request->get('team_id');
             $status = $request->get('status');
             $categoryId = $request->get('category_id');
-            $calendarIds = $request->get('calendar_ids'); // Array of calendar IDs
+            $calendarIds = $request->get('calendar_ids');
+
+            // Parse calendar IDs properly
+            if ($calendarIds && is_string($calendarIds)) {
+                $calendarIds = array_filter(explode(',', $calendarIds));
+            }
 
             $query = Work::with(['team', 'category', 'calendar'])
-                ->where('user_id', Auth::id());
+                ->where('user_id', Auth::id())
+                ->whereNull('deleted_at'); // Exclude soft deleted
 
             // Date range filter
             if ($start && $end) {
@@ -37,12 +42,15 @@ class GetEventFromGoogleController extends Controller
                 ]);
             }
 
-            // Calendar filter (show only visible calendars by default)
+            // Calendar filter - FIXED
             if ($calendarIds && is_array($calendarIds) && count($calendarIds) > 0) {
                 $query->whereIn('calendar_id', $calendarIds);
             } else {
                 // Show only visible calendars by default
-                $query->visibleCalendars(Auth::id());
+                $query->whereHas('calendar', function ($q) {
+                    $q->where('user_id', Auth::id())
+                        ->where('is_visible', true);
+                });
             }
 
             // Team filter
@@ -92,7 +100,7 @@ class GetEventFromGoogleController extends Controller
 
                     if ($work->is_all_day) {
                         $baseEvent['start'] = Carbon::parse($work->start_datetime)->toDateString();
-                        $baseEvent['end'] = Carbon::parse($work->end_datetime)->toDateString();
+                        $baseEvent['end'] = Carbon::parse($work->end_datetime)->addDay()->toDateString(); // FIXED: Add 1 day for FullCalendar
                         $baseEvent['allDay'] = true;
                     } else {
                         $baseEvent['start'] = Carbon::parse($work->start_datetime)->toIso8601String();
