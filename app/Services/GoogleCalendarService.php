@@ -173,11 +173,11 @@ class GoogleCalendarService
                     'location' => $work->location,
                     'start' => [
                         'date' => Carbon::parse($work->start_datetime)->toDateString(),
-                        'timeZone' => config('app.timezone', 'Asia/Dhaka'),
+                        'timeZone' => config('app.timezone'),
                     ],
                     'end' => [
                         'date' => Carbon::parse($work->end_datetime)->toDateString(),
-                        'timeZone' => config('app.timezone', 'Asia/Dhaka'),
+                        'timeZone' => config('app.timezone'),
                     ],
                 ]);
             } else {
@@ -187,11 +187,11 @@ class GoogleCalendarService
                     'location' => $work->location,
                     'start' => [
                         'dateTime' => Carbon::parse($work->start_datetime)->toRfc3339String(),
-                        'timeZone' => config('app.timezone', 'Asia/Dhaka'),
+                        'timeZone' => config('app.timezone'),
                     ],
                     'end' => [
                         'dateTime' => Carbon::parse($work->end_datetime)->toRfc3339String(),
-                        'timeZone' => config('app.timezone', 'Asia/Dhaka'),
+                        'timeZone' => config('app.timezone'),
                     ],
                 ]);
             }
@@ -241,22 +241,22 @@ class GoogleCalendarService
             if ($work->is_all_day) {
                 $event->setStart(new EventDateTime([
                     'date' => Carbon::parse($work->start_datetime)->toDateString(),
-                    'timeZone' => config('app.timezone', 'Asia/Dhaka'),
+                    'timeZone' => config('app.timezone'),
                 ]));
 
                 $event->setEnd(new EventDateTime([
                     'date' => Carbon::parse($work->end_datetime)->toDateString(),
-                    'timeZone' => config('app.timezone', 'Asia/Dhaka'),
+                    'timeZone' => config('app.timezone'),
                 ]));
             } else {
                 $event->setStart(new EventDateTime([
                     'dateTime' => Carbon::parse($work->start_datetime)->toRfc3339String(),
-                    'timeZone' => config('app.timezone', 'Asia/Dhaka'),
+                    'timeZone' => config('app.timezone'),
                 ]));
 
                 $event->setEnd(new EventDateTime([
                     'dateTime' => Carbon::parse($work->end_datetime)->toRfc3339String(),
-                    'timeZone' => config('app.timezone', 'Asia/Dhaka'),
+                    'timeZone' => config('app.timezone'),
                 ]));
             }
 
@@ -329,7 +329,7 @@ class GoogleCalendarService
                 $calendar->setDescription($description);
             }
 
-            $calendar->setTimeZone(config('app.timezone', 'Asia/Dhaka'));
+            $calendar->setTimeZone(config('app.timezone'));
 
             $createdCalendar = $this->service->calendars->insert($calendar);
 

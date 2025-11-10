@@ -65,10 +65,10 @@
 
 
                                         <!-- Add Button -->
-                                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                        {{-- <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                             data-bs-target="#workModal" id="addworkBtn">
                                             Add Work
-                                        </button>
+                                        </button> --}}
                                     </div>
                                 </div>
 

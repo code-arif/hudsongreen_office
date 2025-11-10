@@ -133,10 +133,6 @@ class WorkManageController extends Controller
                             <i class="fa fa-eye"></i> View
                         </button>
 
-                        <button type="button" class="btn btn-primary btn-sm editwork" data-id="' . $item->id . '" title="Edit Work">
-                            <i class="fa fa-pen-to-square"></i> Edit
-                        </button>
-
                         <a href="' . $rescheduleUrl . '" class="btn btn-sm btn-warning" title="Reschedule Work">
                             <i class="fas fa-clock-rotate-left"></i> Reschedule
                         </a>
