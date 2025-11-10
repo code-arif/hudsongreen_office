@@ -341,8 +341,8 @@
             let dTable = $('#datatable').DataTable({
                 order: [],
                 lengthMenu: [
-                    [10, 25, 50, 100, -1],
-                    [10, 25, 50, 100, "All"]
+                    [20, 50, 100, 300, 500],
+                    [20, 50, 100, 300, "All"]
                 ],
                 processing: true,
                 serverSide: true,
